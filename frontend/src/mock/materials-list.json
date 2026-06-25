@@ -1,0 +1,207 @@
+{
+  "success": true,
+  "data": {
+    "total": 18,
+    "list": [
+      {
+        "id": 1,
+        "title": "春日花园贴纸套装",
+        "category": "贴纸",
+        "imageUrl": "https://picsum.photos/seed/s1/400/500",
+        "thumbnailUrl": "https://picsum.photos/seed/s1/200/250",
+        "isPremium": false,
+        "downloadCount": 234,
+        "description": "清新春日主题手账贴纸，包含花朵、蝴蝶、小鸟等元素",
+        "tags": ["春天", "花朵", "清新"]
+      },
+      {
+        "id": 2,
+        "title": "复古牛皮纸便签",
+        "category": "便签",
+        "imageUrl": "https://picsum.photos/seed/s2/400/600",
+        "thumbnailUrl": "https://picsum.photos/seed/s2/200/300",
+        "isPremium": false,
+        "downloadCount": 156,
+        "description": "复古做旧风格牛皮纸便签，适合旅行手账",
+        "tags": ["复古", "做旧", "旅行"]
+      },
+      {
+        "id": 3,
+        "title": "星空梦幻背景纸",
+        "category": "背景纸",
+        "imageUrl": "https://picsum.photos/seed/s3/400/450",
+        "thumbnailUrl": "https://picsum.photos/seed/s3/200/225",
+        "isPremium": true,
+        "downloadCount": 89,
+        "description": "梦幻星空渐变背景纸，适合创意手账排版",
+        "tags": ["星空", "渐变", "梦幻"]
+      },
+      {
+        "id": 4,
+        "title": "和风樱花胶带",
+        "category": "胶带",
+        "imageUrl": "https://picsum.photos/seed/s4/400/550",
+        "thumbnailUrl": "https://picsum.photos/seed/s4/200/275",
+        "isPremium": true,
+        "downloadCount": 312,
+        "description": "日式和风樱花主题装饰胶带素材",
+        "tags": ["日式", "樱花", "装饰"]
+      },
+      {
+        "id": 5,
+        "title": "手绘花卉印章",
+        "category": "印章",
+        "imageUrl": "https://picsum.photos/seed/s5/400/480",
+        "thumbnailUrl": "https://picsum.photos/seed/s5/200/240",
+        "isPremium": false,
+        "downloadCount": 178,
+        "description": "手绘风格花卉印章素材，细腻笔触",
+        "tags": ["手绘", "花卉", "印章"]
+      },
+      {
+        "id": 6,
+        "title": "简约周计划模板",
+        "category": "模板",
+        "imageUrl": "https://picsum.photos/seed/s6/400/520",
+        "thumbnailUrl": "https://picsum.photos/seed/s6/200/260",
+        "isPremium": false,
+        "downloadCount": 445,
+        "description": "极简风格周计划手账模板，可打印",
+        "tags": ["简约", "计划", "模板"]
+      },
+      {
+        "id": 7,
+        "title": "复古印章合集",
+        "category": "印章",
+        "imageUrl": "https://picsum.photos/seed/s7/400/440",
+        "thumbnailUrl": "https://picsum.photos/seed/s7/200/220",
+        "isPremium": true,
+        "downloadCount": 67,
+        "description": "复古邮戳风格印章素材合集",
+        "tags": ["复古", "邮戳", "合集"]
+      },
+      {
+        "id": 8,
+        "title": "渐变色贴纸包",
+        "category": "贴纸",
+        "imageUrl": "https://picsum.photos/seed/s8/400/580",
+        "thumbnailUrl": "https://picsum.photos/seed/s8/200/290",
+        "isPremium": false,
+        "downloadCount": 198,
+        "description": "莫兰迪渐变色调贴纸包，温柔治愈",
+        "tags": ["渐变", "莫兰迪", "温柔"]
+      },
+      {
+        "id": 9,
+        "title": "透明底花框便签",
+        "category": "便签",
+        "imageUrl": "https://picsum.photos/seed/s9/400/470",
+        "thumbnailUrl": "https://picsum.photos/seed/s9/200/235",
+        "isPremium": false,
+        "downloadCount": 123,
+        "description": "透明底花框便签，PNG 格式可直接叠加使用",
+        "tags": ["透明", "花框", "叠加"]
+      },
+      {
+        "id": 10,
+        "title": "清新绿叶背景纸",
+        "category": "背景纸",
+        "imageUrl": "https://picsum.photos/seed/s10/400/510",
+        "thumbnailUrl": "https://picsum.photos/seed/s10/200/255",
+        "isPremium": true,
+        "downloadCount": 56,
+        "description": "清新绿叶纹理背景纸，自然气息",
+        "tags": ["绿叶", "清新", "自然"]
+      },
+      {
+        "id": 11,
+        "title": "和风金箔胶带",
+        "category": "胶带",
+        "imageUrl": "https://picsum.photos/seed/s11/400/490",
+        "thumbnailUrl": "https://picsum.photos/seed/s11/200/245",
+        "isPremium": true,
+        "downloadCount": 201,
+        "description": "传统和风金箔装饰胶带，华丽精致",
+        "tags": ["和风", "金箔", "华丽"]
+      },
+      {
+        "id": 12,
+        "title": "月计划子弹笔记模板",
+        "category": "模板",
+        "imageUrl": "https://picsum.photos/seed/s12/400/530",
+        "thumbnailUrl": "https://picsum.photos/seed/s12/200/265",
+        "isPremium": false,
+        "downloadCount": 367,
+        "description": "子弹笔记风格月计划模板，高效规划",
+        "tags": ["子弹笔记", "月计划", "高效"]
+      },
+      {
+        "id": 13,
+        "title": "森系动物贴纸",
+        "category": "贴纸",
+        "imageUrl": "https://picsum.photos/seed/s13/400/460",
+        "thumbnailUrl": "https://picsum.photos/seed/s13/200/230",
+        "isPremium": false,
+        "downloadCount": 289,
+        "description": "森林小动物主题手账贴纸，可爱治愈",
+        "tags": ["森系", "动物", "可爱"]
+      },
+      {
+        "id": 14,
+        "title": "水墨风便签纸",
+        "category": "便签",
+        "imageUrl": "https://picsum.photos/seed/s14/400/540",
+        "thumbnailUrl": "https://picsum.photos/seed/s14/200/270",
+        "isPremium": true,
+        "downloadCount": 145,
+        "description": "中国风水墨画便签纸，意境悠远",
+        "tags": ["水墨", "中国风", "意境"]
+      },
+      {
+        "id": 15,
+        "title": "大理石纹理背景",
+        "category": "背景纸",
+        "imageUrl": "https://picsum.photos/seed/s15/400/500",
+        "thumbnailUrl": "https://picsum.photos/seed/s15/200/250",
+        "isPremium": false,
+        "downloadCount": 178,
+        "description": "高级大理石纹理背景纸，简约大气",
+        "tags": ["大理石", "纹理", "高级"]
+      },
+      {
+        "id": 16,
+        "title": "复古邮票印章",
+        "category": "印章",
+        "imageUrl": "https://picsum.photos/seed/s16/400/430",
+        "thumbnailUrl": "https://picsum.photos/seed/s16/200/215",
+        "isPremium": false,
+        "downloadCount": 92,
+        "description": "世界各地复古邮票印章素材",
+        "tags": ["邮票", "复古", "世界"]
+      },
+      {
+        "id": 17,
+        "title": "读书笔记模板",
+        "category": "模板",
+        "imageUrl": "https://picsum.photos/seed/s17/400/560",
+        "thumbnailUrl": "https://picsum.photos/seed/s17/200/280",
+        "isPremium": false,
+        "downloadCount": 256,
+        "description": "精美读书笔记手账模板，记录阅读心得",
+        "tags": ["读书", "笔记", "模板"]
+      },
+      {
+        "id": 18,
+        "title": "蕾丝花边胶带",
+        "category": "胶带",
+        "imageUrl": "https://picsum.photos/seed/s18/400/480",
+        "thumbnailUrl": "https://picsum.photos/seed/s18/200/240",
+        "isPremium": true,
+        "downloadCount": 134,
+        "description": "精致蕾丝花边装饰胶带，优雅复古",
+        "tags": ["蕾丝", "花边", "优雅"]
+      }
+    ]
+  },
+  "error": null
+}

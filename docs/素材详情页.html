@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>复古牛皮纸胶带 12卷套装 - 详情页</title>
+    <style>
+        :root {
+            --primary-color: #111111;
+            --secondary-color: #666666;
+            --background-color: #FAFAFA;
+            --card-background: #FFFFFF;
+            --accent-warm: #B88230;
+            --border-light: #F0F0F0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #F5F5F5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--primary-color);
+        }
+
+        /* 模拟手机外壳容器 */
+        .phone-container {
+            width: 375px;
+            height: 812px;
+            background-color: var(--card-background);
+            border: 12px solid #111111;
+            border-radius: 40px;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 苹果刘海屏灵动岛模拟 */
+        .island {
+            position: absolute;
+            top: 11px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 110px;
+            height: 30px;
+            background-color: #111111;
+            border-radius: 20px;
+            z-index: 100;
+        }
+
+        /* 状态栏 */
+        .status-bar {
+            height: 44px;
+            padding: 14px 24px 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 90;
+            background-color: transparent;
+            position: absolute;
+            width: 100%;
+            color: #111111;
+        }
+
+        .status-icons {
+            display: flex;
+            gap: 5px;
+            font-size: 10px;
+        }
+
+        /* 顶部导航栏 */
+        .nav-bar {
+            position: absolute;
+            top: 44px;
+            width: 100%;
+            height: 44px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 16px;
+            z-index: 90;
+        }
+
+        .nav-btn {
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .nav-right {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* 主体内容滚动区 */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+            padding-bottom: 100px;
+            background-color: var(--card-background);
+        }
+
+        .main-content::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* 素材主图区域 */
+        .image-banner-wrapper {
+            position: relative;
+            width: 100%;
+            height: 375px;
+            background-color: #eaeaea;
+        }
+
+        .main-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* 会员专属核心标签 */
+        .vip-badge {
+            position: absolute;
+            top: 100px;
+            left: 16px;
+            background: rgba(17, 17, 17, 0.85);
+            color: #FFFFFF;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            letter-spacing: 0.5px;
+            backdrop-filter: blur(4px);
+        }
+
+        /* 图片底部渐变及提示语 */
+        .image-overlay-text {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 30px 16px 15px 16px;
+            background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%);
+            color: #FFFFFF;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        /* 详情信息文本区 */
+        .info-container {
+            padding: 20px 16px;
+        }
+
+        .category-path {
+            font-size: 11px;
+            color: var(--secondary-color);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .material-title {
+            font-size: 19px;
+            font-weight: 700;
+            line-height: 1.4;
+            color: var(--primary-color);
+            margin-bottom: 14px;
+        }
+
+        .author-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .author-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #111111;
+            margin-right: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            font-size: 10px;
+        }
+
+        .author-name {
+            font-size: 13px;
+            color: #333333;
+            font-weight: 500;
+        }
+
+        .stats-row {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+            color: #888888;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 20px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* 极简底部固定操作栏 */
+        .bottom-action-bar {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 84px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-top: 1px solid var(--border-light);
+            padding: 12px 16px 24px 16px;
+            display: flex;
+            gap: 12px;
+            z-index: 80;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-preview {
+            flex: 1;
+            background-color: #FFFFFF;
+            border: 1px solid #E5E5E5;
+            border-radius: 100px;
+            color: var(--primary-color);
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        .btn-download-trigger {
+            flex: 2;
+            background-color: var(--primary-color);
+            border: none;
+            border-radius: 100px;
+            color: #FFFFFF;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        /* 底部防沉迷线模拟 */
+        .home-indicator {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 134px;
+            height: 5px;
+            background-color: #111111;
+            border-radius: 3px;
+            z-index: 110;
+        }
+
+        /* 核心合规下载拦截半屏弹窗 */
+        .modal-mask {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-mask.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .bottom-sheet {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #FFFFFF;
+            border-radius: 24px 24px 0 0;
+            padding: 0 24px 34px 24px;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.1);
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            z-index: 210;
+            text-align: center;
+        }
+
+        .bottom-sheet.active {
+            transform: translateY(0);
+        }
+
+        .sheet-handle {
+            width: 36px;
+            height: 5px;
+            background-color: #E5E5E5;
+            border-radius: 3px;
+            margin: 12px auto 24px auto;
+        }
+
+        .sheet-vip-icon {
+            width: 54px;
+            height: 54px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            margin: 0 auto 16px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #FFFFFF;
+            font-size: 22px;
+        }
+
+        .sheet-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        .sheet-subtitle {
+            font-size: 13px;
+            color: var(--secondary-color);
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .sheet-btn-exchange {
+            width: 100%;
+            background-color: var(--primary-color);
+            color: #FFFFFF;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            margin-bottom: 12px;
+        }
+
+        .sheet-btn-customer {
+            width: 100%;
+            background-color: #FFFFFF;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            padding: 13px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .sheet-btn-cancel {
+            font-size: 14px;
+            color: var(--secondary-color);
+            cursor: pointer;
+            font-weight: 500;
+            background: none;
+            border: none;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="phone-container">
+        <div class="island"></div>
+
+        <div class="status-bar">
+            <span>9:41</span>
+            <div class="status-icons">📶 🛜 🔋</div>
+        </div>
+
+        <div class="nav-bar">
+            <div class="nav-btn">‹</div>
+            <div class="nav-right">
+                <div class="nav-btn">🔗</div>
+                <div class="nav-btn">⋮</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="image-banner-wrapper">
+                <svg class="main-image" viewBox="0 0 375 375" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="375" height="375" fill="#D3C7BC"/>
+                    <circle cx="150" cy="200" r="45" stroke="#A69383" stroke-width="26" fill="none"/>
+                    <circle cx="220" cy="180" r="45" stroke="#BCAAA4" stroke-width="26" fill="none"/>
+                    <path d="M 0 330 Q 100 290, 250 310 T 375 280 L 375 375 L 0 375 Z" fill="#C8B195" opacity="0.5"/>
+                </svg>
+                <div class="vip-badge">👑 会员专属</div>
+                <div class="image-overlay-text">查看高清原图需加入会员</div>
+            </div>
+
+            <div class="info-container">
+                <div class="category-path">胶带 · Washi Tapes</div>
+                <h1 class="material-title">复古牛皮纸胶带 12 卷套装</h1>
+                <div class="author-row">
+                    <div class="author-avatar">P</div>
+                    <span class="author-name">@Paper Lab</span>
+                </div>
+                <div class="stats-row">
+                    <div class="stat-item">🤍 856</div>
+                    <div class="stat-item">📥 2.4k</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-action-bar">
+            <button class="btn-preview" id="btnPreview">👁 预览</button>
+            <button class="btn-download-trigger" id="btnDownload">👑 解锁下载</button>
+        </div>
+
+        <div class="home-indicator"></div>
+
+        <!-- 拦截弹窗 -->
+        <div class="modal-mask" id="modalMask"></div>
+        <div class="bottom-sheet" id="bottomSheet">
+            <div class="sheet-handle"></div>
+            <div class="sheet-vip-icon">👑</div>
+            <div class="sheet-title">解锁会员</div>
+            <div class="sheet-subtitle">该素材为会员专属，成为会员即可下载高清无水印原图</div>
+            
+            <button class="sheet-btn-exchange" id="btnExchange">👑 解锁会员</button>
+            <button class="sheet-btn-customer" id="btnCustomer">💬 联系客服购买</button>
+            <button class="sheet-btn-cancel" id="btnCancel">取消</button>
+        </div>
+    </div>
+
+    <script>
+        const btnDownload = document.getElementById('btnDownload');
+        const modalMask = document.getElementById('modalMask');
+        const bottomSheet = document.getElementById('bottomSheet');
+        const btnCancel = document.getElementById('btnCancel');
+
+        btnDownload.addEventListener('click', () => {
+            modalMask.classList.add('active');
+            bottomSheet.classList.add('active');
+        });
+
+        const closeModal = () => {
+            modalMask.classList.remove('active');
+            bottomSheet.classList.remove('active');
+        };
+
+        modalMask.addEventListener('click', closeModal);
+        btnCancel.addEventListener('click', closeModal);
+    </script>
+</body>
+</html>

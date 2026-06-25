@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "nickname": "手账控Mori",
+    "avatarUrl": "/static/images/default-avatar.png",
+    "memberType": "normal",
+    "memberTypeText": "普通用户",
+    "memberExpireTime": null
+  },
+  "error": null
+}

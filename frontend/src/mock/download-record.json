@@ -1,0 +1,44 @@
+{
+  "success": true,
+  "data": {
+    "total": 5,
+    "list": [
+      {
+        "id": 1,
+        "materialId": 1,
+        "title": "春日花园贴纸套装",
+        "thumbnailUrl": "https://picsum.photos/seed/sticker1/100/125",
+        "downloadedAt": "2026-06-10T14:30:00.000Z"
+      },
+      {
+        "id": 2,
+        "materialId": 4,
+        "title": "和风樱花胶带",
+        "thumbnailUrl": "https://picsum.photos/seed/tape4/100/125",
+        "downloadedAt": "2026-06-09T10:15:00.000Z"
+      },
+      {
+        "id": 3,
+        "materialId": 7,
+        "title": "复古印章合集",
+        "thumbnailUrl": "https://picsum.photos/seed/stamp7/100/125",
+        "downloadedAt": "2026-06-08T16:45:00.000Z"
+      },
+      {
+        "id": 4,
+        "materialId": 10,
+        "title": "清新绿叶背景纸",
+        "thumbnailUrl": "https://picsum.photos/seed/bg10/100/125",
+        "downloadedAt": "2026-06-07T09:00:00.000Z"
+      },
+      {
+        "id": 5,
+        "materialId": 2,
+        "title": "复古牛皮纸便签",
+        "thumbnailUrl": "https://picsum.photos/seed/note2/100/125",
+        "downloadedAt": "2026-06-06T20:30:00.000Z"
+      }
+    ]
+  },
+  "error": null
+}

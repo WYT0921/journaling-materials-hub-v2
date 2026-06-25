@@ -1,0 +1,9 @@
+{
+  "success": true,
+  "data": {
+    "url": "https://picsum.photos/seed/download/800/1000",
+    "materialId": 1,
+    "filename": "spring-garden-stickers.png"
+  },
+  "error": null
+}

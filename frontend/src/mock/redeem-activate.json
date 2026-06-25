@@ -1,0 +1,10 @@
+{
+  "success": true,
+  "data": {
+    "token": "mock-premium-token-xyz789",
+    "expireTime": "2027-06-11T00:00:00.000Z",
+    "memberType": "annual",
+    "memberTypeText": "年卡会员"
+  },
+  "error": null
+}

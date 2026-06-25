@@ -1,0 +1,233 @@
+═══════════════════════════════════════════════════════════════
+  手账素材小程序 — 待完善问题清单
+  更新日期：2026-06-16
+═══════════════════════════════════════════════════════════════
+
+【问题分级说明】
+  ✅ 已修复 — 已解决并验证
+  🔴 严重 — 核心流程阻断，需优先修复
+  🟡 中等 — 功能缺失或体验问题
+  🟢 轻微 — 优化项 / 占位功能
+
+
+═══════════════════════════════════════════════════════════════
+一、详情页问题
+═══════════════════════════════════════════════════════════════
+
+1.1 大图无法预览查看 ✅ 已修复 (2026-06-12)
+  - 修复：移除 isBlurred 判断，所有用户均可点击图片调用 uni.previewImage 预览
+  - 涉及文件：frontend/src/pages/detail/detail.vue
+
+1.2 会员/非会员逻辑需全面调整 ✅ 已修复 (2026-06-12)
+  - 修复内容：
+    · 移除渐变遮罩（所有用户可见完整图片）
+    · CTA 栏统一为：非会员→双按钮"预览"+"解锁下载"，会员→"下载素材"
+    · 移除 isVipOnly/isBlurred/showVipBadge 计算属性，简化逻辑
+    · 移除 gradient-overlay CSS 样式
+  - 涉及文件：frontend/src/pages/detail/detail.vue
+
+1.3 图片展示问题
+  - 现状：material-image 使用 mode="widthFix"，图片按宽度自适应
+  - HTML 原型预期：固定高度 375px，object-fit: cover 裁剪展示
+  - 需确认：后端返回的 imageUrl 是原图还是缩略图？
+    如果只有一个 URL，需要支持原图加载 + 预览功能
+
+参考原型：docs/素材详情页.html
+
+
+═══════════════════════════════════════════════════════════════
+二、首页会员区分逻辑
+═══════════════════════════════════════════════════════════════
+
+2.1 MaterialCard 模糊遮罩需移除 ✅ 已修复 (2026-06-12)
+  - 修复：移除 isBlurred 计算属性、blur-overlay DOM、isPremium prop；
+    移除 index.vue 中 useUserStore 及相关传参
+  - 保留：VIP 角标（标记会员专享素材）
+  - 涉及文件：frontend/src/components/MaterialCard.vue
+              frontend/src/pages/index/index.vue
+
+2.2 所有素材均需会员才能下载 ✅ 已修复 (2026-06-12)
+  - 首页：MaterialCard 不再根据用户会员状态做区分（全部可见）
+  - 详情页：CTA 栏统一逻辑（见 1.2）
+
+
+═══════════════════════════════════════════════════════════════
+三、收藏功能未完成
+═══════════════════════════════════════════════════════════════
+
+3.1 收藏列表页面缺失 ✅ 已修复 (2026-06-12)
+  - 已完成：
+    a. 新建 frontend/src/api/favorite.js — 3 个端点（toggle/check/list） ✅
+    b. 新建 frontend/src/pages/favorites/index.vue — 收藏列表页（瀑布流+分页） ✅
+    c. 详情页收藏按钮 — nav 栏 ❤/♡ 切换，乐观更新 ✅
+    d. Profile 页收藏记录入口 → 跳转收藏列表页 ✅
+    e. pages.json 注册路由 ✅
+
+
+═══════════════════════════════════════════════════════════════
+四、工具箱未对接后端
+═══════════════════════════════════════════════════════════════
+
+4.1 前端仅使用 localStorage ✅ 已修复 (2026-06-12)
+  - 已完成：
+    a. 新建 frontend/src/api/tools.js — 4 个端点（get/add/update/delete） ✅
+    b. 改造 stores/tools.js — fetchTools() 从后端加载，addTool/removeTool 同步后端 ✅
+    c. localStorage 保留为离线缓存（后端不可用时的 fallback） ✅
+    d. tools.vue 调用 fetchTools() 替换 loadCustomTools() ✅
+
+
+═══════════════════════════════════════════════════════════════
+五、后端问题 🟡
+═══════════════════════════════════════════════════════════════
+
+5.1 AdminController 缺少权限校验 ✅ 已修复 (2026-06-12)
+  - 修复：新增 AdminInterceptor + 配置化管理员白名单，拦截 /api/v2/admin/** 路径
+  - 涉及文件：backend/.../filter/AdminInterceptor.java（新建）
+              backend/.../config/WebMvcConfig.java
+  - 现状：AdminController 中 6 个管理端点仅需登录即可访问，
+    无管理员角色检查
+  - 风险：任何登录用户都能修改/删除素材、禁用用户
+  - 需实现：添加 @AdminOnly 注解或拦截器校验管理员权限
+  - 涉及文件：backend/.../controller/AdminController.java
+
+5.2 Controller 层单元测试缺失 ✅ 已修复 (2026-06-12)
+  - 修复：新增 7 个 Controller MockMvc 测试类，共 36 个用例
+  - 新增文件：ControllerTestBase + Admin(7)/Download(4)/Favorite(5)/Material(6)/Redeem(5)/Tool(3)/User(6)
+  - 涉及文件：backend/.../controller/ControllerTestBase.java（新建）
+              backend/.../controller/*ControllerTest.java（7 个新建）
+
+5.3 RedeemCodeServiceTest 部分用例被禁用 ✅ 已修复 (2026-06-12)
+  - 修复：移除全部 @Disabled 注解，修正测试配置 logic-delete-field 与生产对齐
+  - 根本原因：测试配置的 logic-delete-field: status 导致 redeem_codes 的 status=0 被当删除过滤
+  - 涉及文件：backend/.../service/RedeemCodeServiceTest.java
+              backend/.../test/resources/application-test.yml
+
+
+═══════════════════════════════════════════════════════════════
+六、近期修复记录 (2026-06-13 ~ 06-14)
+═══════════════════════════════════════════════════════════════
+
+6.1 MaterialCard 详情页跳转传参为 undefined ✅ 已修复
+  - 原因：组件 emit('tap') 在 uni-app 中被解析为原生 DOM tap 事件
+  - 修复：事件名改为 emit('select')，父组件用 @select 监听
+  - 涉及文件：MaterialCard.vue, index.vue, favorites/index.vue
+
+6.2 前端详情页 mock 路由错误 ✅ 已修复
+  - 原因：/materials/12 被 /materials 键匹配，返回列表而非详情数据
+  - 修复：新增 /materials/\d+ 正则识别，优先返回 materialDetail
+  - 涉及文件：frontend/src/mock/index.js
+
+6.3 MinIO 文件服务器部署 ✅ 已完成
+  - 服务器：111.229.148.112:9000 (API) / :9001 (Console)
+  - Bucket：materials（公开读取），minioadmin / minioadmin
+  - 后端集成：MinioConfig + FileService + AdminFileController (上传+缩略图)
+  - 涉及：docker-compose.yml, pom.xml, application.yml, 新建 6 个 Java 文件
+
+6.4 素材数据入库 ✅ 已完成
+  - 第四期 10 张图片上传到 MinIO，数据库写入 22 条素材记录
+  - 前端切 real 模式直连后端 API
+
+6.5 SSH 服务器管理 ✅ 已配置
+  - 本地密钥 ~/.ssh/id_ed25519 已授权到 root@111.229.148.112
+
+6.6 手机号授权登录 ✅ 已完成 (2026-06-16)
+  - 参考设计：docs/微信小程序手机号授权登录设计方案.pdf
+  - 后端：
+    · WeChatUtil 新增 getAccessToken()（内存缓存）+ getPhoneNumber(code) 方法
+    · 新增 POST /api/user/bind-phone 端点（需 JWT 认证）
+    · UserService.bindPhone(userId, phone)  + BindPhoneRequest DTO
+    · 新增错误码：PHONE_ALREADY_BOUND(1007), PHONE_BIND_FAILED(1008)
+    · 测试：UserServiceTest(1) + UserControllerTest(3) = 4 个新用例
+  - 前端：
+    · api/user.js 新增 bindPhone() + devLogin()
+    · stores/user.js 新增 bindPhone action + 游客模式自动降级 dev-login
+    · profile.vue 新增手机号卡片：已绑定(脱敏+✓) / 未绑定(button getPhoneNumber)
+    · Mock 数据 user-bind-phone.json + 注册
+  - 涉及文件：WeChatUtil.java, UserController.java, UserService*.java,
+              BindPhoneRequest.java, ErrorCode.java, UserServiceTest.java,
+              UserControllerTest.java, api/user.js, stores/user.js,
+              profile.vue, mock/user-bind-phone.json, mock/index.js
+
+6.7 Redis 服务器部署 ✅ 已完成 (2026-06-16)
+  - Docker redis:7-alpine 部署在 111.229.148.112:6379，密码 ******
+  - 防火墙 docker zone 开放 6379 端口
+
+6.8 首页筛选功能 ✅ 已完成 (2026-06-16)
+  - 后端：MaterialController + MaterialServiceImpl 新增 sortBy 参数
+    （default=综合 / newest=最新 / downloads=最多下载）
+  - 前端：index.vue 新增筛选面板（☰ 按钮展开，排序切换+动画）
+  - 后端测试：MaterialServiceTest 适配新签名，82→86 用例全通过
+
+═══════════════════════════════════════════════════════════════
+七、功能占位（Stub）需补全 🟢
+═══════════════════════════════════════════════════════════════
+
+7.1 素材详情页 — 分享功能
+  - 现状：右上角"⋯"按钮 toast "功能开发中"
+  - 涉及：frontend/src/pages/detail/detail.vue handleShare()
+
+7.2 首页 — 筛选功能 ✅ 已修复 (2026-06-16)
+  - 现状：点击"☰"展开筛选面板，支持排序方式切换（综合/最新/最多下载），选择后自动刷新
+  - 涉及：frontend/src/pages/index/index.vue（面板 UI + 动画）
+            frontend/src/stores/material.js（sortBy 状态 + setSortBy action）
+            backend/.../controller/MaterialController.java（新增 sortBy 参数）
+            backend/.../service/MaterialServiceImpl.java（动态排序逻辑）
+
+7.3 首页 — 通知功能
+
+7.4 解锁弹窗 — 联系客服
+  - 现状："联系客服"按钮 toast "客服功能开发中"
+  - 涉及：frontend/src/pages/detail/detail.vue handleContactService()
+
+7.5 Profile 页 — 设置/关于/反馈建议
+  - 现状：4 个菜单项（设置、素材管理、关于、反馈建议）均无跳转
+  - 涉及：frontend/src/pages/profile/profile.vue
+
+
+═══════════════════════════════════════════════════════════════
+八、其他优化项 🟢
+═══════════════════════════════════════════════════════════════
+
+8.1 详情页图片加载优化
+  - 大图加载应有 loading 状态和加载失败占位图
+  - 当前 image 组件没有 @error / @load 处理
+
+8.2 详情页作者信息为硬编码
+  - 第 46 行 author-name 写死为"@手账控Mori"
+  - 应从后端数据获取（需数据库支持或 API 返回作者字段）
+
+8.3 下载流程错误处理不完善
+  - uni.downloadFile 失败时需区分：网络错误、权限拒绝、相册满
+  - 当前统一提示"下载失败，请重试"
+
+8.4 MinIO 文件服务器（done）
+  - ✅ MinIO 已部署在 111.229.148.112:9000
+  - ⚠️ 缩略图功能未使用（需 AdminFileController 生成缩略图）
+  - ⚠️ 素材管理后台前端未开发
+
+
+═══════════════════════════════════════════════════════════════
+  优先级建议（更新于 2026-06-16）
+═══════════════════════════════════════════════════════════════
+
+  🔴 第一批（核心修复）✅ 已完成
+    1. 详情页大图预览 + 会员逻辑 ✅
+    2. 首页模糊遮罩移除 ✅
+
+  🟡 第二批（功能补全）✅ 已完成
+    3. 收藏功能 ✅    4. 工具箱对接 ✅
+
+  🟠 第三批（质量+安全）✅ 已完成
+    5. Admin 权限 ✅   6. Controller 测试 ✅   7. RedeemCodeTest ✅
+
+  🔵 基础设施 ✅ 已完成
+    MinIO 部署 + 素材入库 + SSH 管理 + 前端 real 模式
+
+	  🆕 新增功能 ✅ 已完成 (2026-06-16)
+	    手机号授权登录 + Redis 部署 + 首页筛选功能
+	    游客模式自动降级 dev-login
+
+  🟢 第四批（占位功能 + 体验优化）← 当前
+    分享 / 通知 / 客服 / 设置页面（✅ 筛选已完成）
+    9. 图片加载状态 + 作者信息动态化
+   10. 下载错误分类处理

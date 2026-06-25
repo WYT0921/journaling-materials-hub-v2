@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "data": [
+    { "category": "贴纸", "name": "贴纸", "count": 35 },
+    { "category": "便签", "name": "便签", "count": 28 },
+    { "category": "背景纸", "name": "背景纸", "count": 22 },
+    { "category": "胶带", "name": "胶带", "count": 18 },
+    { "category": "印章", "name": "印章", "count": 15 },
+    { "category": "模板", "name": "模板", "count": 10 }
+  ],
+  "error": null
+}

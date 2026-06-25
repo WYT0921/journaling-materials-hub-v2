@@ -1,0 +1,16 @@
+{
+  "success": true,
+  "data": {
+    "token": "mock-token-normal-abc123",
+    "userInfo": {
+      "id": 1,
+      "nickname": "手账控Mori",
+      "avatarUrl": "/static/images/default-avatar.png",
+      "memberType": "normal",
+      "memberTypeText": "普通用户",
+      "memberExpireTime": null
+    },
+    "isPremium": false
+  },
+  "error": null
+}

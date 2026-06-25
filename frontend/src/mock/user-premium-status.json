@@ -1,0 +1,10 @@
+{
+  "success": true,
+  "data": {
+    "isPremium": false,
+    "memberType": "normal",
+    "memberTypeText": "普通用户",
+    "memberExpireTime": null
+  },
+  "error": null
+}

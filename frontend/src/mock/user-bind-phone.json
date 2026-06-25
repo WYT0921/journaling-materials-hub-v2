@@ -1,0 +1,15 @@
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "nickname": "手账控Mori",
+    "avatarUrl": "/static/images/default-avatar.png",
+    "phone": "13800138000",
+    "memberType": "normal",
+    "memberTypeText": "普通用户",
+    "memberExpireTime": null,
+    "points": 100,
+    "downloadCount": 5
+  },
+  "error": null
+}

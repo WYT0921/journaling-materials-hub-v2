@@ -1,0 +1,11 @@
+{
+  "success": true,
+  "data": {
+    "valid": true,
+    "code": "ABCD1234",
+    "memberType": "annual",
+    "memberTypeText": "年卡会员",
+    "expireDays": 365
+  },
+  "error": null
+}

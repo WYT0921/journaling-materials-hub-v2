@@ -1,0 +1,15 @@
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "title": "春日花园贴纸套装",
+    "category": "贴纸",
+    "imageUrl": "https://picsum.photos/seed/sticker1/800/1000",
+    "thumbnailUrl": "https://picsum.photos/seed/sticker1/400/500",
+    "isPremium": false,
+    "downloadCount": 234,
+    "description": "清新春日主题手账贴纸，包含花朵、蝴蝶、小鸟等多种自然元素。高清PNG格式，可直接打印或电子手账使用。",
+    "tags": ["春天", "花朵", "清新", "手绘", "自然"]
+  },
+  "error": null
+}

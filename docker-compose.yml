@@ -1,0 +1,131 @@
+version: '3.8'
+
+services:
+  # SpringBoot 后端
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: journaling-materials-hub-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USERNAME=journaling_user
+      - DB_PASSWORD=${DB_PASSWORD:-your_password}
+      - DB_NAME=journaling_materials_hub
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=${JWT_SECRET:-your_jwt_secret_key_here}
+      - JWT_EXPIRES_IN=604800000
+      - WECHAT_APPID=${WECHAT_APPID}
+      - WECHAT_SECRET=${WECHAT_SECRET}
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
+      - MINIO_BUCKET=materials
+    depends_on:
+      - mysql
+      - redis
+      - minio
+    networks:
+      - journaling-network
+
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.0
+    container_name: journaling-materials-hub-mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root_password}
+      - MYSQL_DATABASE=journaling_materials_hub
+      - MYSQL_USER=journaling_user
+      - MYSQL_PASSWORD=${DB_PASSWORD:-your_password}
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./backend/src/main/resources/db/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+    networks:
+      - journaling-network
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    container_name: journaling-materials-hub-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - journaling-network
+
+  # MinIO 对象存储
+  minio:
+    image: minio/minio:latest
+    container_name: journaling-materials-hub-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - journaling-network
+
+  # MinIO 自动初始化 bucket
+  minio-init:
+    image: minio/mc:latest
+    container_name: journaling-materials-hub-minio-init
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin} 2>/dev/null; do
+        echo 'Waiting for MinIO...'; sleep 2;
+      done;
+      /usr/bin/mc mb myminio/materials --ignore-existing;
+      /usr/bin/mc anonymous set download myminio/materials;
+      echo 'MinIO bucket ready.';
+      exit 0
+      "
+    networks:
+      - journaling-network
+
+  # Nginx 反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: journaling-materials-hub-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - backend
+    networks:
+      - journaling-network
+
+volumes:
+  mysql-data:
+    driver: local
+  redis-data:
+    driver: local
+  minio-data:
+    driver: local
+
+networks:
+  journaling-network:
+    driver: bridge

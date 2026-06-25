@@ -1,0 +1,40 @@
+admin:
+  user-ids: 1
+
+spring:
+  flyway:
+    enabled: false
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: false
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+      schema-locations: classpath:schema-h2.sql
+      data-locations: classpath:data/test-data.sql
+
+mybatis-plus:
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+jwt:
+  secret: test-jwt-secret-key-for-unit-testing-purposes-only
+  expiration: 604800000
+
+wechat:
+  app-id: mock-app-id
+  app-secret: mock-app-secret
+
+logging:
+  level:
+    com.journaling.hub: DEBUG
