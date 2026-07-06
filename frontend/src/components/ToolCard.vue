@@ -1,10 +1,5 @@
 <template>
   <view class="tool-card">
-    <!-- 删除按钮（仅自定义工具） -->
-    <view v-if="!tool.isDefault" class="tool-delete-btn" @tap.stop="handleDelete">
-      <text class="delete-icon">×</text>
-    </view>
-
     <!-- 图标 -->
     <view class="tool-icon-circle">
       <text class="tool-icon-emoji">{{ tool.icon }}</text>
@@ -29,14 +24,10 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['copy', 'delete'])
+const emit = defineEmits(['copy'])
 
 function handleCopy() {
   emit('copy', props.tool)
-}
-
-function handleDelete() {
-  emit('delete', props.tool)
 }
 </script>
 
@@ -59,27 +50,6 @@ function handleDelete() {
   .tool-card {
     background: rgba(255, 255, 255, 0.95);
   }
-}
-
-/* 删除按钮 */
-.tool-delete-btn {
-  position: absolute;
-  top: 8rpx;
-  right: 8rpx;
-  width: 36rpx;
-  height: 36rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.05);
-  z-index: 2;
-}
-
-.delete-icon {
-  font-size: 28rpx;
-  color: #999;
-  line-height: 1;
 }
 
 /* 图标圆底 */

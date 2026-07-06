@@ -46,6 +46,13 @@ journaling-materials-hub-v2/
 │   │   ├── stores/                  # Pinia 状态管理
 │   │   └── utils/                   # 工具函数
 │   └── package.json
+├── admin-frontend/                   # 网页管理后台 (Vue 3 + Vite)
+│   ├── src/
+│   │   ├── api/                     # Axios 请求封装
+│   │   ├── views/                   # 管理页面
+│   │   ├── stores/                  # Pinia 状态管理
+│   │   └── router/                  # Vue Router
+│   └── package.json
 ├── nginx/                           # Nginx 反向代理配置
 ├── docs/                            # 项目文档
 ├── docker-compose.yml               # Docker 编排
@@ -61,7 +68,8 @@ journaling-materials-hub-v2/
 - [x] 下载模块：记录、历史
 - [x] 收藏模块：切换、列表、检查
 - [x] 工具箱模块：CRUD
-- [x] 管理后台：素材管理、用户管理
+- [x] 管理后台：素材管理、用户管理、分类管理、工具管理、反馈管理
+- [x] 管理员认证：账号密码登录 + BCrypt + JWT (role=admin)
 - [x] JWT 认证过滤器
 - [x] MinIO 文件存储集成
 - [x] 单元测试（Service + Controller）
@@ -100,10 +108,12 @@ journaling-materials-hub-v2/
 | 变量 | 说明 |
 |------|------|
 | `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USERNAME` / `DB_PASSWORD` | 数据库连接 |
+| `DB_POOL_MAX_LIFETIME` / `DB_POOL_KEEPALIVE_TIME` / `DB_POOL_IDLE_TIMEOUT` / `DB_POOL_VALIDATION_TIMEOUT` | 数据库连接池超时配置（毫秒） |
 | `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` | Redis 连接 |
 | `JWT_SECRET` | JWT 签名密钥（≥32 字符） |
 | `WECHAT_APPID` / `WECHAT_SECRET` | 微信小程序凭证 |
 | `MINIO_ENDPOINT` / `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` / `MINIO_BUCKET` | MinIO 存储 |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD_HASH` / `ADMIN_TOKEN_EXPIRATION` | 管理后台登录 |
 
 ## 安全注意事项
 

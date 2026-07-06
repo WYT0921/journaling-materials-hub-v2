@@ -1,0 +1,81 @@
+import http from './request'
+
+// ===== Auth =====
+export const adminLogin = (username, password) =>
+  http.post('/v2/admin/auth/login', { username, password })
+
+// ===== Categories =====
+export const getCategories = (type) =>
+  http.get('/v2/admin/categories', { params: { type } })
+
+export const getActiveCategories = (type) =>
+  http.get('/v2/admin/categories/active', { params: { type } })
+
+export const createCategory = (data) =>
+  http.post('/v2/admin/categories', data)
+
+export const updateCategory = (id, data) =>
+  http.put(`/v2/admin/categories/${id}`, data)
+
+export const deleteCategory = (id) =>
+  http.delete(`/v2/admin/categories/${id}`)
+
+// ===== Materials =====
+export const getMaterials = (params) =>
+  http.get('/v2/admin/materials', { params })
+
+export const createMaterial = (data) =>
+  http.post('/v2/admin/materials', data)
+
+export const updateMaterial = (id, data) =>
+  http.put(`/v2/admin/materials/${id}`, data)
+
+export const updateMaterialStatus = (id, status) =>
+  http.put(`/v2/admin/materials/${id}/status`, null, { params: { status } })
+
+export const deleteMaterial = (id) =>
+  http.delete(`/v2/admin/materials/${id}`)
+
+export const uploadImage = (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return http.post('/v2/admin/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+
+// ===== Tools =====
+export const getTools = (params) =>
+  http.get('/v2/admin/tools', { params })
+
+export const createTool = (data) =>
+  http.post('/v2/admin/tools', data)
+
+export const updateTool = (id, data) =>
+  http.put(`/v2/admin/tools/${id}`, data)
+
+export const updateToolStatus = (id, status) =>
+  http.put(`/v2/admin/tools/${id}/status`, null, { params: { status } })
+
+export const deleteTool = (id) =>
+  http.delete(`/v2/admin/tools/${id}`)
+
+// ===== Users =====
+export const getUsers = (params) =>
+  http.get('/v2/admin/users', { params })
+
+export const updateUserStatus = (id, status) =>
+  http.put(`/v2/admin/users/${id}/status`, null, { params: { status } })
+
+export const updateUserMember = (id, data) =>
+  http.put(`/v2/admin/users/${id}/member`, data)
+
+// ===== Feedbacks =====
+export const getFeedbacks = (params) =>
+  http.get('/v2/admin/feedbacks', { params })
+
+export const updateFeedbackStatus = (id, status) =>
+  http.put(`/v2/admin/feedbacks/${id}/status`, null, { params: { status } })
+
+export const deleteFeedback = (id) =>
+  http.delete(`/v2/admin/feedbacks/${id}`)

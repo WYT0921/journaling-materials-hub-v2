@@ -1,27 +1,33 @@
 <template>
-  <view
-    class="glass-navbar"
-    :style="{ paddingTop: statusBarHeight + 'px' }"
-  >
-    <view class="navbar-inner">
-      <!-- 左侧：返回按钮 -->
-      <view v-if="showBack" class="navbar-left" @tap="handleBack">
-        <view class="navbar-back-icon">
-          <text class="icon-arrow">‹</text>
+  <view class="navbar-host">
+    <view
+      class="glass-navbar"
+      :style="{ paddingTop: statusBarHeight + 'px' }"
+    >
+      <view class="navbar-inner">
+        <!-- 左侧：返回按钮 -->
+        <view v-if="showBack" class="navbar-left" @tap="handleBack">
+          <view class="navbar-back-icon">
+            <text class="icon-arrow">‹</text>
+          </view>
+          <text v-if="backText" class="navbar-back-text">{{ backText }}</text>
         </view>
-        <text v-if="backText" class="navbar-back-text">{{ backText }}</text>
-      </view>
 
-      <!-- 中间：标题 -->
-      <view class="navbar-center" :class="{ 'has-left': showBack, 'has-right': $slots.right }">
-        <text class="navbar-title">{{ title }}</text>
-      </view>
+        <!-- 中间：标题 -->
+        <view class="navbar-center">
+          <text class="navbar-title">{{ title }}</text>
+        </view>
 
-      <!-- 右侧：操作区域（插槽） -->
-      <view v-if="$slots.right" class="navbar-right">
-        <slot name="right" />
+        <!-- 右侧：操作区域（插槽） -->
+        <view v-if="$slots.right" class="navbar-right">
+          <slot name="right" />
+        </view>
       </view>
     </view>
+    <view
+      class="navbar-placeholder"
+      :style="{ paddingTop: statusBarHeight + 'px' }"
+    />
   </view>
 </template>
 
@@ -66,9 +72,19 @@ function handleBack() {
 
 <style scoped>
 .glass-navbar {
-  position: relative;
-  z-index: 100;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 900;
   width: 100%;
+  box-sizing: border-box;
+}
+
+.navbar-placeholder {
+  height: 88rpx;
+  width: 100%;
+  box-sizing: content-box;
 }
 
 .navbar-inner {
@@ -76,6 +92,8 @@ function handleBack() {
   align-items: center;
   height: 88rpx;
   padding: 0 16rpx;
+  position: relative;
+  box-sizing: border-box;
   /* 毛玻璃效果 + fallback */
   background: rgba(255, 255, 255, 0.7);
   -webkit-backdrop-filter: blur(20px);
@@ -123,19 +141,27 @@ function handleBack() {
 }
 
 .navbar-center {
-  flex: 1;
+  position: absolute;
+  left: 144rpx;
+  right: 144rpx;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-}
-
-.navbar-center.has-left,
-.navbar-center.has-right {
-  padding: 0 20rpx;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .navbar-title {
   font-size: 32rpx;
   font-weight: 600;
   color: #333;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .navbar-right {
@@ -145,6 +171,7 @@ function handleBack() {
   min-width: 120rpx;
   justify-content: flex-end;
   padding-right: 8rpx;
+  margin-left: auto;
   z-index: 2;
 }
 </style>

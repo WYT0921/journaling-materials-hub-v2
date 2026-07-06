@@ -104,6 +104,46 @@
 - `user_id` -> `users.id` (ON DELETE CASCADE)
 - `material_id` -> `materials.id` (ON DELETE CASCADE)
 
+### 5. 反馈建议表 (feedbacks)
+
+存储用户提交的反馈建议，支持匿名反馈。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | 反馈ID |
+| user_id | BIGINT | NULL, FOREIGN KEY | 用户ID，匿名反馈为空 |
+| content | TEXT | NOT NULL | 反馈内容 |
+| status | TINYINT | DEFAULT 0 | 处理状态：0-未处理，1-已处理 |
+| created_at | DATETIME | NOT NULL | 创建时间 |
+| updated_at | DATETIME | NOT NULL | 更新时间 |
+
+**索引:**
+- `idx_feedbacks_user_id` - user_id
+- `idx_feedbacks_status` - status
+- `idx_feedbacks_created_at` - created_at
+
+**外键:**
+- `user_id` -> `users.id` (ON DELETE SET NULL)
+
+### 6. 分类表 (categories)
+
+存储素材和工具的分类信息。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | 分类ID |
+| name | VARCHAR(32) | NOT NULL | 分类名称 |
+| type | VARCHAR(16) | NOT NULL | 分类类型：material / tool |
+| status | TINYINT | DEFAULT 1 | 状态：0-禁用，1-正常 |
+| sort_order | INT | DEFAULT 0 | 排序序号 |
+| created_at | DATETIME | NOT NULL | 创建时间 |
+| updated_at | DATETIME | NOT NULL | 更新时间 |
+
+**索引:**
+- `uk_categories_name_type` (唯一索引) - name, type
+- `idx_categories_type` - type
+- `idx_categories_status` - status
+
 ---
 
 ## 实体关系图

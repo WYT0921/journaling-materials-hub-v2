@@ -16,6 +16,7 @@ import redeemActivate from './redeem-activate.json'
 import downloadRecord from './download-record.json'
 import downloadMaterial from './download-material.json'
 import userBindPhone from './user-bind-phone.json'
+import feedbackSubmit from './feedback-submit.json'
 
 // URL pattern → mock 数据模块映射
 const mockMap = {
@@ -31,7 +32,8 @@ const mockMap = {
   '/redeem/activate': redeemActivate,
   '/download/records': downloadRecord,
   '/download': downloadMaterial,
-  '/user/bind-phone': userBindPhone
+  '/user/bind-phone': userBindPhone,
+  '/feedback': feedbackSubmit
 }
 
 /**

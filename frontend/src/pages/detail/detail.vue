@@ -3,9 +3,6 @@
     <!-- 毛玻璃导航栏 -->
     <GlassNavBar title="素材详情" :show-back="true">
       <template #right>
-        <view class="nav-action" @tap="handleToggleFavorite">
-          <text class="nav-action-icon">{{ isFavorited ? '❤' : '♡' }}</text>
-        </view>
         <view class="nav-action" @tap="handleShare">
           <text class="nav-action-icon">⋯</text>
         </view>
@@ -28,7 +25,7 @@
 
         <!-- VIP 角标 -->
         <view v-if="material.isPremium" class="vip-corner-badge">
-          <text class="vip-corner-text">👑 会员专属</text>
+          <text class="vip-corner-text">👑 会员素材</text>
         </view>
       </view>
 
@@ -55,6 +52,16 @@
           </view>
         </view>
 
+        <!-- 收藏按钮 -->
+        <button
+          class="favorite-action"
+          :class="{ 'favorite-action-active': isFavorited }"
+          @tap="handleToggleFavorite"
+        >
+          <text class="favorite-action-icon">{{ isFavorited ? '❤' : '♡' }}</text>
+          <text class="favorite-action-text">{{ isFavorited ? '已收藏' : '收藏' }}</text>
+        </button>
+
         <!-- 描述 -->
         <text v-if="material.description" class="material-desc">{{ material.description }}</text>
 
@@ -66,6 +73,28 @@
         </view>
       </view>
 
+      <!-- 相关推荐 -->
+      <view v-if="relatedMaterials.length > 0" class="related-section">
+        <view class="section-header">
+          <text class="section-title">相关推荐</text>
+        </view>
+        <scroll-view scroll-x class="related-scroll" :show-scrollbar="false">
+          <view
+            v-for="item in relatedMaterials"
+            :key="item.id"
+            class="related-item"
+            @click="goToDetail(item.id)"
+          >
+            <image
+              class="related-image"
+              :src="item.thumbnailUrl || item.imageUrl"
+              mode="aspectFill"
+            />
+            <text class="related-title">{{ item.title }}</text>
+          </view>
+        </scroll-view>
+      </view>
+
       <!-- 底部安全区（给CTA栏让位） -->
       <view class="bottom-spacer" />
     </view>
@@ -75,13 +104,13 @@
 
     <!-- 底部 CTA 栏（毛玻璃） -->
     <view v-if="material" class="cta-bar safe-area-bottom">
-      <!-- 非会员：双按钮 — 全素材需会员下载 -->
+      <!-- 非会员：双按钮 — 5 次免费额度内可下载 -->
       <view v-if="!userStore.isPremium" class="cta-row">
         <button class="cta-btn cta-outline" @tap="handlePreview">
           <text class="cta-outline-text">👁 预览</text>
         </button>
-        <button class="cta-btn cta-primary" @tap="handleUnlock">
-          <text class="cta-primary-text">👑 解锁下载</text>
+        <button class="cta-btn cta-primary" @tap="handleDownload">
+          <text class="cta-primary-text">下载素材</text>
         </button>
       </view>
       <!-- 会员：单按钮 -->
@@ -101,12 +130,12 @@
         <view class="unlock-icon-wrapper">
           <text class="unlock-crown">👑</text>
         </view>
-        <text class="unlock-desc">该素材为会员专属，成为会员即可下载高清无水印原图</text>
+        <text class="unlock-desc">免费 5 次下载额度已用完，兑换会员码后即可继续下载高清无水印原图</text>
       </view>
       <template #footer>
         <view class="unlock-footer">
           <button class="unlock-btn-primary" @tap="handleGoRedeem">
-            <text class="unlock-btn-text">👑 解锁会员</text>
+            <text class="unlock-btn-text">兑换会员码</text>
           </button>
           <button class="unlock-btn-customer" @tap="handleContactService">
             <text class="unlock-customer-text">联系客服</text>
@@ -124,7 +153,7 @@
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { useUserStore } from '../../stores/user'
-import { getMaterialDetail } from '../../api/material'
+import { getMaterialDetail, getMaterials } from '../../api/material'
 import { downloadMaterial } from '../../api/download'
 import { toggleFavorite, checkFavorite } from '../../api/favorite'
 import { requireLogin } from '../../utils/auth'
@@ -140,6 +169,7 @@ const material = ref(null)
 const isLoading = ref(true)
 const showUnlockSheet = ref(false)
 const isFavorited = ref(false)
+const relatedMaterials = ref([])
 
 // 页面加载
 onLoad((options) => {
@@ -155,6 +185,8 @@ const loadMaterialDetail = async () => {
     isLoading.value = true
     const result = await getMaterialDetail(materialId.value)
     material.value = result
+    // 加载相关推荐
+    loadRelatedMaterials()
     // 检查收藏状态
     checkFavoriteStatus()
   } catch (error) {
@@ -200,15 +232,32 @@ const handleImagePreview = () => {
   })
 }
 
-// 预览按钮（VIP非会员）
+// 预览按钮
 const handlePreview = () => {
-  showUnlockSheet.value = true
+  handleImagePreview()
 }
 
 // 解锁下载
 const handleUnlock = () => {
   if (!requireLogin()) return
   showUnlockSheet.value = true
+}
+
+// 加载相关推荐
+const loadRelatedMaterials = async () => {
+  if (!material.value?.category) return
+  try {
+    const result = await getMaterials({ category: material.value.category, limit: 10, page: 1 })
+    const items = (result.list || []).filter(item => String(item.id) !== String(materialId.value))
+    relatedMaterials.value = items.slice(0, 6)
+  } catch (error) {
+    console.error('加载相关推荐失败:', error)
+  }
+}
+
+// 跳转到其他素材详情
+const goToDetail = (id) => {
+  uni.navigateTo({ url: `/pages/detail/detail?id=${id}` })
 }
 
 // 跳转兑换页
@@ -223,15 +272,9 @@ const handleContactService = () => {
   uni.showToast({ title: '客服功能开发中', icon: 'none' })
 }
 
-// 下载素材（仅会员可调用，CTA 栏已做权限控制）
+// 下载素材
 const handleDownload = async () => {
   if (!requireLogin()) return
-
-  // 兜底检查：非会员拦截
-  if (!userStore.isPremium) {
-    showUnlockSheet.value = true
-    return
-  }
 
   try {
     uni.showLoading({ title: '下载中...' })
@@ -258,11 +301,18 @@ const handleDownload = async () => {
         icon: 'none',
         duration: 2000
       })
+      if (!userStore.isPremium) {
+        userStore.refreshProfile()
+      }
     } else {
       throw new Error('下载失败')
     }
   } catch (error) {
     console.error('下载失败:', error)
+    if (error.code === 4004) {
+      showUnlockSheet.value = true
+      return
+    }
     uni.showToast({
       title: error.message || '下载失败，请重试',
       icon: 'none'
@@ -385,6 +435,45 @@ const handleShare = () => {
   color: #ccc;
 }
 
+.favorite-action {
+  width: 100%;
+  min-height: 96rpx;
+  margin: 24rpx 0 0;
+  padding: 0 28rpx;
+  border: none;
+  border-radius: 18rpx;
+  background: #f7f7f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  line-height: 96rpx;
+}
+
+.favorite-action::after {
+  border: none;
+}
+
+.favorite-action-active {
+  background: #fff4f4;
+}
+
+.favorite-action-icon {
+  font-size: 34rpx;
+  color: #111;
+  font-weight: 700;
+}
+
+.favorite-action-active .favorite-action-icon {
+  color: #e04444;
+}
+
+.favorite-action-text {
+  font-size: 28rpx;
+  color: #111;
+  font-weight: 600;
+}
+
 .material-desc {
   font-size: 26rpx;
   color: #666;
@@ -409,6 +498,53 @@ const handleShare = () => {
 .tag-text {
   font-size: 22rpx;
   color: #666;
+}
+
+/* ===== 相关推荐 ===== */
+.related-section {
+  padding: 0 28rpx 32rpx;
+}
+
+.section-header {
+  margin-bottom: 20rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #111;
+}
+
+.related-scroll {
+  white-space: nowrap;
+  width: 100%;
+}
+
+.related-item {
+  display: inline-block;
+  width: 200rpx;
+  margin-right: 16rpx;
+  vertical-align: top;
+}
+
+.related-image {
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 12rpx;
+  background: #f5f5f5;
+  display: block;
+}
+
+.related-title {
+  font-size: 24rpx;
+  color: #333;
+  margin-top: 10rpx;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  white-space: normal;
+  line-height: 1.4;
 }
 
 /* 底部占位 */

@@ -38,3 +38,11 @@ export const updateTool = (id, tool) => {
 export const removeTool = (id) => {
   return del(`/v2/tools/${id}`)
 }
+
+/**
+ * 获取启用的工具分类
+ * @returns {Promise<Array>}
+ */
+export const getCategories = () => {
+  return get('/v2/categories', { type: 'tool' })
+}

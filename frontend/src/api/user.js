@@ -1,7 +1,7 @@
 /**
  * 用户相关 API
  */
-import { get, post, put } from './request'
+import { get, post, put, upload } from './request'
 
 /**
  * 微信登录
@@ -29,6 +29,13 @@ export const getProfile = () => {
  */
 export const updateProfile = (data) => {
   return put('/user/profile', data)
+}
+
+/**
+ * 上传用户头像
+ */
+export const uploadAvatar = (filePath) => {
+  return upload('/user/avatar', filePath)
 }
 
 /**

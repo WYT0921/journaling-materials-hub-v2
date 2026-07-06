@@ -28,6 +28,8 @@ import java.util.Map;
 @Service
 public class DownloadServiceImpl implements DownloadService {
 
+    private static final int FREE_DOWNLOAD_LIMIT = 5;
+
     @Autowired
     private DownloadMapper downloadMapper;
 
@@ -49,24 +51,31 @@ public class DownloadServiceImpl implements DownloadService {
             throw new BusinessException(ErrorCode.MATERIAL_OFFLINE);
         }
 
-        // 检查是否为付费素材
-        if (Boolean.TRUE.equals(material.getIsPremium())) {
-            User user = userService.getProfile(userId);
-            if (!user.isPremium()) {
-                throw new BusinessException(ErrorCode.MATERIAL_PREMIUM_REQUIRED);
-            }
+        User user = userService.getProfile(userId);
+        boolean alreadyDownloaded = downloadMapper.selectCount(
+                new LambdaQueryWrapper<Download>()
+                        .eq(Download::getUserId, userId)
+                        .eq(Download::getMaterialId, materialId)
+        ) > 0;
+
+        int downloadCount = user.getDownloadCount() == null ? 0 : user.getDownloadCount();
+        if (!user.isPremium() && !alreadyDownloaded && downloadCount >= FREE_DOWNLOAD_LIMIT) {
+            throw new BusinessException(ErrorCode.DOWNLOAD_FREE_LIMIT_EXCEEDED);
         }
 
         // 记录下载（使用唯一索引防止重复）
+        boolean createdDownload = false;
         try {
             Download download = new Download();
             download.setUserId(userId);
             download.setMaterialId(materialId);
             download.setDownloadedAt(LocalDateTime.now());
             downloadMapper.insert(download);
+            createdDownload = true;
 
             // 增加下载次数
-            material.setDownloadCount(material.getDownloadCount() + 1);
+            int materialDownloadCount = material.getDownloadCount() == null ? 0 : material.getDownloadCount();
+            material.setDownloadCount(materialDownloadCount + 1);
             materialMapper.updateById(material);
 
             // 增加用户下载次数
@@ -82,6 +91,9 @@ public class DownloadServiceImpl implements DownloadService {
         result.put("filename", material.getTitle() + ".png");
         result.put("materialId", materialId);
         result.put("message", "下载成功");
+        result.put("freeDownloadLimit", FREE_DOWNLOAD_LIMIT);
+        result.put("freeDownloadUsed", createdDownload ? downloadCount + 1 : downloadCount);
+        result.put("freeDownloadRemaining", user.isPremium() ? null : Math.max(0, FREE_DOWNLOAD_LIMIT - (createdDownload ? downloadCount + 1 : downloadCount)));
 
         return result;
     }

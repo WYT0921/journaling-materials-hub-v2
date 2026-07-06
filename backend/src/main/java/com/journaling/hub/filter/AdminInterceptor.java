@@ -34,6 +34,13 @@ public class AdminInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        // 管理员 JWT token（role=admin）直接放行
+        String role = (String) request.getAttribute("role");
+        if ("admin".equals(role)) {
+            return true;
+        }
+
+        // 兼容旧的用户 ID 白名单模式
         Long userId = (Long) request.getAttribute("userId");
         if (userId == null) {
             sendError(response, "请先登录", 401);

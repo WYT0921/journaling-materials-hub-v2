@@ -23,29 +23,45 @@ class DownloadServiceTest extends BaseTest {
     @Test
     @Order(1)
     void testDownload_FreeMaterial() {
-        Map<String, Object> result = downloadService.download(1L, 1L);
+        Map<String, Object> result = downloadService.download(4L, 1L);
         assertNotNull(result);
         assertNotNull(result.get("url"));
         assertEquals(1L, (long) result.get("materialId"));
+        assertEquals(5, result.get("freeDownloadLimit"));
+        assertEquals(5, result.get("freeDownloadUsed"));
+        assertEquals(0, result.get("freeDownloadRemaining"));
     }
 
     @Test
     @Order(2)
     void testDownload_Duplicate() {
-        Map<String, Object> result = downloadService.download(1L, 1L);
+        downloadService.download(4L, 1L);
+        Map<String, Object> result = downloadService.download(4L, 1L);
         assertNotNull(result);
         assertEquals("下载成功", result.get("message"));
+        assertEquals(5, result.get("freeDownloadUsed"));
+        assertEquals(0, result.get("freeDownloadRemaining"));
     }
 
     @Test
     @Order(3)
-    void testDownload_PremiumByNormalUser() {
-        assertThrows(BusinessException.class,
-                () -> downloadService.download(1L, 2L));
+    void testDownload_PremiumMaterialWithinFreeQuota() {
+        Map<String, Object> result = downloadService.download(4L, 2L);
+        assertNotNull(result);
+        assertNotNull(result.get("url"));
+        assertEquals(2L, (long) result.get("materialId"));
     }
 
     @Test
     @Order(4)
+    void testDownload_FreeLimitExceeded() {
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> downloadService.download(1L, 2L));
+        assertEquals(4004, exception.getCode());
+    }
+
+    @Test
+    @Order(5)
     void testDownload_PremiumByPremiumUser() {
         Map<String, Object> result = downloadService.download(2L, 2L);
         assertNotNull(result);
@@ -53,21 +69,19 @@ class DownloadServiceTest extends BaseTest {
     }
 
     @Test
-    @Order(5)
+    @Order(6)
     void testDownload_OfflineMaterial() {
         assertThrows(BusinessException.class,
                 () -> downloadService.download(1L, 4L));
     }
 
     @Test
-    @Order(6)
+    @Order(7)
     void testGetUserDownloads() {
-        IPage<Download> downloads = downloadService.getUserDownloads(1L, 1, 10);
+        downloadService.download(4L, 1L);
+        IPage<Download> downloads = downloadService.getUserDownloads(4L, 1, 10);
         assertNotNull(downloads);
         assertTrue(downloads.getTotal() >= 1);
-        downloads.getRecords().forEach(d -> {
-            assertNotNull(d.getMaterial());
-            assertEquals(1L, (long) d.getMaterial().getId());
-        });
+        downloads.getRecords().forEach(d -> assertNotNull(d.getMaterial()));
     }
 }

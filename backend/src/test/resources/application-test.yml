@@ -1,5 +1,8 @@
 admin:
   user-ids: 1
+  username: admin
+  # BCrypt hash of "admin123"
+  password-hash: $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy
 
 spring:
   flyway:
@@ -30,6 +33,7 @@ mybatis-plus:
 jwt:
   secret: test-jwt-secret-key-for-unit-testing-purposes-only
   expiration: 604800000
+  admin-expiration: 86400000
 
 wechat:
   app-id: mock-app-id

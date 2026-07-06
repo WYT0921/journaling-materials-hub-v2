@@ -1,15 +1,9 @@
 <template>
   <view class="page-profile">
-    <!-- 面包屑 + 标题 -->
-    <view class="page-header">
-      <text class="breadcrumb">我的 · Account</text>
-      <text class="page-title">个人中心</text>
-    </view>
-
     <!-- ===== 身份区 ===== -->
-    <view class="profile-section">
+    <view class="profile-section" :style="{ paddingTop: statusBarHeight + 'px' }">
       <!-- 已登录 -->
-      <view v-if="userStore.isLoggedIn" class="profile-inner">
+      <view v-if="userStore.isLoggedIn" class="profile-inner" @tap="openProfileEditor">
         <view class="avatar-wrapper">
           <image
             v-if="userStore.avatarUrl && userStore.avatarUrl.indexOf('default') === -1"
@@ -36,131 +30,95 @@
         </view>
       </view>
     </view>
+    <view class="profile-header-placeholder" :style="{ height: profileHeaderHeight }" />
 
-    <!-- ===== 数据统计条 ===== -->
-    <view class="stats-bar">
-      <view class="stat-item">
-        <text class="stat-icon-text">⬇</text>
-        <text class="stat-number">{{ formattedStats.downloadCount }}</text>
-        <text class="stat-label">下载</text>
-      </view>
-      <view class="stat-item stat-item-center">
-        <text class="stat-icon-text">♡</text>
-        <text class="stat-number">{{ formattedStats.collectionCount }}</text>
-        <text class="stat-label">收藏</text>
-      </view>
-      <view class="stat-item">
-        <text class="stat-icon-text">🖼</text>
-        <text class="stat-number">{{ formattedStats.materialCount }}</text>
-        <text class="stat-label">素材</text>
-      </view>
-    </view>
-
-    <!-- ===== 会员中心卡 ===== -->
-    <view class="vip-card" :class="{ 'vip-premium': userStore.isPremium }" @tap="handleGoPremium">
-      <view class="vip-left">
-        <view class="vip-icon-circle" :class="{ 'vip-icon-dark': !userStore.isPremium }">
-          <text class="vip-icon-text">👑</text>
-        </view>
-        <view class="vip-info">
-          <text class="vip-title">会员中心</text>
-          <text class="vip-desc">
-            {{ userStore.isPremium ? '管理你的会员权益' : '解锁高清素材 + 全部工具' }}
-          </text>
-        </view>
-      </view>
-      <text class="card-arrow">›</text>
-    </view>
-
-    <!-- ===== 兑换会员卡 ===== -->
-    <view class="exchange-card" @tap="handleGoRedeem">
-      <view class="exchange-left">
-        <view class="exchange-icon-circle">
-          <text class="exchange-icon-text">🎫</text>
-        </view>
-        <view class="exchange-info">
-          <text class="exchange-title">兑换会员</text>
-          <text class="exchange-desc">使用兑换码激活会员权益</text>
-        </view>
-      </view>
-      <text class="card-arrow">›</text>
-    </view>
-
-    <!-- ===== 手机号绑定卡 ===== -->
-    <view v-if="userStore.isLoggedIn" class="phone-section">
-      <!-- 已绑定 -->
-      <view v-if="userStore.userInfo?.phone" class="phone-card phone-bound">
-        <view class="phone-left">
-          <view class="phone-icon-circle">
-            <text class="phone-icon-text">📱</text>
+    <view class="profile-block">
+      <text class="section-title">我的内容</text>
+      <view class="content-grid">
+        <view class="content-card" @tap="handleGoDownloads">
+          <view class="profile-card-icon">
+            <text class="download-icon-text">↓</text>
           </view>
-          <view class="phone-info">
-            <text class="phone-title">已绑定手机号</text>
-            <text class="phone-number">{{ maskedPhone }}</text>
+          <view class="profile-card-info">
+            <text class="profile-card-title">我的下载</text>
+            <text class="profile-card-desc">查看历史</text>
           </view>
+          <text class="card-arrow">›</text>
         </view>
+
+        <view class="content-card" @tap="handleGoFavorites">
+          <view class="profile-card-icon">
+            <text class="fav-icon-text">♡</text>
+          </view>
+          <view class="profile-card-info">
+            <text class="profile-card-title">我的收藏</text>
+            <text class="profile-card-desc">查看收藏</text>
+          </view>
+          <text class="card-arrow">›</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="profile-block">
+      <text class="section-title">会员服务</text>
+      <view class="member-card" @tap="handleGoRedeem">
+        <view class="member-icon">
+          <text class="member-icon-text">♕</text>
+        </view>
+        <view class="member-info">
+          <text class="member-title">兑换会员</text>
+          <text class="member-desc">解锁高清素材 + 全部工具</text>
+        </view>
+        <text class="member-arrow">›</text>
+      </view>
+    </view>
+
+    <view class="profile-block more-block">
+      <text class="section-title">更多</text>
+
+      <view v-if="userStore.isLoggedIn && userStore.userInfo?.phone" class="more-row phone-bound">
+        <view class="more-icon">
+          <text class="phone-icon-text">▯</text>
+        </view>
+        <text class="more-title">已绑定手机号</text>
+        <text class="more-desc">{{ maskedPhone }}</text>
         <text class="card-arrow-bound">✓</text>
       </view>
 
-      <!-- 未绑定 -->
       <button
-        v-else
-        class="phone-card phone-unbound"
+        v-else-if="userStore.isLoggedIn"
+        class="more-row more-row-button"
         open-type="getPhoneNumber"
         @getphonenumber="handleGetPhoneNumber"
       >
-        <view class="phone-left">
-          <view class="phone-icon-circle phone-icon-dim">
-            <text class="phone-icon-text">📱</text>
-          </view>
-          <view class="phone-info">
-            <text class="phone-title">绑定手机号</text>
-            <text class="phone-desc">绑定后享受更多服务</text>
-          </view>
+        <view class="more-icon">
+          <text class="phone-icon-text">▯</text>
         </view>
+        <text class="more-title">绑定手机号</text>
         <text class="card-arrow">›</text>
       </button>
-    </view>
 
-    <!-- ===== 菜单列表 ===== -->
-    <view class="menu-section">
-      <view class="menu-item" @tap="handleSettingTap('settings')">
-        <view class="menu-left">
-          <view class="menu-icon-circle">
-            <text class="menu-icon-text">⚙</text>
-          </view>
-          <text class="menu-label">设置</text>
+      <view v-else class="more-row" @tap="handleLogin">
+        <view class="more-icon">
+          <text class="phone-icon-text">▯</text>
         </view>
+        <text class="more-title">绑定手机号</text>
         <text class="card-arrow">›</text>
       </view>
 
-      <view class="menu-item" @tap="handleSettingTap('materials')">
-        <view class="menu-left">
-          <view class="menu-icon-circle">
-            <text class="menu-icon-text">📁</text>
-          </view>
-          <text class="menu-label">素材管理</text>
+      <view class="more-row" @tap="openFeedbackDialog">
+        <view class="more-icon">
+          <text class="feedback-icon-text">○</text>
         </view>
+        <text class="more-title">反馈建议</text>
         <text class="card-arrow">›</text>
       </view>
 
-      <view class="menu-item" @tap="handleSettingTap('about')">
-        <view class="menu-left">
-          <view class="menu-icon-circle">
-            <text class="menu-icon-text">ℹ</text>
-          </view>
-          <text class="menu-label">关于</text>
+      <view class="more-row" @tap="handleAbout">
+        <view class="more-icon">
+          <text class="about-icon-text">i</text>
         </view>
-        <text class="card-arrow">›</text>
-      </view>
-
-      <view class="menu-item" @tap="handleSettingTap('feedback')">
-        <view class="menu-left">
-          <view class="menu-icon-circle">
-            <text class="menu-icon-text">💬</text>
-          </view>
-          <text class="menu-label">反馈建议</text>
-        </view>
+        <text class="more-title">关于</text>
         <text class="card-arrow">›</text>
       </view>
     </view>
@@ -169,6 +127,83 @@
     <view v-if="userStore.isLoggedIn" class="logout-section">
       <view class="logout-button" @tap="handleLogout">
         <text class="logout-text">退出登录</text>
+      </view>
+    </view>
+
+    <!-- ===== 编辑资料 ===== -->
+    <view v-if="showProfileEditor" class="editor-mask" @tap="closeProfileEditor">
+      <view class="editor-panel" @tap.stop>
+        <view class="editor-header">
+          <text class="editor-title">编辑个人资料</text>
+          <text class="editor-close" @tap="closeProfileEditor">×</text>
+        </view>
+
+        <button
+          class="avatar-picker"
+          open-type="chooseAvatar"
+          @chooseavatar="handleChooseAvatar"
+        >
+          <image
+            v-if="profileForm.avatarUrl && profileForm.avatarUrl.indexOf('default') === -1"
+            class="editor-avatar-img"
+            :src="profileForm.avatarUrl"
+            mode="aspectFill"
+          />
+          <text v-else class="editor-avatar-icon">👤</text>
+          <text class="avatar-picker-label">更换头像</text>
+        </button>
+
+        <view class="editor-field">
+          <text class="editor-label">昵称</text>
+          <input
+            v-model="profileForm.nickname"
+            class="nickname-input"
+            type="nickname"
+            maxlength="20"
+            placeholder="请输入昵称"
+          />
+        </view>
+
+        <view class="editor-actions">
+          <button class="editor-button editor-cancel" @tap="closeProfileEditor">取消</button>
+          <button
+            class="editor-button editor-save"
+            :loading="isSavingProfile"
+            :disabled="isSavingProfile"
+            @tap="handleSaveProfile"
+          >
+            保存
+          </button>
+        </view>
+      </view>
+    </view>
+
+    <!-- ===== 反馈建议 ===== -->
+    <view v-if="showFeedbackDialog" class="feedback-mask" @tap="closeFeedbackDialog">
+      <view class="feedback-panel" @tap.stop>
+        <view class="feedback-header">
+          <text class="feedback-title">反馈建议</text>
+          <text class="feedback-close" @tap="closeFeedbackDialog">×</text>
+        </view>
+        <textarea
+          v-model="feedbackContent"
+          class="feedback-textarea"
+          maxlength="1000"
+          placeholder="请写下你的建议或遇到的问题"
+          :show-confirm-bar="false"
+        />
+        <view class="feedback-count">{{ feedbackContent.length }}/1000</view>
+        <view class="feedback-actions">
+          <button class="feedback-button feedback-cancel" @tap="closeFeedbackDialog">取消</button>
+          <button
+            class="feedback-button feedback-submit"
+            :loading="isSubmittingFeedback"
+            :disabled="isSubmittingFeedback"
+            @tap="handleSubmitFeedback"
+          >
+            提交
+          </button>
+        </view>
       </view>
     </view>
 
@@ -181,27 +216,29 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../stores/user'
-import { getUserStats } from '../../api/user'
+import { uploadAvatar } from '../../api/user'
+import { submitFeedback } from '../../api/feedback'
+import { requireLogin } from '../../utils/auth'
 import CustomToast from '../../components/CustomToast.vue'
 import CustomTabBar from '../../components/CustomTabBar.vue'
 
 const userStore = useUserStore()
 const toastRef = ref(null)
+const statusBarHeight = ref(44)
+const showProfileEditor = ref(false)
+const isSavingProfile = ref(false)
+const selectedAvatarPath = ref('')
+const showFeedbackDialog = ref(false)
+const feedbackContent = ref('')
+const isSubmittingFeedback = ref(false)
 
-const stats = ref({
-  downloadCount: 0,
-  collectionCount: 0,
-  materialCount: 0
+const profileForm = ref({
+  nickname: '',
+  avatarUrl: ''
 })
-
-const formattedStats = computed(() => ({
-  downloadCount: stats.value.downloadCount || 0,
-  collectionCount: stats.value.collectionCount || 0,
-  materialCount: stats.value.materialCount || 0
-}))
 
 const maskedPhone = computed(() => {
   const phone = userStore.userInfo?.phone
@@ -209,85 +246,140 @@ const maskedPhone = computed(() => {
   return phone.replace(/(\d{3})\d{4}(\d+)/, '$1****$2')
 })
 
+const profileHeaderHeight = computed(() => `calc(${statusBarHeight.value}px + 220rpx)`)
+
+onMounted(() => {
+  try {
+    const systemInfo = uni.getSystemInfoSync()
+    statusBarHeight.value = systemInfo.statusBarHeight || 44
+  } catch (error) {
+    statusBarHeight.value = 44
+  }
+})
+
 onShow(() => {
   if (userStore.isLoggedIn) {
-    loadUserStats()
     userStore.refreshProfile()
   }
 })
 
-const loadUserStats = async () => {
-  try {
-    const result = await getUserStats()
-    stats.value = {
-      downloadCount: result.downloadCount || 0,
-      collectionCount: result.collectionCount || 0,
-      materialCount: result.materialCount ?? 0
-    }
-  } catch (error) {
-    console.error('加载统计失败:', error)
-  }
+const handleGoDownloads = () => {
+  if (!requireLogin()) return
+  uni.navigateTo({ url: '/pages/download-history/index' })
+}
+
+const handleGoFavorites = () => {
+  if (!requireLogin()) return
+  uni.navigateTo({ url: '/pages/favorites/index' })
 }
 
 const handleLogin = async () => {
   try {
     await userStore.login()
-    loadUserStats()
   } catch (error) {
     console.error('登录失败:', error)
   }
 }
 
-const handleGoPremium = () => {
-  uni.navigateTo({ url: '/pages/premium/index' })
+const openProfileEditor = () => {
+  if (!userStore.isLoggedIn) return
+  profileForm.value = {
+    nickname: userStore.userInfo?.nickname || '',
+    avatarUrl: userStore.userInfo?.avatarUrl || ''
+  }
+  selectedAvatarPath.value = ''
+  showProfileEditor.value = true
+}
+
+const closeProfileEditor = () => {
+  if (isSavingProfile.value) return
+  showProfileEditor.value = false
+  selectedAvatarPath.value = ''
+}
+
+const handleChooseAvatar = (event) => {
+  const avatarUrl = event.detail?.avatarUrl
+  if (!avatarUrl) {
+    uni.showToast({ title: '获取头像失败', icon: 'none' })
+    return
+  }
+
+  profileForm.value.avatarUrl = avatarUrl
+  selectedAvatarPath.value = avatarUrl
+}
+
+const handleSaveProfile = async () => {
+  const nickname = profileForm.value.nickname.trim()
+  if (!nickname) {
+    uni.showToast({ title: '请输入昵称', icon: 'none' })
+    return
+  }
+
+  isSavingProfile.value = true
+  try {
+    let avatarUrl = profileForm.value.avatarUrl
+    if (selectedAvatarPath.value) {
+      const uploadResult = await uploadAvatar(selectedAvatarPath.value)
+      avatarUrl = uploadResult.avatarUrl
+    }
+
+    await userStore.updateProfile({
+      nickname,
+      avatarUrl
+    })
+    showProfileEditor.value = false
+    selectedAvatarPath.value = ''
+  } catch (error) {
+    console.error('保存资料失败:', error)
+  } finally {
+    isSavingProfile.value = false
+  }
 }
 
 const handleGoRedeem = () => {
   uni.navigateTo({ url: '/pages/redeem/index' })
 }
 
-const handleSettingTap = (type) => {
-  switch (type) {
-    case 'settings':
-      uni.showModal({
-        title: '设置',
-        content: '手账素材小程序 v1.0\n\n清除缓存可以释放存储空间，不会影响你的会员状态和下载记录。',
-        confirmText: '清除缓存',
-        cancelText: '取消',
-        success: (res) => {
-          if (res.confirm) {
-            toastRef.value?.showToast('缓存已清除', 'check')
-          }
-        }
-      })
-      break
-    case 'materials':
-      uni.showActionSheet({
-        itemList: ['下载记录', '收藏记录'],
-        success: (res) => {
-          if (res.tapIndex === 0) {
-            toastRef.value?.showToast('下载记录开发中', 'check')
-          } else if (res.tapIndex === 1) {
-            uni.navigateTo({ url: '/pages/favorites/index' })
-          }
-        }
-      })
-      break
-    case 'about':
-      uni.showModal({
-        title: '关于',
-        content: '手账素材小程序 v1.0\n\n为你提供精选手账素材，助你创作更美的手账作品。'
-      })
-      break
-    case 'feedback':
-      uni.showModal({
-        title: '反馈建议',
-        content: '请通过以下方式联系我们：\n\n📧 邮箱：feedback@journaling-hub.com\n💬 微信：JournalingHub',
-        confirmText: '知道了',
-        showCancel: false
-      })
-      break
+const openFeedbackDialog = () => {
+  showFeedbackDialog.value = true
+}
+
+const closeFeedbackDialog = () => {
+  if (isSubmittingFeedback.value) return
+  showFeedbackDialog.value = false
+}
+
+const handleSubmitFeedback = async () => {
+  const content = feedbackContent.value.trim()
+  if (!content) {
+    uni.showToast({ title: '请输入反馈内容', icon: 'none' })
+    return
   }
+
+  isSubmittingFeedback.value = true
+  try {
+    await submitFeedback(content)
+    feedbackContent.value = ''
+    showFeedbackDialog.value = false
+    uni.showToast({ title: '感谢反馈', icon: 'success' })
+  } catch (error) {
+    console.error('提交反馈失败:', error)
+    uni.showToast({
+      title: error.message || '提交失败，请重试',
+      icon: 'none'
+    })
+  } finally {
+    isSubmittingFeedback.value = false
+  }
+}
+
+const handleAbout = () => {
+  uni.showModal({
+    title: '关于',
+    content: '手账素材小程序 v1.0\n\n为你提供精选手账素材，助你创作更美的手账作品。',
+    confirmText: '知道了',
+    showCancel: false
+  })
 }
 
 const handleGetPhoneNumber = async (event) => {
@@ -315,7 +407,6 @@ const handleLogout = () => {
     success: (res) => {
       if (res.confirm) {
         userStore.logout()
-        stats.value = { downloadCount: 0, collectionCount: 0, materialCount: 0 }
       }
     }
   })
@@ -325,44 +416,43 @@ const handleLogout = () => {
 <style lang="scss" scoped>
 .page-profile {
   min-height: 100vh;
-  padding: 28rpx 24rpx 140rpx;
-}
-
-/* ===== 页头 ===== */
-.page-header {
-  margin-bottom: 24rpx;
-}
-
-.breadcrumb {
-  font-size: 22rpx;
-  color: #888;
-  display: block;
-  margin-bottom: 6rpx;
-}
-
-.page-title {
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #111;
-  display: block;
+  padding: 0 52rpx 160rpx;
+  box-sizing: border-box;
 }
 
 /* ===== 身份区 ===== */
 .profile-section {
-  margin-bottom: 24rpx;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 120;
+  padding-left: 52rpx;
+  padding-right: 52rpx;
+  padding-bottom: 28rpx;
+  box-sizing: border-box;
+  background: linear-gradient(135deg, rgba(254, 245, 248, 0.92) 0%, rgba(245, 253, 245, 0.9) 55%, rgba(255, 248, 240, 0.9) 100%);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+.profile-header-placeholder {
+  width: 100%;
 }
 
 .profile-inner {
   display: flex;
   align-items: center;
-  gap: 20rpx;
+  gap: 28rpx;
 }
 
 .avatar-wrapper {
-  width: 100rpx;
-  height: 100rpx;
+  width: 132rpx;
+  height: 132rpx;
   border-radius: 50%;
-  background: #f2f2f2;
+  background: rgba(244, 244, 244, 0.82);
+  border: 3rpx solid rgba(255, 255, 255, 0.88);
+  box-shadow: 0 10rpx 28rpx rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -376,269 +466,232 @@ const handleLogout = () => {
 }
 
 .avatar-icon {
-  font-size: 44rpx;
-  color: #bbb;
+  font-size: 56rpx;
+  color: #b4b4b4;
 }
 
 .profile-info {
   flex: 1;
+  min-width: 0;
 }
 
 .profile-name {
-  font-size: 34rpx;
+  font-size: 42rpx;
   font-weight: 700;
-  color: #111;
+  color: #0b0b0c;
   display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .profile-level {
-  font-size: 24rpx;
-  color: #888;
-  margin-top: 6rpx;
+  font-size: 26rpx;
+  color: #747474;
+  margin-top: 14rpx;
   display: block;
 }
 
-/* ===== 统计条 (白底卡片，匹配account.html) ===== */
-.stats-bar {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  background: #fff;
-  border-radius: 16rpx;
-  overflow: hidden;
-  margin-bottom: 20rpx;
-}
-
-.stat-item {
-  text-align: center;
-  padding: 28rpx 10rpx;
-  border-right: 1rpx solid #eee;
-}
-
-.stat-item:last-child {
-  border: none;
-}
-
-.stat-icon-text {
-  font-size: 32rpx;
-  display: block;
-  margin-bottom: 6rpx;
-}
-
-.stat-number {
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #111;
-  display: block;
-  font-variant-numeric: tabular-nums;
-}
-
-.stat-label {
-  font-size: 22rpx;
-  color: #888;
-  display: block;
-  margin-top: 4rpx;
-}
-
-/* ===== 会员中心卡 ===== */
-.vip-card {
-  background: #111;
-  border-radius: 16rpx;
-  padding: 24rpx 24rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16rpx;
-}
-
-.vip-premium {
-  background: #fff;
-  border: 1rpx solid #eee;
-}
-
-.vip-left {
-  display: flex;
-  align-items: center;
-  gap: 18rpx;
-}
-
-.vip-icon-circle {
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 50%;
-  background: #2c2c2c;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.vip-premium .vip-icon-circle {
-  background: #f5f5f5;
-}
-
-.vip-icon-text {
-  font-size: 36rpx;
-  color: #fff;
-}
-
-.vip-premium .vip-icon-text {
-  color: #111;
-}
-
-.vip-info {
-  flex: 1;
-}
-
-.vip-title {
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #fff;
-  display: block;
-  margin-bottom: 4rpx;
-}
-
-.vip-premium .vip-title {
-  color: #111;
-}
-
-.vip-desc {
-  font-size: 22rpx;
-  color: #aaa;
-  display: block;
-}
-
-.vip-premium .vip-desc {
-  color: #999;
-}
-
-/* ===== 兑换会员卡 ===== */
-.exchange-card {
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 24rpx 24rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24rpx;
-}
-
-.exchange-left {
-  display: flex;
-  align-items: center;
-  gap: 18rpx;
-}
-
-.exchange-icon-circle {
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 50%;
-  background: #f5f5f5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.exchange-icon-text {
-  font-size: 36rpx;
-}
-
-.exchange-info {
-  flex: 1;
-}
-
-.exchange-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #111;
-  display: block;
-  margin-bottom: 4rpx;
-}
-
-.exchange-desc {
-  font-size: 22rpx;
-  color: #999;
-  display: block;
+.download-icon-text,
+.fav-icon-text {
+  font-size: 42rpx;
+  color: #0a0a0a;
+  line-height: 1;
 }
 
 .card-arrow {
-  font-size: 36rpx;
-  color: #ccc;
+  font-size: 54rpx;
+  color: #c8c8cc;
+  line-height: 1;
 }
 
-/* ===== 手机号绑定卡 ===== */
-.phone-section {
-  margin-bottom: 24rpx;
+.profile-block {
+  margin-bottom: 76rpx;
 }
 
-.phone-card {
-  background: #fff;
+.more-block {
+  margin-bottom: 26rpx;
+}
+
+.section-title {
+  display: block;
+  margin-bottom: 30rpx;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #080808;
+  line-height: 1.2;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 26rpx;
+}
+
+.content-card {
+  min-height: 112rpx;
+  padding: 26rpx 26rpx 26rpx 24rpx;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1rpx solid rgba(0, 0, 0, 0.05);
   border-radius: 16rpx;
-  padding: 24rpx 24rpx;
+  box-shadow: 0 14rpx 34rpx rgba(0, 0, 0, 0.04);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 18rpx;
+  box-sizing: border-box;
 }
 
-.phone-unbound {
+.more-row-button {
   width: 100%;
+  margin: 0;
+  padding: 0;
   border: none;
+  background: transparent;
   text-align: left;
   font-size: inherit;
   line-height: inherit;
 }
 
-.phone-unbound::after {
+.more-row-button::after {
   border: none;
 }
 
-.phone-left {
-  display: flex;
-  align-items: center;
-  gap: 18rpx;
-}
-
-.phone-icon-circle {
+.profile-card-icon {
   width: 72rpx;
   height: 72rpx;
   border-radius: 50%;
-  background: #f5f5f5;
+  background: rgba(245, 245, 245, 0.92);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.phone-icon-dim {
-  background: #f0f0f0;
-}
-
-.phone-icon-text {
-  font-size: 36rpx;
-}
-
-.phone-info {
+.profile-card-info {
   flex: 1;
+  min-width: 0;
 }
 
-.phone-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #111;
+.profile-card-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #090909;
   display: block;
-  margin-bottom: 4rpx;
+  margin-bottom: 6rpx;
+  line-height: 1.2;
 }
 
-.phone-number {
+.profile-card-desc {
   font-size: 24rpx;
-  color: #888;
+  color: #8a8a8a;
   display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.phone-desc {
-  font-size: 22rpx;
-  color: #999;
+.member-card {
+  min-height: 126rpx;
+  padding: 28rpx 34rpx 28rpx 28rpx;
+  background: linear-gradient(135deg, #050505 0%, #171717 100%);
+  border-radius: 16rpx;
+  box-shadow: 0 18rpx 38rpx rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  gap: 26rpx;
+  box-sizing: border-box;
+}
+
+.member-icon {
+  width: 74rpx;
+  height: 74rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.member-icon-text {
+  font-size: 40rpx;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.member-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.member-title {
   display: block;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.member-desc {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.64);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.member-arrow {
+  font-size: 54rpx;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1;
+}
+
+.more-row {
+  min-height: 94rpx;
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  box-sizing: border-box;
+}
+
+.more-icon {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1rpx solid rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.more-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 30rpx;
+  color: #1d1d1f;
+  line-height: 1.2;
+}
+
+.more-desc {
+  max-width: 180rpx;
+  font-size: 24rpx;
+  color: #8a8a8a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-icon-text,
+.feedback-icon-text,
+.about-icon-text {
+  font-size: 28rpx;
+  color: #5f6063;
+  line-height: 1;
 }
 
 .card-arrow-bound {
@@ -646,49 +699,30 @@ const handleLogout = () => {
   color: #4CAF50;
 }
 
-/* ===== 菜单列表 (透明底+顶部线) ===== */
-.menu-section {
-  background: transparent;
-  border-top: 1rpx solid #eee;
-  padding-top: 12rpx;
-}
+@media (max-width: 340px) {
+  .page-profile {
+    padding-left: 36rpx;
+    padding-right: 36rpx;
+  }
 
-.menu-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 22rpx 0;
-}
+  .profile-section {
+    padding-left: 36rpx;
+    padding-right: 36rpx;
+  }
 
-.menu-left {
-  display: flex;
-  align-items: center;
-  gap: 18rpx;
-}
+  .content-grid {
+    gap: 18rpx;
+  }
 
-.menu-icon-circle {
-  width: 52rpx;
-  height: 52rpx;
-  border-radius: 50%;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+  .content-card {
+    padding-left: 18rpx;
+    padding-right: 18rpx;
+  }
 
-.menu-icon-text {
-  font-size: 28rpx;
-  color: #888;
-}
-
-.menu-label {
-  font-size: 28rpx;
-  color: #111;
-}
-
-.menu-item .card-arrow {
-  font-size: 28rpx;
-  color: #ccc;
+  .profile-card-title,
+  .more-title {
+    font-size: 28rpx;
+  }
 }
 
 /* ===== 退出 ===== */
@@ -710,5 +744,233 @@ const handleLogout = () => {
 .logout-text {
   font-size: 26rpx;
   color: #999;
+}
+
+/* ===== 编辑资料弹层 ===== */
+.editor-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.36);
+  display: flex;
+  align-items: flex-end;
+}
+
+.editor-panel {
+  width: 100%;
+  max-height: calc(100vh - 160rpx);
+  background: #fff;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 28rpx 28rpx calc(160rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28rpx;
+}
+
+.editor-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #111;
+}
+
+.editor-close {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: #f5f5f5;
+  color: #888;
+  font-size: 40rpx;
+  line-height: 52rpx;
+  text-align: center;
+}
+
+.avatar-picker {
+  width: 180rpx;
+  margin: 0 auto 32rpx;
+  padding: 0;
+  border: none;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+
+.avatar-picker::after {
+  border: none;
+}
+
+.editor-avatar-img,
+.editor-avatar-icon {
+  width: 132rpx;
+  height: 132rpx;
+  border-radius: 50%;
+  background: #f2f2f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.editor-avatar-icon {
+  font-size: 56rpx;
+  color: #bbb;
+  line-height: 132rpx;
+}
+
+.avatar-picker-label {
+  font-size: 24rpx;
+  color: #666;
+  margin-top: 14rpx;
+}
+
+.editor-field {
+  margin-bottom: 32rpx;
+}
+
+.editor-label {
+  font-size: 24rpx;
+  color: #888;
+  display: block;
+  margin-bottom: 12rpx;
+}
+
+.nickname-input {
+  height: 88rpx;
+  background: #f7f7f7;
+  border-radius: 12rpx;
+  padding: 0 24rpx;
+  font-size: 30rpx;
+  color: #111;
+  box-sizing: border-box;
+}
+
+.editor-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+}
+
+.editor-button {
+  height: 84rpx;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  border: none;
+  line-height: 84rpx;
+}
+
+.editor-button::after {
+  border: none;
+}
+
+.editor-cancel {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.editor-save {
+  background: #111;
+  color: #fff;
+}
+
+/* ===== 反馈弹层 ===== */
+.feedback-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.36);
+  display: flex;
+  align-items: flex-end;
+}
+
+.feedback-panel {
+  width: 100%;
+  background: #fff;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 28rpx 28rpx calc(160rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.feedback-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+
+.feedback-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #111;
+}
+
+.feedback-close {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: #f5f5f5;
+  color: #888;
+  font-size: 40rpx;
+  line-height: 52rpx;
+  text-align: center;
+}
+
+.feedback-textarea {
+  width: 100%;
+  height: 260rpx;
+  background: #f7f7f7;
+  border-radius: 12rpx;
+  padding: 22rpx 24rpx;
+  font-size: 28rpx;
+  color: #111;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.feedback-count {
+  font-size: 22rpx;
+  color: #aaa;
+  text-align: right;
+  margin: 12rpx 0 28rpx;
+}
+
+.feedback-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+}
+
+.feedback-button {
+  height: 84rpx;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  border: none;
+  line-height: 84rpx;
+}
+
+.feedback-button::after {
+  border: none;
+}
+
+.feedback-cancel {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.feedback-submit {
+  background: #111;
+  color: #fff;
 }
 </style>

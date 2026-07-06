@@ -76,7 +76,10 @@ public class MinioFileServiceImpl implements FileService {
 
     @Override
     public String getUrl(String objectName) {
-        return String.format("%s/%s/%s",
-                properties.getEndpoint(), properties.getBucket(), objectName);
+        // publicEndpoint 用于返回给前端的公开 URL；未配置时回退到 endpoint
+        String base = properties.getPublicEndpoint() != null && !properties.getPublicEndpoint().isBlank()
+                ? properties.getPublicEndpoint()
+                : properties.getEndpoint();
+        return String.format("%s/%s/%s", base, properties.getBucket(), objectName);
     }
 }

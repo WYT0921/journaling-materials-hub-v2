@@ -11,51 +11,56 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * FavoriteService 单元测试
  */
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class FavoriteServiceTest extends BaseTest {
 
     @Autowired
     private FavoriteService favoriteService;
 
     @Test
-    @Order(1)
     void testToggleFavorite_Add() {
         boolean favorited = favoriteService.toggleFavorite(1L, 1L);
         assertTrue(favorited);
+        assertTrue(favoriteService.isFavorited(1L, 1L));
     }
 
     @Test
-    @Order(2)
     void testIsFavorited_True() {
+        favoriteService.toggleFavorite(1L, 1L);
+
         boolean favorited = favoriteService.isFavorited(1L, 1L);
         assertTrue(favorited);
     }
 
     @Test
-    @Order(3)
     void testIsFavorited_False() {
         boolean favorited = favoriteService.isFavorited(1L, 999L);
         assertFalse(favorited);
     }
 
     @Test
-    @Order(4)
     void testGetUserFavorites() {
+        favoriteService.toggleFavorite(1L, 1L);
+
         IPage<Favorite> favorites = favoriteService.getUserFavorites(1L, 1, 10);
         assertNotNull(favorites);
-        assertTrue(favorites.getTotal() >= 1);
+        assertEquals(1, favorites.getTotal());
+        assertEquals(1, favorites.getRecords().size());
+        assertEquals(1L, favorites.getRecords().get(0).getMaterialId());
+        assertNotNull(favorites.getRecords().get(0).getMaterial());
     }
 
     @Test
-    @Order(5)
     void testGetFavoriteCount() {
+        favoriteService.toggleFavorite(1L, 1L);
+
         long count = favoriteService.getFavoriteCount(1L);
-        assertTrue(count >= 1);
+        assertEquals(1, count);
     }
 
     @Test
-    @Order(6)
     void testToggleFavorite_Remove() {
+        assertTrue(favoriteService.toggleFavorite(1L, 1L));
+
         boolean favorited = favoriteService.toggleFavorite(1L, 1L);
         assertFalse(favorited);
 
@@ -64,12 +69,11 @@ class FavoriteServiceTest extends BaseTest {
     }
 
     @Test
-    @Order(7)
     void testToggleFavorite_MultipleMaterials() {
         favoriteService.toggleFavorite(2L, 1L);
         favoriteService.toggleFavorite(2L, 3L);
 
         IPage<Favorite> favorites = favoriteService.getUserFavorites(2L, 1, 10);
-        assertTrue(favorites.getTotal() >= 2);
+        assertEquals(2, favorites.getTotal());
     }
 }

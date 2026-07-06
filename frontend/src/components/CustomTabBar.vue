@@ -1,19 +1,22 @@
 <template>
-  <view class="custom-tabbar safe-area-bottom">
-    <view
-      v-for="(tab, index) in tabs"
-      :key="index"
-      class="tab-item"
-      :class="{ active: current === index }"
-      @tap="handleTabTap(index)"
-    >
-      <image
-        class="tab-icon"
-        :src="current === index ? tab.activeIcon : tab.icon"
-        mode="aspectFit"
-      />
-      <text class="tab-label">{{ tab.text }}</text>
+  <view class="tabbar-host">
+    <view class="custom-tabbar safe-area-bottom">
+      <view
+        v-for="(tab, index) in tabs"
+        :key="index"
+        class="tab-item"
+        :class="{ active: current === index }"
+        @tap="handleTabTap(index)"
+      >
+        <image
+          class="tab-icon"
+          :src="current === index ? tab.activeIcon : tab.icon"
+          mode="aspectFit"
+        />
+        <text class="tab-label">{{ tab.text }}</text>
+      </view>
     </view>
+    <view class="tabbar-placeholder safe-area-bottom" />
   </view>
 </template>
 
@@ -61,6 +64,7 @@ function handleTabTap(index) {
   align-items: center;
   justify-content: space-around;
   height: 100rpx;
+  box-sizing: content-box;
   /* 毛玻璃效果 + fallback */
   background: rgba(255, 255, 255, 0.6);
   -webkit-backdrop-filter: blur(20px);
@@ -71,7 +75,12 @@ function handleTabTap(index) {
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 100;
+  z-index: 900;
+}
+
+.tabbar-placeholder {
+  height: 100rpx;
+  box-sizing: content-box;
 }
 
 @supports not ((-webkit-backdrop-filter: blur(20px)) or (backdrop-filter: blur(20px))) {

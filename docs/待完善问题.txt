@@ -1,6 +1,6 @@
 ═══════════════════════════════════════════════════════════════
   手账素材小程序 — 待完善问题清单
-  更新日期：2026-06-16
+  更新日期：2026-07-04
 ═══════════════════════════════════════════════════════════════
 
 【问题分级说明】
@@ -104,7 +104,20 @@
 
 
 ═══════════════════════════════════════════════════════════════
-六、近期修复记录 (2026-06-13 ~ 06-14)
+六、网页管理后台 ✅ 已完成 (2026-07-04)
+═══════════════════════════════════════════════════════════════
+
+6.17 网页管理后台全面实现
+  - 后端：Admin JWT 认证（BCrypt + role=admin）、categories 表 + V6 迁移
+  - 后端：Category CRUD、AdminController 扩展（素材/工具/用户/反馈管理）
+  - 后端：ToolServiceImpl 改为 DB 驱动、默认工具数据库化
+  - 后端测试：126 用例 / 0 失败（新增 40 用例）
+  - 前端：admin-frontend/ Vue 3 + Vite 独立项目（5 个管理页面）
+  - 前端：小程序 tools.vue 分类从后端 API 获取
+  - 涉及文件：38 个文件（21 新建 + 17 修改）
+
+═══════════════════════════════════════════════════════════════
+七、近期修复记录 (2026-06-13 ~ 06-14)
 ═══════════════════════════════════════════════════════════════
 
 6.1 MaterialCard 详情页跳转传参为 undefined ✅ 已修复
@@ -158,8 +171,56 @@
   - 前端：index.vue 新增筛选面板（☰ 按钮展开，排序切换+动画）
   - 后端测试：MaterialServiceTest 适配新签名，82→86 用例全通过
 
+6.9 下载免费额度规则 ✅ 已完成 (2026-07-03)
+  - 普通用户可免费下载 5 个不同素材，重复下载同一素材不重复扣减额度
+  - 超过 5 次后后端返回 4004，引导用户兑换会员码激活会员
+  - 会员用户不受免费次数限制
+  - 涉及文件：DownloadServiceImpl、DownloadServiceTest、DownloadControllerTest、detail.vue、docs/api.md
+
+6.10 真实登录模式 ✅ 已完成 (2026-07-03)
+  - 前端 userStore 关闭无 code / mock code 自动降级 dev-login
+  - 小程序登录必须获取真实微信 code 后调用 /api/user/login
+  - devLogin API 保留为后端调试入口，前端正常登录流程不再调用
+
+6.11 编辑个人资料 ✅ 已完成 (2026-07-03)
+  - 个人中心支持编辑昵称和头像
+  - 昵称输入使用微信 nickname 能力，头像选择使用 chooseAvatar 能力
+  - 后端新增 POST /api/user/avatar，登录用户头像上传到 MinIO 后再保存资料
+  - 涉及文件：profile.vue、api/user.js、stores/user.js、request.js、UserController.java、UserControllerTest.java、docs/api.md
+
+6.12 个人中心精简 + 反馈入库 + 详情页收藏重排 ✅ 已完成 (2026-07-03)
+
+6.13 个人中心导航卡片 + 下载历史页 + 详情页相关推荐 ✅ 已完成 (2026-07-04)
+  - 个人中心移除统计栏，新增「我的下载」「我的收藏」卡片入口
+  - 新建下载历史页（pages/download-history/index），瀑布流+分页+刷新
+  - 素材详情页底部新增「相关推荐」同分类横向滚动卡片
+  - mock 下载记录数据格式改为嵌套 material 结构对齐后端
+  - 涉及文件：profile.vue、detail.vue、download-history/index.vue（新建）、pages.json、mock/download-record.json
+  - 个人中心移除会员中心、设置、素材管理，仅保留兑换会员、绑定手机号、反馈建议、关于
+  - 反馈建议改为文本提交弹窗，新增 feedbacks 表和 POST /api/feedback
+  - 素材详情页收藏按钮移到信息区，扩大点击区域
+  - 涉及文件：profile.vue、detail.vue、feedback.js、FeedbackController.java、FeedbackServiceImpl.java、FeedbackControllerTest.java、V5__create_feedbacks_table.sql、docs/api.md、docs/database.md
+
+6.14 固定顶栏/底栏 + 工具页分类展示 ✅ 已完成 (2026-07-04)
+  - GlassNavBar 改为固定顶栏并自带占位，标题绝对居中，避免返回按钮/右侧区域影响视觉中心
+  - CustomTabBar 改为固定底栏并自带安全区占位，减少页面滚动时底栏跟随内容的问题
+  - 工具页改为小程序端纯展示，移除添加工具入口和删除入口，新增分类 chip 筛选
+  - 会员页与兑换结果相关文案统一为「兑换会员」
+  - 涉及文件：GlassNavBar.vue、CustomTabBar.vue、ToolCard.vue、tools.vue、pages.json、premium/index.vue、redeem/result.vue
+
+6.15 个人中心资料区固定 ✅ 已完成 (2026-07-04)
+  - 头像、昵称、会员状态区域改为顶部固定层，并按状态栏高度自适应
+  - 增加资料区占位，避免「我的内容」被固定层遮挡
+  - 涉及文件：frontend/src/pages/profile/profile.vue
+
+6.16 Hikari 连接池空闲连接校验告警 ✅ 已修复 (2026-07-04)
+  - 原因：MySQL/网络可能先于 Hikari 默认 30 分钟 maxLifetime 关闭空闲连接，导致校验时出现 "No operations allowed after connection closed"
+  - 修复：收短 max-lifetime，增加 keepalive-time 和 validation-timeout，并提供 DB_POOL_* 环境变量覆盖
+  - 验证：后端 mvn test 通过（93 tests / 0 failures）
+  - 涉及文件：application.yml、.env.example、README.md、PROJECT_SUMMARY.md
+
 ═══════════════════════════════════════════════════════════════
-七、功能占位（Stub）需补全 🟢
+八、功能占位（Stub）需补全 🟢
 ═══════════════════════════════════════════════════════════════
 
 7.1 素材详情页 — 分享功能
@@ -179,13 +240,14 @@
   - 现状："联系客服"按钮 toast "客服功能开发中"
   - 涉及：frontend/src/pages/detail/detail.vue handleContactService()
 
-7.5 Profile 页 — 设置/关于/反馈建议
-  - 现状：4 个菜单项（设置、素材管理、关于、反馈建议）均无跳转
+7.5 Profile 页 — 设置/关于/反馈建议 ✅ 已修复 (2026-07-03)
+  - 现状：个人中心保留兑换会员、绑定手机号、反馈建议、关于四个卡片
+  - 反馈建议已接入文本提交并保存数据库
   - 涉及：frontend/src/pages/profile/profile.vue
 
 
 ═══════════════════════════════════════════════════════════════
-八、其他优化项 🟢
+九、其他优化项 🟢
 ═══════════════════════════════════════════════════════════════
 
 8.1 详情页图片加载优化

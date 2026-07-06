@@ -41,13 +41,16 @@ public enum ErrorCode {
     DOWNLOAD_FAILED(4001, "下载失败"),
     DOWNLOAD_NOT_FOUND(4002, "下载记录不存在"),
     DOWNLOAD_ALREADY_EXISTS(4003, "已下载过此素材"),
+    DOWNLOAD_FREE_LIMIT_EXCEEDED(4004, "免费次数已用完，请兑换会员码后继续下载"),
 
     // 收藏相关错误 (5xxx)
     FAVORITE_ALREADY_EXISTS(5001, "已收藏此素材"),
     FAVORITE_NOT_FOUND(5002, "收藏记录不存在"),
 
     // 管理员相关错误 (9xxx)
-    ADMIN_REQUIRED(9001, "需要管理员权限");
+    ADMIN_REQUIRED(9001, "需要管理员权限"),
+    ADMIN_LOGIN_FAILED(9002, "管理员用户名或密码错误"),
+    ADMIN_NOT_CONFIGURED(9003, "管理员账号未配置");
 
     private final int code;
     private final String message;

@@ -25,6 +25,9 @@ public class JwtUtil {
     @Value("${jwt.expiration}")
     private Long expiration;
 
+    @Value("${jwt.admin-expiration}")
+    private Long adminExpiration;
+
     /**
      * 获取签名密钥
      */
@@ -91,6 +94,23 @@ public class JwtUtil {
     public boolean getIsPremium(String token) {
         Claims claims = parseToken(token);
         return claims.get("isPremium", Boolean.class);
+    }
+
+    /**
+     * 生成管理员 JWT Token
+     */
+    public String generateAdminToken(String username) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", "admin");
+        claims.put("username", username);
+
+        return Jwts.builder()
+                .claims(claims)
+                .subject(username)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + adminExpiration))
+                .signWith(getSigningKey())
+                .compact();
     }
 
     /**

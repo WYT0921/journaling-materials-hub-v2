@@ -4,21 +4,31 @@ import * as toolsApi from '../api/tools'
 
 const STORAGE_KEY = 'custom_tools'
 
-// 默认工具（后端不可用时的 fallback）
+// 默认工具（后端不可用时的 fallback，包含 category 字段）
 const DEFAULT_TOOLS = [
-  { id: 'default-1', name: 'Notion', description: '万能笔记和项目管理工具', icon: '📝', url: 'https://www.notion.so', isDefault: true },
-  { id: 'default-2', name: 'Canva', description: '在线设计平台，海量模板', icon: '🎨', url: 'https://www.canva.cn', isDefault: true },
-  { id: 'default-3', name: 'Color Hunt', description: '精选配色方案集合', icon: '🎯', url: 'https://colorhunt.co', isDefault: true },
-  { id: 'default-4', name: 'Coolors', description: '快速生成配色方案', icon: '🌈', url: 'https://coolors.co', isDefault: true },
-  { id: 'default-5', name: 'Google Fonts', description: '免费开源字体库', icon: '🔤', url: 'https://fonts.google.com', isDefault: true },
-  { id: 'default-6', name: 'DaFont', description: '英文字体下载站', icon: '✒️', url: 'https://www.dafont.com', isDefault: true },
-  { id: 'default-7', name: 'Freepik', description: '免费矢量图和 PSD 素材', icon: '🖼️', url: 'https://www.freepik.com', isDefault: true },
-  { id: 'default-8', name: 'Unsplash', description: '高质量免费图片', icon: '📷', url: 'https://unsplash.com', isDefault: true }
+  { id: 'default-1', name: 'Notion', description: '万能笔记和项目管理工具', icon: '📝', url: 'https://www.notion.so', category: '写作与项目', isDefault: true },
+  { id: 'default-2', name: 'Canva', description: '在线设计平台，海量模板', icon: '🎨', url: 'https://www.canva.cn', category: '在线设计', isDefault: true },
+  { id: 'default-3', name: 'Color Hunt', description: '精选配色方案集合', icon: '🎯', url: 'https://colorhunt.co', category: '配色与创意', isDefault: true },
+  { id: 'default-4', name: 'Coolors', description: '快速生成配色方案', icon: '🌈', url: 'https://coolors.co', category: '配色与创意', isDefault: true },
+  { id: 'default-5', name: 'Google Fonts', description: '免费开源字体库', icon: '🔤', url: 'https://fonts.google.com', category: '字体资源', isDefault: true },
+  { id: 'default-6', name: 'DaFont', description: '英文字体下载站', icon: '✒️', url: 'https://www.dafont.com', category: '字体资源', isDefault: true },
+  { id: 'default-7', name: 'Freepik', description: '免费矢量图和 PSD 素材', icon: '🖼️', url: 'https://www.freepik.com', category: '素材资源', isDefault: true },
+  { id: 'default-8', name: 'Unsplash', description: '高质量免费图片', icon: '📷', url: 'https://unsplash.com', category: '素材资源', isDefault: true }
+]
+
+// 默认分类（后端不可用时的 fallback）
+const DEFAULT_CATEGORIES = [
+  { name: '写作与项目', type: 'tool', status: 1, sortOrder: 1 },
+  { name: '在线设计', type: 'tool', status: 1, sortOrder: 2 },
+  { name: '配色与创意', type: 'tool', status: 1, sortOrder: 3 },
+  { name: '字体资源', type: 'tool', status: 1, sortOrder: 4 },
+  { name: '素材资源', type: 'tool', status: 1, sortOrder: 5 }
 ]
 
 export const useToolsStore = defineStore('tools', () => {
   const allTools = ref([...DEFAULT_TOOLS])
   const customTools = ref([])
+  const categories = ref([...DEFAULT_CATEGORIES])
 
   const hasCustomTools = computed(() => customTools.value.length > 0)
 
@@ -38,6 +48,19 @@ export const useToolsStore = defineStore('tools', () => {
     }
     // fallback：加载本地存储
     loadLocalCustomTools()
+  }
+
+  // 从后端加载工具分类
+  async function fetchCategories() {
+    try {
+      const cats = await toolsApi.getCategories()
+      if (cats && cats.length > 0) {
+        categories.value = cats
+        return
+      }
+    } catch (e) {
+      console.warn('从后端加载工具分类失败，使用默认分类:', e)
+    }
   }
 
   // 从本地存储加载
@@ -79,6 +102,7 @@ export const useToolsStore = defineStore('tools', () => {
         description: tool.description,
         icon: tool.icon || '🔧',
         url: tool.url,
+        category: tool.category || '',
         isDefault: false
       }
       customTools.value.push(localTool)
@@ -103,8 +127,10 @@ export const useToolsStore = defineStore('tools', () => {
   return {
     allTools,
     customTools,
+    categories,
     hasCustomTools,
     fetchTools,
+    fetchCategories,
     addTool,
     removeTool
   }

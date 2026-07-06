@@ -17,6 +17,7 @@ import java.util.List;
 
 /**
  * 工具服务实现
+ * 默认工具从数据库 tools 表读取（is_default=true, status=1）
  */
 @Slf4j
 @Service
@@ -25,39 +26,23 @@ public class ToolServiceImpl implements ToolService {
     @Autowired
     private ToolMapper toolMapper;
 
-    // 默认工具列表（内存中维护）
-    private static final List<Tool> DEFAULT_TOOLS = new ArrayList<>();
-
-    static {
-        addDefaultTool("Notion", "万能笔记和项目管理工具", "📝", "https://www.notion.so");
-        addDefaultTool("Canva", "在线设计平台，海量模板", "🎨", "https://www.canva.cn");
-        addDefaultTool("Color Hunt", "精选配色方案集合", "🎯", "https://colorhunt.co");
-        addDefaultTool("Coolors", "快速生成配色方案", "🌈", "https://coolors.co");
-        addDefaultTool("Google Fonts", "免费开源字体库", "🔤", "https://fonts.google.com");
-        addDefaultTool("DaFont", "英文字体下载站", "✒️", "https://www.dafont.com");
-        addDefaultTool("Freepik", "免费矢量图和 PSD 素材", "🖼️", "https://www.freepik.com");
-        addDefaultTool("Unsplash", "高质量免费图片", "📷", "https://unsplash.com");
-    }
-
-    private static void addDefaultTool(String name, String desc, String icon, String url) {
-        Tool tool = new Tool();
-        tool.setName(name);
-        tool.setDescription(desc);
-        tool.setIcon(icon);
-        tool.setUrl(url);
-        tool.setIsDefault(true);
-        DEFAULT_TOOLS.add(tool);
-    }
-
     @Override
     public List<Tool> getAllTools(Long userId) {
-        List<Tool> result = new ArrayList<>(DEFAULT_TOOLS);
+        // 从数据库读取全局启用的默认工具
+        List<Tool> result = new ArrayList<>(toolMapper.selectList(
+                new LambdaQueryWrapper<Tool>()
+                        .eq(Tool::getIsDefault, true)
+                        .eq(Tool::getStatus, 1)
+                        .orderByAsc(Tool::getSortOrder)
+                        .orderByDesc(Tool::getCreatedAt)
+        ));
 
         // 追加用户自定义工具
         if (userId != null) {
             List<Tool> customTools = toolMapper.selectList(
                     new LambdaQueryWrapper<Tool>()
                             .eq(Tool::getUserId, userId)
+                            .eq(Tool::getIsDefault, false)
                             .eq(Tool::getStatus, 1)
                             .orderByAsc(Tool::getSortOrder)
                             .orderByDesc(Tool::getCreatedAt)
@@ -74,6 +59,7 @@ public class ToolServiceImpl implements ToolService {
         return toolMapper.selectPage(pageParam,
                 new LambdaQueryWrapper<Tool>()
                         .eq(Tool::getUserId, userId)
+                        .eq(Tool::getIsDefault, false)
                         .eq(Tool::getStatus, 1)
                         .orderByDesc(Tool::getCreatedAt));
     }
@@ -125,6 +111,9 @@ public class ToolServiceImpl implements ToolService {
         }
         if (tool.getUrl() != null) {
             existing.setUrl(tool.getUrl());
+        }
+        if (tool.getCategory() != null) {
+            existing.setCategory(tool.getCategory());
         }
 
         toolMapper.updateById(existing);

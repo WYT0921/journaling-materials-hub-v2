@@ -27,6 +27,10 @@ public class Tool {
     @TableField("url")
     private String url;
 
+    /** 分类名称 */
+    @TableField("category")
+    private String category;
+
     /** 排序序号 */
     @TableField("sort_order")
     private Integer sortOrder;

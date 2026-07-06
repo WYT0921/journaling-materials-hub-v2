@@ -51,15 +51,11 @@ export const useUserStore = defineStore('user', () => {
         })
       })
 
-      // 检测游客模式 mock code，自动降级到 dev-login
-      const isMockCode = !code || code.includes('mock')
-      let result
-      if (isMockCode) {
-        console.log('检测到游客模式，使用 dev-login:', code)
-        result = await userApi.devLogin('dev-tourist', true)
-      } else {
-        result = await userApi.login(code)
+      if (!code || code.includes('mock')) {
+        throw new Error('微信登录失败，请重试')
       }
+
+      const result = await userApi.login(code)
 
       // 保存登录信息
       token.value = result.token
@@ -155,6 +151,37 @@ export const useUserStore = defineStore('user', () => {
   }
 
   /**
+   * 更新个人资料
+   */
+  const updateProfile = async (profile) => {
+    if (!isLoggedIn.value) {
+      uni.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+
+    try {
+      const result = await userApi.updateProfile(profile)
+      userInfo.value = result
+      isPremium.value = result.memberType !== 'normal'
+      uni.setStorageSync('userInfo', JSON.stringify(result))
+
+      uni.showToast({
+        title: '资料已保存',
+        icon: 'success'
+      })
+
+      return result
+    } catch (error) {
+      console.error('更新个人资料失败:', error)
+      uni.showToast({
+        title: error.message || '保存失败，请重试',
+        icon: 'none'
+      })
+      throw error
+    }
+  }
+
+  /**
    * 刷新会员状态
    */
   const refreshPremiumStatus = async () => {
@@ -186,6 +213,7 @@ export const useUserStore = defineStore('user', () => {
     login,
     logout,
     bindPhone,
+    updateProfile,
     refreshProfile,
     refreshPremiumStatus
   }

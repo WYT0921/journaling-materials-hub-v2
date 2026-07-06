@@ -28,7 +28,7 @@
     {
       "path": "pages/premium/index",
       "style": {
-        "navigationBarTitleText": "会员中心"
+        "navigationBarTitleText": "兑换会员"
       }
     },
     {
@@ -47,6 +47,12 @@
       "path": "pages/favorites/index",
       "style": {
         "navigationBarTitleText": "我的收藏"
+      }
+    },
+    {
+      "path": "pages/download-history/index",
+      "style": {
+        "navigationBarTitleText": "下载历史"
       }
     }
   ],

@@ -123,6 +123,7 @@ docker-compose up -d
 | 变量 | 说明 |
 |------|------|
 | `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USERNAME` / `DB_PASSWORD` | 数据库连接 |
+| `DB_POOL_MAX_LIFETIME` / `DB_POOL_KEEPALIVE_TIME` / `DB_POOL_IDLE_TIMEOUT` / `DB_POOL_VALIDATION_TIMEOUT` | 数据库连接池超时配置（毫秒） |
 | `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` | Redis 连接 |
 | `JWT_SECRET` | JWT 签名密钥（≥32 字符） |
 | `WECHAT_APPID` / `WECHAT_SECRET` | 微信小程序凭证 |

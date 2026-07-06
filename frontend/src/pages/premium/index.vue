@@ -1,7 +1,7 @@
 <template>
   <view class="page-premium">
     <!-- 毛玻璃导航栏 -->
-    <GlassNavBar title="会员中心" :show-back="true" />
+    <GlassNavBar title="兑换会员" :show-back="true" />
 
     <view class="premium-content">
       <!-- ===== 未开通状态 ===== -->

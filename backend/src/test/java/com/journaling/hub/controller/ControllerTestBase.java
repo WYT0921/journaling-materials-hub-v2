@@ -34,8 +34,18 @@ public abstract class ControllerTestBase extends BaseTest {
         return "Bearer " + jwtUtil.generateToken(3L, "test-openid-disabled", false);
     }
 
+    /** 普通用户，剩余 1 次免费额度 ID=4 */
+    protected String freeQuotaUserToken() {
+        return "Bearer " + jwtUtil.generateToken(4L, "test-openid-free-quota", false);
+    }
+
     /** 管理员用户 ID=1 */
     protected String adminToken() {
         return normalUserToken();
+    }
+
+    /** 管理员 JWT token（role=admin） */
+    protected String adminJwtToken() {
+        return "Bearer " + jwtUtil.generateAdminToken("admin");
     }
 }

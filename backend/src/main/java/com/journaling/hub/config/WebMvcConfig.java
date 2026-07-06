@@ -32,11 +32,15 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/api/materials/categories",
                         "/api/materials/{id}",
                         "/api/redeem/verify",
+                        "/api/feedback",
+                        "/api/v2/admin/auth/**",
+                        "/api/v2/categories",
                         "/actuator/**"
                 );
 
         // 管理员权限拦截器
         registry.addInterceptor(adminInterceptor)
-                .addPathPatterns("/api/v2/admin/**");
+                .addPathPatterns("/api/v2/admin/**")
+                .excludePathPatterns("/api/v2/admin/auth/**");
     }
 }

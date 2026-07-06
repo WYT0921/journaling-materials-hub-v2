@@ -53,6 +53,7 @@ public class JwtAuthenticationFilter implements HandlerInterceptor {
             request.setAttribute("userId", claims.get("userId", Long.class));
             request.setAttribute("openid", claims.get("openid", String.class));
             request.setAttribute("isPremium", claims.get("isPremium", Boolean.class));
+            request.setAttribute("role", claims.get("role", String.class));
 
             return true;
         } catch (ExpiredJwtException e) {

@@ -24,6 +24,7 @@ dist/
 build/
 *.js.map
 target/
+deploy/backend/*.jar
 
 # 操作系统文件
 .DS_Store

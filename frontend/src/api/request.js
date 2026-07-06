@@ -130,6 +130,64 @@ export const put = (url, data) => {
 }
 
 /**
+ * 文件上传
+ */
+export const upload = (url, filePath, name = 'file', formData = {}) => {
+  return new Promise((resolve, reject) => {
+    if (IS_MOCK) {
+      reject({ message: 'Mock 模式暂不支持文件上传', code: 400 })
+      return
+    }
+
+    const token = uni.getStorageSync('token')
+    const header = {}
+    if (token) {
+      header['Authorization'] = `Bearer ${token}`
+    }
+
+    uni.uploadFile({
+      url: `${BASE_URL}${url}`,
+      filePath,
+      name,
+      formData,
+      header,
+      success: (res) => {
+        if (res.statusCode === 200) {
+          let data = res.data
+          if (typeof data === 'string') {
+            try {
+              data = JSON.parse(data)
+            } catch (error) {
+              reject({ message: '响应解析失败', code: -2 })
+              return
+            }
+          }
+
+          if (data.success) {
+            resolve(data.data)
+          } else {
+            reject({
+              message: data.error?.message || '上传失败',
+              code: data.error?.statusCode
+            })
+          }
+        } else if (res.statusCode === 401) {
+          uni.removeStorageSync('token')
+          uni.removeStorageSync('userInfo')
+          reject({ message: '未授权', code: 401 })
+        } else {
+          reject({ message: `上传失败 (${res.statusCode})`, code: res.statusCode })
+        }
+      },
+      fail: (err) => {
+        console.error('上传失败:', err)
+        reject({ message: '上传失败，请检查网络', code: -1 })
+      }
+    })
+  })
+}
+
+/**
  * DELETE 请求
  */
 export const del = (url, data) => {

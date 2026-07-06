@@ -12,8 +12,11 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "minio")
 public class MinioProperties {
 
-    /** MinIO 服务地址 */
+    /** MinIO 服务地址（后端容器内部访问用） */
     private String endpoint;
+
+    /** MinIO 公开访问地址（返回给前端/小程序的 URL 前缀） */
+    private String publicEndpoint;
 
     /** 访问密钥 */
     private String accessKey;

@@ -33,7 +33,7 @@
 
         <!-- 按钮 -->
         <button class="action-btn primary-btn" @tap="handleGoPremium">
-          <text class="primary-btn-text">前往会员中心</text>
+          <text class="primary-btn-text">前往兑换会员</text>
         </button>
         <button class="action-btn outline-btn" @tap="handleGoHome">
           <text class="outline-btn-text">返回首页</text>

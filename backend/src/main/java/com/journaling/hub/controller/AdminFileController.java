@@ -46,11 +46,11 @@ public class AdminFileController {
             String uuid = UUID.randomUUID().toString().substring(0, 8);
 
             // 上传原图
-            String originalPath = String.format("materials/original/%s.%s", uuid, ext);
+            String originalPath = String.format("original/%s.%s", uuid, ext);
             String imageUrl = fileService.upload(file, originalPath);
 
             // 生成缩略图（宽度 400px）
-            String thumbnailPath = String.format("materials/thumb/%s.%s", uuid, ext);
+            String thumbnailPath = String.format("thumb/%s.%s", uuid, ext);
             byte[] thumbBytes = generateThumbnail(file, THUMB_WIDTH);
             String thumbnailUrl = fileService.upload(thumbBytes, thumbnailPath, file.getContentType());
 

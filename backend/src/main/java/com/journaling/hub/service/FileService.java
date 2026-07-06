@@ -10,7 +10,7 @@ public interface FileService {
     /**
      * 上传文件
      * @param file 文件
-     * @param objectName MinIO 对象路径（如 materials/original/abc.png）
+     * @param objectName MinIO 对象路径（如 original/abc.png）
      * @return 文件访问 URL
      */
     String upload(MultipartFile file, String objectName);
