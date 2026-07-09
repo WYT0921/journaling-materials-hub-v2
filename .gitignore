@@ -12,6 +12,13 @@ application-local.yml
 **/application-dev.yml
 **/application-local.yml
 
+# TLS certificates and private keys
+nginx/ssl/
+deploy/nginx/ssl/
+*.pem
+*.key
+*.crt
+
 # 日志文件
 logs/
 *.log
