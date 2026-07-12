@@ -27,9 +27,9 @@ class DownloadServiceTest extends BaseTest {
         assertNotNull(result);
         assertNotNull(result.get("url"));
         assertEquals(1L, (long) result.get("materialId"));
-        assertEquals(5, result.get("freeDownloadLimit"));
+        assertEquals(50, result.get("freeDownloadLimit"));
         assertEquals(5, result.get("freeDownloadUsed"));
-        assertEquals(0, result.get("freeDownloadRemaining"));
+        assertEquals(45, result.get("freeDownloadRemaining"));
     }
 
     @Test
@@ -40,7 +40,7 @@ class DownloadServiceTest extends BaseTest {
         assertNotNull(result);
         assertEquals("下载成功", result.get("message"));
         assertEquals(5, result.get("freeDownloadUsed"));
-        assertEquals(0, result.get("freeDownloadRemaining"));
+        assertEquals(45, result.get("freeDownloadRemaining"));
     }
 
     @Test

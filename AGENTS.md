@@ -51,21 +51,24 @@ docker-compose stop backend    # 停止单个服务
 部署时必须上传本地 `deploy/` 目录里的内容到服务器 `/root/journaling-materials-hub/deploy/`，使服务器该目录下直接包含：
 `docker-compose.yml`、`backend/`、`admin-frontend/`、`nginx/`、`db/` 等文件/目录。
 
-不要上传到 `/opt/journaling-hub`，也不要在服务器上形成 `/root/journaling-materials-hub/deploy/deploy/` 这种多套一层的目录。服务器真实环境变量文件为 `/root/journaling-materials-hub/deploy/.env`，部署包不应覆盖它。上传后在服务器执行：
-```bash
-cd /root/journaling-materials-hub/deploy
-docker compose restart backend
-docker compose ps
-```
+不要上传到 `/opt/journaling-hub`，也不要在服务器上形成 `/root/journaling-materials-hub/deploy/deploy/` 这种多套一层的目录。服务器真实环境变量文件为 `/root/journaling-materials-hub/deploy/.env`，部署包不应覆盖它。
 
-后端更新方式固定为“只更新 JAR，不重新构建 Docker 镜像”：
+后端采用“版本化不可变镜像”部署，JAR 必须打入镜像，禁止挂载宿主机 JAR，也禁止只上传 JAR 后执行 `docker compose restart backend`（`restart` 不会更新镜像内文件）：
 
-1. 本地执行 `cd backend && mvn clean package -DskipTests`
-2. 上传 `backend/target/journaling-materials-hub-1.0.0.jar` 到服务器 `/root/journaling-materials-hub/deploy/backend/journaling-materials-hub-1.0.0.jar`
-3. 在服务器执行 `cd /root/journaling-materials-hub/deploy && docker compose restart backend`
-4. 验证 `docker compose ps` 和后端健康检查
+1. 本地执行 `cd backend && mvn clean package -DskipTests`。
+2. 为 backend 镜像设置新版本标签，格式建议为 `YYYYMMDD-<git短SHA>`，并更新 `deploy/docker-compose.yml` 的 `backend.image`。
+3. 上传 `backend/target/journaling-materials-hub-1.0.0.jar` 到服务器 `/root/journaling-materials-hub/deploy/backend/journaling-materials-hub-1.0.0.jar`。
+4. 上传更新后的 `deploy/docker-compose.yml`，不得覆盖服务器 `.env`。
+5. 在服务器执行：
+   ```bash
+   cd /root/journaling-materials-hub/deploy
+   docker compose config --quiet
+   docker compose build backend
+   docker compose up -d --no-deps --wait backend
+   ```
+6. 验证 `docker compose ps`、`http://127.0.0.1:8080/actuator/health`、公网业务 API，以及宿主机 JAR 与容器 `/app/app.jar` 的 SHA-256 一致。
 
-除非用户明确要求重建镜像，否则不要执行 `docker compose up -d --build`，不要修改 Dockerfile，不要拉取基础镜像。
+生产服务器上的 MySQL、Redis、MinIO 是独立容器（容器名分别为 `mysql`、`redis`、`minio`），不由当前 `deploy/docker-compose.yml` 管理。部署应用时禁止执行 `docker compose down --remove-orphans`，禁止删除数据卷，也不要停止或重建这三个基础设施容器。
 
 管理后台前端更新也必须沿用挂载目录方式：
 

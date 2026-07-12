@@ -30,7 +30,7 @@ class DownloadControllerTest extends ControllerTestBase {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.freeDownloadUsed").value(5))
-                .andExpect(jsonPath("$.data.freeDownloadRemaining").value(0));
+                .andExpect(jsonPath("$.data.freeDownloadRemaining").value(45));
     }
 
     @Test

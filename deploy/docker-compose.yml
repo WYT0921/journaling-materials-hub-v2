@@ -1,8 +1,7 @@
-version: '3.8'
-
 services:
   # SpringBoot 后端
   backend:
+    image: journaling-materials-hub-backend:20260712-cfe69ef
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -34,6 +33,7 @@ services:
       - ADMIN_USERNAME=${ADMIN_USERNAME}
       - ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH}
       - ADMIN_TOKEN_EXPIRATION=${ADMIN_TOKEN_EXPIRATION:-86400000}
+      - FREE_DOWNLOAD_LIMIT=${FREE_DOWNLOAD_LIMIT:-50}
     networks:
       - journaling-network
 

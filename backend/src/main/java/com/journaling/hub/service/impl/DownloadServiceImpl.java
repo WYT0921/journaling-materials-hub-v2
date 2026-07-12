@@ -14,6 +14,7 @@ import com.journaling.hub.service.DownloadService;
 import com.journaling.hub.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +29,8 @@ import java.util.Map;
 @Service
 public class DownloadServiceImpl implements DownloadService {
 
-    private static final int FREE_DOWNLOAD_LIMIT = 5;
+    @Value("${FREE_DOWNLOAD_LIMIT:50}")
+    private int freeDownloadLimit;
 
     @Autowired
     private DownloadMapper downloadMapper;
@@ -59,7 +61,7 @@ public class DownloadServiceImpl implements DownloadService {
         ) > 0;
 
         int downloadCount = user.getDownloadCount() == null ? 0 : user.getDownloadCount();
-        if (!user.isPremium() && !alreadyDownloaded && downloadCount >= FREE_DOWNLOAD_LIMIT) {
+        if (!user.isPremium() && !alreadyDownloaded && downloadCount >= freeDownloadLimit) {
             throw new BusinessException(ErrorCode.DOWNLOAD_FREE_LIMIT_EXCEEDED);
         }
 
@@ -91,9 +93,9 @@ public class DownloadServiceImpl implements DownloadService {
         result.put("filename", material.getTitle() + ".png");
         result.put("materialId", materialId);
         result.put("message", "下载成功");
-        result.put("freeDownloadLimit", FREE_DOWNLOAD_LIMIT);
+        result.put("freeDownloadLimit", freeDownloadLimit);
         result.put("freeDownloadUsed", createdDownload ? downloadCount + 1 : downloadCount);
-        result.put("freeDownloadRemaining", user.isPremium() ? null : Math.max(0, FREE_DOWNLOAD_LIMIT - (createdDownload ? downloadCount + 1 : downloadCount)));
+        result.put("freeDownloadRemaining", user.isPremium() ? null : Math.max(0, freeDownloadLimit - (createdDownload ? downloadCount + 1 : downloadCount)));
 
         return result;
     }

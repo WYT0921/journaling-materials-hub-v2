@@ -10,7 +10,7 @@ DELETE FROM users;
 
 -- 测试用户
 INSERT INTO users (id, openid, nickname, avatar_url, member_type, member_expire_time, points, download_count, status) VALUES
-(1, 'test-openid-normal', '测试用户', 'https://example.com/avatar.png', 'normal', NULL, 100, 5, 1),
+(1, 'test-openid-normal', '测试用户', 'https://example.com/avatar.png', 'normal', NULL, 100, 50, 1),
 (2, 'test-openid-premium', '会员用户', 'https://example.com/avatar2.png', 'yearly', '2027-06-11 00:00:00', 500, 20, 1),
 (3, 'test-openid-disabled', '禁用用户', NULL, 'normal', NULL, 0, 0, 0),
 (4, 'test-openid-free-quota', '免费额度用户', 'https://example.com/avatar4.png', 'normal', NULL, 80, 4, 1);

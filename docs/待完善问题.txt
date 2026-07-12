@@ -1,6 +1,6 @@
 ═══════════════════════════════════════════════════════════════
   手账素材小程序 — 待完善问题清单
-  更新日期：2026-07-10
+  更新日期：2026-07-12
 ═══════════════════════════════════════════════════════════════
 
 【问题分级说明】
@@ -180,10 +180,10 @@
   - 后端测试：MaterialServiceTest 适配新签名，82→86 用例全通过
 
 6.9 下载免费额度规则 ✅ 已完成 (2026-07-03)
-  - 普通用户可免费下载 5 个不同素材，重复下载同一素材不重复扣减额度
-  - 超过 5 次后后端返回 4004，引导用户输入通行码开启素材权限
-  - 会员用户不受免费次数限制
-  - 涉及文件：DownloadServiceImpl、DownloadServiceTest、DownloadControllerTest、detail.vue、docs/api.md
+  - 普通用户可免费下载不同素材，额度由 FREE_DOWNLOAD_LIMIT 环境变量配置，默认 50 次
+  - 超过配置额度后后端返回 4004，引导用户输入通行码开启素材权限
+  - 重复下载同一素材不重复扣减额度；会员用户不受免费次数限制
+  - 涉及文件：DownloadServiceImpl、DownloadServiceTest、DownloadControllerTest、docker-compose.yml、detail.vue、docs/api.md
 
 6.10 真实登录模式 ✅ 已完成 (2026-07-03)
   - 前端 userStore 关闭无 code / mock code 自动降级 dev-login
