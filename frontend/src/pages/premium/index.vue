@@ -1,7 +1,7 @@
 <template>
   <view class="page-premium">
     <!-- 毛玻璃导航栏 -->
-    <GlassNavBar title="兑换会员" :show-back="true" />
+    <GlassNavBar title="素材权限" :show-back="true" />
 
     <view class="premium-content">
       <!-- ===== 未开通状态 ===== -->
@@ -11,7 +11,7 @@
           <text class="premium-icon-crown">👑</text>
         </view>
 
-        <text class="premium-title">解锁会员权益</text>
+        <text class="premium-title">激活素材权限</text>
         <text class="premium-subtitle">畅享全部高清素材与创作工具</text>
 
         <!-- 权益列表 -->
@@ -33,15 +33,15 @@
           <view class="benefit-divider" />
           <view class="benefit-item">
             <view class="benefit-dot" />
-            <text class="benefit-text">专属会员身份标识</text>
+            <text class="benefit-text">专属素材权限标识</text>
           </view>
         </view>
 
-        <!-- 前往兑换按钮 -->
+        <!-- 输入通行码按钮 -->
         <button class="go-redeem-btn" @tap="handleGoRedeem">
-          <text class="go-redeem-text">前往兑换</text>
+          <text class="go-redeem-text">输入通行码</text>
         </button>
-        <text class="redeem-hint">使用兑换码激活会员，无需付费</text>
+        <text class="redeem-hint">使用通行码开启素材权限</text>
       </view>
 
       <!-- ===== 已开通状态 ===== -->
@@ -51,7 +51,7 @@
           <text class="premium-icon-crown activated-crown">👑</text>
         </view>
 
-        <text class="premium-title activated-title">已开通会员</text>
+        <text class="premium-title activated-title">素材权限已开启</text>
         <text v-if="memberExpire" class="premium-expire">有效期至 {{ memberExpire }}</text>
 
         <!-- 2x2 权益网格 -->
@@ -74,9 +74,9 @@
           </view>
         </view>
 
-        <!-- 续费按钮 -->
+        <!-- 更新通行码按钮 -->
         <button class="renew-btn" @tap="handleGoRedeem">
-          <text class="renew-text">续费 / 升级</text>
+          <text class="renew-text">更新通行码</text>
         </button>
       </view>
     </view>
@@ -186,7 +186,7 @@ function handleGoRedeem() {
   margin: 0 28rpx;
 }
 
-/* 前往兑换按钮 */
+/* 输入通行码按钮 */
 .go-redeem-btn {
   width: 100%;
   height: 88rpx;

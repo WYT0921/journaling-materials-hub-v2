@@ -41,7 +41,7 @@ public enum ErrorCode {
     DOWNLOAD_FAILED(4001, "下载失败"),
     DOWNLOAD_NOT_FOUND(4002, "下载记录不存在"),
     DOWNLOAD_ALREADY_EXISTS(4003, "已下载过此素材"),
-    DOWNLOAD_FREE_LIMIT_EXCEEDED(4004, "免费次数已用完，请兑换会员码后继续下载"),
+    DOWNLOAD_FREE_LIMIT_EXCEEDED(4004, "免费保存次数已用完，请输入通行码后继续使用"),
 
     // 收藏相关错误 (5xxx)
     FAVORITE_ALREADY_EXISTS(5001, "已收藏此素材"),

@@ -1,17 +1,17 @@
 /**
- * 兑换码相关 API
+ * 通行码相关 API
  */
 import { post } from './request'
 
 /**
- * 验证兑换码
+ * 验证通行码
  */
 export const verifyCode = (code) => {
   return post('/redeem/verify', { code })
 }
 
 /**
- * 使用兑换码激活会员
+ * 使用通行码激活素材权限
  */
 export const activatePremium = (code) => {
   return post('/redeem/activate', { code })

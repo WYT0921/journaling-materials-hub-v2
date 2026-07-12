@@ -155,16 +155,22 @@ onLoad(() => {
 .download-list {
   flex: 1;
   height: 0;
+  width: 100%;
+  overflow: hidden;
 }
 
 .waterfall {
   display: flex;
   padding: 16rpx 20rpx;
   gap: 16rpx;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .waterfall-column {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
 }

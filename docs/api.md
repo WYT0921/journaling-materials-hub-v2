@@ -250,6 +250,7 @@ GET /api/materials
 |------|------|------|------|
 | page | number | 否 | 页码，默认1 |
 | limit | number | 否 | 每页数量，默认20 |
+| materialType | string | 否 | 一级类型筛选：`single` 单个素材 / `bundle` 合并素材 |
 | category | string | 否 | 分类筛选 |
 | keyword | string | 否 | 搜索关键词 |
 
@@ -270,6 +271,7 @@ GET /api/materials
         "imageUrl": "图片URL",
         "thumbnailUrl": "缩略图URL",
         "category": "治愈系",
+        "materialType": "single",
         "tags": ["猫咪", "贴纸", "可爱"],
         "isPremium": false,
         "downloadCount": 156,
@@ -300,6 +302,7 @@ GET /api/materials/:id
     "imageUrl": "图片URL",
     "thumbnailUrl": "缩略图URL",
     "category": "治愈系",
+    "materialType": "single",
     "tags": ["猫咪", "贴纸", "可爱"],
     "isPremium": false,
     "downloadCount": 156,
@@ -334,6 +337,14 @@ GET /api/materials/search
 GET /api/materials/categories
 ```
 
+**查询参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| materialType | string | 否 | 一级类型筛选：`single` 单个素材 / `bundle` 合并素材；只影响 `count` 统计 |
+
+分类列表以 `categories` 表中启用的 `material` 分类为准，按 `sortOrder` 排序；`count` 为该分类下符合 `materialType` 的上架素材数量，无素材时返回 `0`。
+
 **响应**
 
 ```json
@@ -341,10 +352,12 @@ GET /api/materials/categories
   "success": true,
   "data": [
     {
+      "category": "治愈系",
       "name": "治愈系",
       "count": 25
     },
     {
+      "category": "极简风",
       "name": "极简风",
       "count": 18
     }
@@ -439,7 +452,7 @@ GET /api/download/:materialId
 **权限规则**
 
 - 普通用户可免费下载 5 个不同素材，重复下载同一素材不重复扣减额度。
-- 普通用户超过 5 次后返回 `4004`，需要通过兑换会员码激活会员后继续下载。
+- 普通用户保存超过 5 个不同素材后返回 `4004`，需要输入通行码开启素材权限后继续使用。
 - 会员用户不受免费次数限制。
 
 **响应**
@@ -549,9 +562,9 @@ POST /api/v2/admin/auth/login
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/api/v2/admin/materials` | 素材列表（含已下架，支持 category/keyword/status 筛选） |
-| POST | `/api/v2/admin/materials` | 新增素材 |
-| PUT | `/api/v2/admin/materials/:id` | 编辑素材 |
+| GET | `/api/v2/admin/materials` | 素材列表（含已下架，支持 materialType/category/keyword/status 筛选） |
+| POST | `/api/v2/admin/materials` | 新增素材（支持 `materialType`，默认 `single`） |
+| PUT | `/api/v2/admin/materials/:id` | 编辑素材（支持修改 `materialType`） |
 | PUT | `/api/v2/admin/materials/:id/status?status=0` | 上下架 |
 | DELETE | `/api/v2/admin/materials/:id` | 删除素材 |
 | POST | `/api/v2/admin/upload` | 上传图片（返回 imageUrl + thumbnailUrl） |
@@ -581,6 +594,16 @@ POST /api/v2/admin/auth/login
 | GET | `/api/v2/admin/feedbacks` | 反馈列表（支持 status 筛选，返回 userNicknames） |
 | PUT | `/api/v2/admin/feedbacks/:id/status?status=1` | 标记已处理/未处理 |
 | DELETE | `/api/v2/admin/feedbacks/:id` | 删除反馈 |
+
+### 7. 兑换码管理
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/v2/admin/redeem-codes` | 兑换码列表（支持 status/type/keyword 筛选） |
+| POST | `/api/v2/admin/redeem-codes/generate` | 批量生成一次性兑换码 `{type, count, expireTime}`，count 范围 1-500 |
+| PUT | `/api/v2/admin/redeem-codes/:id/disable` | 作废未使用兑换码 |
+
+兑换码状态：`0` 未使用，`1` 已使用，`2` 已作废。每个兑换码只能成功激活一次。
 
 ---
 
@@ -615,7 +638,7 @@ GET /api/v2/categories?type=tool
 | 401 | 未授权/认证失败 |
 | 403 | 禁止访问（需要会员权限） |
 | 404 | 资源不存在 |
-| 4004 | 免费下载次数已用完，需要兑换会员码 |
+| 4004 | 免费保存次数已用完，需要输入通行码 |
 | 409 | 数据冲突 |
 | 429 | 请求过于频繁 |
 | 500 | 服务器内部错误 |
@@ -628,4 +651,4 @@ GET /api/v2/categories?type=tool
 2. 图片URL需要支持HTTPS访问
 3. 分页参数从1开始
 4. 搜索关键词会进行模糊匹配
-5. 普通用户可预览原图；下载前 5 个不同素材免费，超过后需兑换会员码激活会员
+5. 普通用户可预览原图；前 5 个不同素材可免费保存，超过后需输入通行码开启素材权限

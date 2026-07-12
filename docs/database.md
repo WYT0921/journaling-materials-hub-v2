@@ -45,6 +45,7 @@
 | image_url | VARCHAR(256) | NOT NULL | 原图URL |
 | thumbnail_url | VARCHAR(256) | NULL | 缩略图URL |
 | category | VARCHAR(32) | NULL | 分类 |
+| material_type | VARCHAR(16) | DEFAULT 'single' | 一级类型：single=单个素材，bundle=合并素材 |
 | tags | JSON | NULL | 标签数组 |
 | is_premium | BOOLEAN | DEFAULT FALSE | 是否为会员素材 |
 | download_count | INT | DEFAULT 0 | 下载次数 |
@@ -55,6 +56,7 @@
 
 **索引:**
 - `idx_materials_category` - category
+- `idx_materials_material_type` - material_type
 - `idx_materials_is_premium` - is_premium
 - `idx_materials_status` - status
 - `idx_materials_sort_order` - sort_order
@@ -68,7 +70,7 @@
 | id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | 兑换码ID |
 | code | VARCHAR(32) | UNIQUE, NOT NULL | 兑换码 |
 | type | VARCHAR(16) | NOT NULL | 会员类型：monthly/yearly/permanent |
-| status | TINYINT | DEFAULT 0 | 状态：0-未使用，1-已使用 |
+| status | TINYINT | DEFAULT 0 | 状态：0-未使用，1-已使用，2-已作废 |
 | user_id | BIGINT | NULL, FOREIGN KEY | 使用者ID |
 | used_time | DATETIME | NULL | 使用时间 |
 | expire_time | DATETIME | NULL | 到期时间 |

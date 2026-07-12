@@ -30,6 +30,9 @@ public class Material {
     @TableField("category")
     private String category;
 
+    @TableField("material_type")
+    private String materialType;
+
     /**
      * 标签，数据库中存储为 JSON 字符串
      */

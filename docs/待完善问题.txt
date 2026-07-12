@@ -1,6 +1,6 @@
 ═══════════════════════════════════════════════════════════════
   手账素材小程序 — 待完善问题清单
-  更新日期：2026-07-04
+  更新日期：2026-07-10
 ═══════════════════════════════════════════════════════════════
 
 【问题分级说明】
@@ -42,7 +42,7 @@
 2.1 MaterialCard 模糊遮罩需移除 ✅ 已修复 (2026-06-12)
   - 修复：移除 isBlurred 计算属性、blur-overlay DOM、isPremium prop；
     移除 index.vue 中 useUserStore 及相关传参
-  - 保留：VIP 角标（标记会员专享素材）
+  - 保留：权限角标（标记需素材权限的素材）
   - 涉及文件：frontend/src/components/MaterialCard.vue
               frontend/src/pages/index/index.vue
 
@@ -116,6 +116,14 @@
   - 前端：小程序 tools.vue 分类从后端 API 获取
   - 涉及文件：38 个文件（21 新建 + 17 修改）
 
+6.18 素材一级类型分类 ✅ 已完成 (2026-07-10)
+  - 新增一级类型：single=单个素材、bundle=合并素材，保留现有贴纸/便签/背景纸等小分类
+  - 后端：materials.material_type + V7 迁移，素材列表/分类统计/详情/管理后台接口返回并筛选 materialType
+  - 分类来源：小分类列表以 categories 表中启用的 material 分类为准，materials 表仅用于按 materialType 统计 count
+  - 前端：首页改为两级筛选：一级固定「单个素材 / 合并素材」，二级为当前类型下的「全部 + 小分类」；详情页显示类型标签
+  - 管理后台：素材列表、筛选、表单新增素材类型
+  - 涉及文件：Material.java、MaterialServiceImpl.java、MaterialController.java、AdminController.java、index.vue、detail.vue、MaterialList.vue、docs/api.md、docs/database.md
+
 ═══════════════════════════════════════════════════════════════
 七、近期修复记录 (2026-06-13 ~ 06-14)
 ═══════════════════════════════════════════════════════════════
@@ -173,7 +181,7 @@
 
 6.9 下载免费额度规则 ✅ 已完成 (2026-07-03)
   - 普通用户可免费下载 5 个不同素材，重复下载同一素材不重复扣减额度
-  - 超过 5 次后后端返回 4004，引导用户兑换会员码激活会员
+  - 超过 5 次后后端返回 4004，引导用户输入通行码开启素材权限
   - 会员用户不受免费次数限制
   - 涉及文件：DownloadServiceImpl、DownloadServiceTest、DownloadControllerTest、detail.vue、docs/api.md
 
@@ -244,6 +252,13 @@
   - 现状：个人中心保留兑换会员、绑定手机号、反馈建议、关于四个卡片
   - 反馈建议已接入文本提交并保存数据库
   - 涉及：frontend/src/pages/profile/profile.vue
+
+6.20 会员兑换码后台管理 ✅ 已完成 (2026-07-10)
+  - 后台新增兑换码管理：批量生成、列表筛选、复制、作废
+  - 兑换码按“一单一码”一次性使用；status=0 未使用、1 已使用、2 已作废
+  - 小程序兑换侧增加作废/过期校验
+  - 个人中心绑定手机号入口已临时注释隐藏
+  - 涉及：AdminController.java、RedeemCodeServiceImpl.java、RedeemCodeList.vue、profile.vue、docs/api.md、docs/database.md
 
 
 ═══════════════════════════════════════════════════════════════

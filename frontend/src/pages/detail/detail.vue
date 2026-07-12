@@ -23,9 +23,9 @@
           @tap="handleImagePreview"
         />
 
-        <!-- VIP 角标 -->
+        <!-- 权限角标 -->
         <view v-if="material.isPremium" class="vip-corner-badge">
-          <text class="vip-corner-text">👑 会员素材</text>
+          <text class="vip-corner-text">权限素材</text>
         </view>
       </view>
 
@@ -33,6 +33,7 @@
       <view class="info-section">
         <!-- 分类标签 -->
         <view class="info-tags">
+          <text class="info-category info-type">{{ getMaterialTypeLabel(material.materialType) }}</text>
           <text class="info-category">{{ material.category }}</text>
         </view>
 
@@ -66,8 +67,8 @@
         <text v-if="material.description" class="material-desc">{{ material.description }}</text>
 
         <!-- 标签 -->
-        <view v-if="material.tags && material.tags.length" class="tags-wrapper">
-          <view v-for="(tag, index) in material.tags" :key="index" class="tag-item">
+        <view v-if="displayTags.length" class="tags-wrapper">
+          <view v-for="(tag, index) in displayTags" :key="index" class="tag-item">
             <text class="tag-text">{{ tag }}</text>
           </view>
         </view>
@@ -104,8 +105,11 @@
 
     <!-- 底部 CTA 栏（毛玻璃） -->
     <view v-if="material" class="cta-bar safe-area-bottom">
-      <!-- 非会员：双按钮 — 5 次免费额度内可下载 -->
+      <!-- 未激活权限：双按钮 — 5 次免费额度内可下载 -->
       <view v-if="!userStore.isPremium" class="cta-row">
+        <view class="quota-pill">
+          <text class="quota-text">{{ quotaText }}</text>
+        </view>
         <button class="cta-btn cta-outline" @tap="handlePreview">
           <text class="cta-outline-text">👁 预览</text>
         </button>
@@ -113,7 +117,7 @@
           <text class="cta-primary-text">下载素材</text>
         </button>
       </view>
-      <!-- 会员：单按钮 -->
+      <!-- 已激活权限：单按钮 -->
       <view v-else class="cta-row">
         <button class="cta-btn cta-primary-full" @tap="handleDownload">
           <text class="cta-primary-text">下载素材</text>
@@ -121,21 +125,21 @@
       </view>
     </view>
 
-    <!-- Unlock Premium 半屏弹窗 -->
+    <!-- 素材权限半屏弹窗 -->
     <BottomSheet
       v-model:visible="showUnlockSheet"
-      title="解锁会员"
+      title="激活素材权限"
     >
       <view class="unlock-content">
         <view class="unlock-icon-wrapper">
-          <text class="unlock-crown">👑</text>
+          <text class="unlock-crown">✓</text>
         </view>
-        <text class="unlock-desc">免费 5 次下载额度已用完，兑换会员码后即可继续下载高清无水印原图</text>
+        <text class="unlock-desc">免费 5 次保存额度已用完，输入通行码后即可继续保存高清素材</text>
       </view>
       <template #footer>
         <view class="unlock-footer">
           <button class="unlock-btn-primary" @tap="handleGoRedeem">
-            <text class="unlock-btn-text">兑换会员码</text>
+            <text class="unlock-btn-text">输入通行码</text>
           </button>
           <button class="unlock-btn-customer" @tap="handleContactService">
             <text class="unlock-customer-text">联系客服</text>
@@ -150,7 +154,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { useUserStore } from '../../stores/user'
 import { getMaterialDetail, getMaterials } from '../../api/material'
@@ -170,6 +174,67 @@ const isLoading = ref(true)
 const showUnlockSheet = ref(false)
 const isFavorited = ref(false)
 const relatedMaterials = ref([])
+
+const TECHNICAL_TAG_PREFIXES = ['json:', 'seed:', 'canvas:', 'pos:', 'size:', 'rot:', 'output:']
+const FREE_DOWNLOAD_LIMIT = 5
+
+const getMaterialTypeLabel = (materialType) => {
+  return materialType === 'bundle' ? '合并素材' : '单个素材'
+}
+
+const normalizeTags = (tags) => {
+  if (Array.isArray(tags)) {
+    return tags
+  }
+
+  if (typeof tags !== 'string') {
+    return []
+  }
+
+  const trimmed = tags.trim()
+  if (!trimmed) {
+    return []
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return [trimmed]
+  }
+}
+
+const displayTags = computed(() => {
+  const hiddenTags = new Set([
+    material.value?.category,
+    getMaterialTypeLabel(material.value?.materialType)
+  ])
+
+  return normalizeTags(material.value?.tags)
+    .map(tag => String(tag).trim())
+    .filter(tag => tag && !hiddenTags.has(tag))
+    .filter(tag => !TECHNICAL_TAG_PREFIXES.some(prefix => tag.startsWith(prefix)))
+    .filter((tag, index, list) => list.indexOf(tag) === index)
+})
+
+const freeDownloadUsed = computed(() => {
+  const count = Number(userStore.userInfo?.downloadCount || 0)
+  return Math.min(Math.max(count, 0), FREE_DOWNLOAD_LIMIT)
+})
+
+const freeDownloadRemaining = computed(() => {
+  return Math.max(0, FREE_DOWNLOAD_LIMIT - freeDownloadUsed.value)
+})
+
+const quotaText = computed(() => {
+  if (!userStore.isLoggedIn) {
+    return `登录后可免费保存 ${FREE_DOWNLOAD_LIMIT} 次`
+  }
+  if (freeDownloadRemaining.value > 0) {
+    return `免费素材保存次数：剩余 ${freeDownloadRemaining.value} 次`
+  }
+  return '免费保存次数已用完，可输入通行码继续使用'
+})
 
 // 页面加载
 onLoad((options) => {
@@ -237,7 +302,7 @@ const handlePreview = () => {
   handleImagePreview()
 }
 
-// 解锁下载
+// 激活权限后下载
 const handleUnlock = () => {
   if (!requireLogin()) return
   showUnlockSheet.value = true
@@ -247,7 +312,11 @@ const handleUnlock = () => {
 const loadRelatedMaterials = async () => {
   if (!material.value?.category) return
   try {
-    const result = await getMaterials({ category: material.value.category, limit: 10, page: 1 })
+    const params = { category: material.value.category, limit: 10, page: 1 }
+    if (material.value.materialType) {
+      params.materialType = material.value.materialType
+    }
+    const result = await getMaterials(params)
     const items = (result.list || []).filter(item => String(item.id) !== String(materialId.value))
     relatedMaterials.value = items.slice(0, 6)
   } catch (error) {
@@ -260,7 +329,7 @@ const goToDetail = (id) => {
   uni.navigateTo({ url: `/pages/detail/detail?id=${id}` })
 }
 
-// 跳转兑换页
+// 跳转通行码页
 const handleGoRedeem = () => {
   showUnlockSheet.value = false
   uni.navigateTo({ url: '/pages/redeem/index' })
@@ -301,8 +370,11 @@ const handleDownload = async () => {
         icon: 'none',
         duration: 2000
       })
+      if (!userStore.isPremium && typeof result.freeDownloadUsed === 'number' && userStore.userInfo) {
+        userStore.userInfo.downloadCount = result.freeDownloadUsed
+      }
       if (!userStore.isPremium) {
-        userStore.refreshProfile()
+        await userStore.refreshProfile()
       }
     } else {
       throw new Error('下载失败')
@@ -347,7 +419,7 @@ const handleShare = () => {
   display: block;
 }
 
-/* VIP 专属角标（左上角黑底白字） */
+/* 权限角标（左上角黑底白字） */
 .vip-corner-badge {
   position: absolute;
   top: 24rpx;
@@ -384,6 +456,11 @@ const handleShare = () => {
   padding: 4rpx 14rpx;
   border-radius: 6rpx;
   border: 1rpx solid #eee;
+}
+
+.info-type {
+  color: #333;
+  border-color: #ddd;
 }
 
 .material-title {
@@ -577,6 +654,26 @@ const handleShare = () => {
 .cta-row {
   display: flex;
   gap: 20rpx;
+  flex-wrap: wrap;
+}
+
+.quota-pill {
+  width: 100%;
+  min-height: 44rpx;
+  padding: 0 18rpx;
+  border-radius: 999rpx;
+  background: rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.quota-text {
+  font-size: 22rpx;
+  color: #666;
+  line-height: 1.4;
+  text-align: center;
 }
 
 .cta-btn {
@@ -624,7 +721,7 @@ const handleShare = () => {
   font-weight: 500;
 }
 
-/* ===== Unlock Premium 弹窗 ===== */
+/* ===== 素材权限弹窗 ===== */
 .unlock-content {
   display: flex;
   flex-direction: column;

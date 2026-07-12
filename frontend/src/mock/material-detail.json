@@ -4,6 +4,7 @@
     "id": 1,
     "title": "春日花园贴纸套装",
     "category": "贴纸",
+    "materialType": "single",
     "imageUrl": "https://picsum.photos/seed/sticker1/800/1000",
     "thumbnailUrl": "https://picsum.photos/seed/sticker1/400/500",
     "isPremium": false,

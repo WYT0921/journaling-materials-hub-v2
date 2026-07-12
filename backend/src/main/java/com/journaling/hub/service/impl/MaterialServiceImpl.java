@@ -5,7 +5,9 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.journaling.hub.common.BusinessException;
 import com.journaling.hub.common.ErrorCode;
+import com.journaling.hub.entity.Category;
 import com.journaling.hub.entity.Material;
+import com.journaling.hub.mapper.CategoryMapper;
 import com.journaling.hub.mapper.MaterialMapper;
 import com.journaling.hub.service.MaterialService;
 import lombok.extern.slf4j.Slf4j;
@@ -25,12 +27,20 @@ public class MaterialServiceImpl implements MaterialService {
     @Autowired
     private MaterialMapper materialMapper;
 
+    @Autowired
+    private CategoryMapper categoryMapper;
+
     @Override
-    public IPage<Material> listMaterials(int page, int limit, String category, String keyword, String sortBy) {
+    public IPage<Material> listMaterials(int page, int limit, String materialType, String category, String keyword, String sortBy) {
         Page<Material> pageParam = new Page<>(page, limit);
 
         LambdaQueryWrapper<Material> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Material::getStatus, 1);
+
+        if (materialType != null && !materialType.isEmpty()) {
+            validateMaterialType(materialType);
+            wrapper.eq(Material::getMaterialType, materialType);
+        }
 
         if (category != null && !category.isEmpty()) {
             wrapper.eq(Material::getCategory, category);
@@ -100,37 +110,44 @@ public class MaterialServiceImpl implements MaterialService {
     }
 
     @Override
-    public List<Map<String, Object>> getCategories() {
-        // 查询所有分类及其数量
-        List<Material> materials = materialMapper.selectList(
-                new LambdaQueryWrapper<Material>()
-                        .eq(Material::getStatus, 1)
-                        .select(Material::getCategory)
-                        .groupBy(Material::getCategory)
+    public List<Map<String, Object>> getCategories(String materialType) {
+        if (materialType != null && !materialType.isEmpty()) {
+            validateMaterialType(materialType);
+        }
+
+        List<Category> categories = categoryMapper.selectList(
+                new LambdaQueryWrapper<Category>()
+                        .eq(Category::getType, "material")
+                        .eq(Category::getStatus, 1)
+                        .orderByAsc(Category::getSortOrder)
         );
 
-        // 统计每个分类的数量
-        Map<String, Long> categoryCounts = materialMapper.selectList(
-                new LambdaQueryWrapper<Material>()
-                        .eq(Material::getStatus, 1)
-                        .select(Material::getCategory)
-        ).stream()
+        LambdaQueryWrapper<Material> wrapper = new LambdaQueryWrapper<Material>()
+                .eq(Material::getStatus, 1)
+                .select(Material::getCategory);
+
+        if (materialType != null && !materialType.isEmpty()) {
+            wrapper.eq(Material::getMaterialType, materialType);
+        }
+
+        Map<String, Long> categoryCounts = materialMapper.selectList(wrapper).stream()
+                .filter(material -> material.getCategory() != null && !material.getCategory().isEmpty())
                 .collect(Collectors.groupingBy(Material::getCategory, Collectors.counting()));
 
         List<Map<String, Object>> result = new ArrayList<>();
-        categoryCounts.forEach((category, count) -> {
+        categories.forEach(category -> {
             Map<String, Object> item = new HashMap<>();
-            item.put("category", category);
-            item.put("count", count);
+            item.put("category", category.getName());
+            item.put("name", category.getName());
+            item.put("count", categoryCounts.getOrDefault(category.getName(), 0L));
             result.add(item);
         });
-
-        // 按素材数量降序排列
-        result.sort((a, b) -> Long.compare(
-                (Long) b.get("count"),
-                (Long) a.get("count")
-        ));
-
         return result;
+    }
+
+    private void validateMaterialType(String materialType) {
+        if (!"single".equals(materialType) && !"bundle".equals(materialType)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "素材类型必须为 single 或 bundle");
+        }
     }
 }

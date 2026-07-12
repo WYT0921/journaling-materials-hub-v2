@@ -40,7 +40,8 @@ class DownloadControllerTest extends ControllerTestBase {
                         .header("Authorization", normalUserToken()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.statusCode").value(4004));
+                .andExpect(jsonPath("$.error.statusCode").value(4004))
+                .andExpect(jsonPath("$.error.message").value("免费保存次数已用完，请输入通行码后继续使用"));
     }
 
     @Test

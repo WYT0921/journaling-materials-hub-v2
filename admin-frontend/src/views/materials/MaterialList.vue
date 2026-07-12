@@ -12,6 +12,10 @@
             <option value="">全部分类</option>
             <option v-for="c in categories" :key="c.id" :value="c.name">{{ c.name }}</option>
           </select>
+          <select v-model="filterMaterialType" @change="search">
+            <option value="">全部类型</option>
+            <option v-for="t in materialTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
+          </select>
           <select v-model="filterStatus" @change="search">
             <option :value="null">全部状态</option>
             <option :value="1">上架</option>
@@ -24,7 +28,7 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>ID</th><th>缩略图</th><th>标题</th><th>分类</th><th>VIP</th><th>下载</th><th>状态</th><th>操作</th>
+              <th>ID</th><th>缩略图</th><th>标题</th><th>类型</th><th>分类</th><th>VIP</th><th>下载</th><th>状态</th><th>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -32,6 +36,7 @@
               <td>{{ m.id }}</td>
               <td><img v-if="m.thumbnailUrl" :src="m.thumbnailUrl" style="width:48px;height:48px;object-fit:cover;border-radius:4px" /></td>
               <td class="truncate" style="max-width:160px">{{ m.title }}</td>
+              <td>{{ getMaterialTypeLabel(m.materialType) }}</td>
               <td>{{ m.category }}</td>
               <td><span :class="['tag', m.isPremium ? 'tag-warning' : 'tag-default']">{{ m.isPremium ? 'VIP' : '免费' }}</span></td>
               <td>{{ m.downloadCount }}</td>
@@ -80,6 +85,12 @@
             <select v-model="form.category" class="form-select">
               <option value="">请选择</option>
               <option v-for="c in categories" :key="c.id" :value="c.name">{{ c.name }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">素材类型</label>
+            <select v-model="form.materialType" class="form-select">
+              <option v-for="t in materialTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
             </select>
           </div>
           <div class="form-group">
@@ -140,14 +151,20 @@ const page = ref(1)
 const limit = 20
 const searchKeyword = ref('')
 const filterCategory = ref('')
+const filterMaterialType = ref('')
 const filterStatus = ref(null)
 const dialogVisible = ref(false)
 const editingId = ref(null)
 
 const form = reactive({
-  title: '', description: '', category: '', imageUrl: '', thumbnailUrl: '',
+  title: '', description: '', category: '', materialType: 'single', imageUrl: '', thumbnailUrl: '',
   isPremium: false, status: 1, sortOrder: 0, tags: ''
 })
+
+const materialTypes = [
+  { label: '单个素材', value: 'single' },
+  { label: '合并素材', value: 'bundle' }
+]
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / limit)))
 const dialogTitle = computed(() => editingId.value ? '编辑素材' : '新增素材')
@@ -166,6 +183,7 @@ async function loadData() {
     const params = { page: page.value, limit }
     if (searchKeyword.value) params.keyword = searchKeyword.value
     if (filterCategory.value) params.category = filterCategory.value
+    if (filterMaterialType.value) params.materialType = filterMaterialType.value
     if (filterStatus.value !== null) params.status = filterStatus.value
     const res = await getMaterials(params)
     list.value = res.list || []
@@ -176,18 +194,22 @@ async function loadData() {
 function search() { page.value = 1; loadData() }
 function changePage(p) { page.value = p; loadData() }
 
+function getMaterialTypeLabel(type) {
+  return type === 'bundle' ? '合并素材' : '单个素材'
+}
+
 function openDialog(m) {
   if (m) {
     editingId.value = m.id
     Object.assign(form, {
-      title: m.title, description: m.description || '', category: m.category || '',
+      title: m.title, description: m.description || '', category: m.category || '', materialType: m.materialType || 'single',
       imageUrl: m.imageUrl, thumbnailUrl: m.thumbnailUrl || '',
       isPremium: m.isPremium, status: m.status, sortOrder: m.sortOrder || 0,
       tags: typeof m.tags === 'string' ? m.tags : JSON.stringify(m.tags || [])
     })
   } else {
     editingId.value = null
-    Object.assign(form, { title: '', description: '', category: '', imageUrl: '', thumbnailUrl: '', isPremium: false, status: 1, sortOrder: 0, tags: '' })
+    Object.assign(form, { title: '', description: '', category: '', materialType: 'single', imageUrl: '', thumbnailUrl: '', isPremium: false, status: 1, sortOrder: 0, tags: '' })
   }
   dialogVisible.value = true
 }

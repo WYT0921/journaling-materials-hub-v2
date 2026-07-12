@@ -53,6 +53,21 @@
       </view>
     </view>
 
+    <!-- 一级素材类型 Tabs -->
+    <view class="type-tabs-wrap">
+      <view class="type-tabs">
+        <view
+          v-for="option in materialTypeOptions"
+          :key="option.value"
+          class="type-tab"
+          :class="{ active: materialStore.activeMaterialType === option.value }"
+          @tap="handleMaterialTypeTap(option.value)"
+        >
+          <text class="type-text">{{ option.label }}</text>
+        </view>
+      </view>
+    </view>
+
     <!-- 分类 Chips -->
     <scroll-view class="category-scroll" scroll-x enable-flex show-scrollbar="false">
       <view class="category-list">
@@ -96,6 +111,16 @@
       />
 
       <!-- 瀑布流布局 -->
+      <view v-else-if="materialStore.activeMaterialType === 'bundle'" class="bundle-list">
+        <MaterialCard
+          v-for="item in materialStore.materials"
+          :key="item.id"
+          :material="item"
+          layout="wide"
+          @select="handleMaterialTap"
+        />
+      </view>
+
       <view v-else class="waterfall">
         <view class="waterfall-column">
           <MaterialCard
@@ -159,6 +184,11 @@ const sortOptions = [
   { label: '最多下载', value: 'downloads' }
 ]
 
+const materialTypeOptions = [
+  { label: '单个素材', value: 'single' },
+  { label: '合并素材', value: 'bundle' }
+]
+
 // 页面加载
 onMounted(() => {
   initData()
@@ -201,6 +231,11 @@ const clearSearch = () => {
 // 分类点击
 const handleCategoryTap = (category) => {
   materialStore.switchCategory(category)
+}
+
+// 一级类型点击
+const handleMaterialTypeTap = (materialType) => {
+  materialStore.switchMaterialType(materialType)
 }
 
 // 下拉刷新
@@ -391,7 +426,40 @@ onPullDownRefresh(() => {
   color: #666;
 }
 
-/* ===== 分类 Chips ===== */
+/* ===== 两级筛选 ===== */
+.type-tabs-wrap {
+  position: relative;
+  z-index: 10;
+  padding: 12rpx 24rpx 4rpx;
+}
+
+.type-tabs {
+  display: flex;
+  padding: 6rpx;
+  border-radius: 24rpx;
+  background: #F3F3F3;
+}
+
+.type-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 64rpx;
+  border-radius: 20rpx;
+  transition: all 0.15s;
+
+  &.active {
+    background: #000;
+    box-shadow: 0 6rpx 18rpx rgba(0, 0, 0, 0.12);
+
+    .type-text {
+      color: #fff;
+      font-weight: 600;
+    }
+  }
+}
+
 .category-scroll {
   white-space: nowrap;
   position: relative;
@@ -402,6 +470,10 @@ onPullDownRefresh(() => {
   display: inline-flex;
   padding: 12rpx 24rpx;
   gap: 16rpx;
+}
+
+.category-list {
+  padding-top: 8rpx;
 }
 
 .category-item {
@@ -425,27 +497,45 @@ onPullDownRefresh(() => {
   }
 }
 
+.type-text,
 .category-text {
   font-size: 24rpx;
   color: #666;
+}
+
+.type-text {
+  font-size: 26rpx;
 }
 
 /* ===== 素材瀑布流 ===== */
 .material-list {
   flex: 1;
   height: 0;
+  width: 100%;
+  overflow: hidden;
 }
 
 .waterfall {
   display: flex;
   padding: 16rpx 20rpx;
   gap: 16rpx;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .waterfall-column {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
+}
+
+.bundle-list {
+  padding: 16rpx 24rpx;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 /* ===== 已到底分隔线 ===== */

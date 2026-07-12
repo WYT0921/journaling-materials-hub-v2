@@ -4,7 +4,7 @@
     "valid": true,
     "code": "ABCD1234",
     "memberType": "annual",
-    "memberTypeText": "年卡会员",
+    "memberTypeText": "素材通行权限",
     "expireDays": 365
   },
   "error": null

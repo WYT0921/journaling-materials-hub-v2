@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS materials (
   image_url VARCHAR(256) NOT NULL,
   thumbnail_url VARCHAR(256) DEFAULT NULL,
   category VARCHAR(32) DEFAULT NULL,
+  material_type VARCHAR(16) NOT NULL DEFAULT 'single',
   tags VARCHAR(500) DEFAULT NULL,
   is_premium TINYINT DEFAULT 0,
   download_count INT DEFAULT 0,

@@ -30,9 +30,20 @@ class AdminControllerTest extends ControllerTestBase {
     void listMaterials_filterByCategory() throws Exception {
         mockMvc.perform(get("/api/v2/admin/materials")
                         .header("Authorization", adminJwtToken())
-                        .param("category", "贴纸"))
+                        .param("category", "sticker"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @DisplayName("管理员 — GET /api/v2/admin/materials 支持素材类型筛选")
+    void listMaterials_filterByMaterialType() throws Exception {
+        mockMvc.perform(get("/api/v2/admin/materials")
+                        .header("Authorization", adminJwtToken())
+                        .param("materialType", "bundle"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.list[0].materialType").value("bundle"));
     }
 
     @Test
@@ -43,7 +54,8 @@ class AdminControllerTest extends ControllerTestBase {
                 + "\"description\":\"描述文本\","
                 + "\"imageUrl\":\"https://example.com/img.png\","
                 + "\"thumbnailUrl\":\"https://example.com/thumb.png\","
-                + "\"category\":\"贴纸\","
+                + "\"category\":\"sticker\","
+                + "\"materialType\":\"bundle\","
                 + "\"isPremium\":false,"
                 + "\"status\":1"
                 + "}";
@@ -53,7 +65,8 @@ class AdminControllerTest extends ControllerTestBase {
                         .content(body))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.title").value("管理员新增素材"));
+                .andExpect(jsonPath("$.data.title").value("管理员新增素材"))
+                .andExpect(jsonPath("$.data.materialType").value("bundle"));
     }
 
     @Test
@@ -191,6 +204,43 @@ class AdminControllerTest extends ControllerTestBase {
                         .content(body))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+    }
+
+    // ==================== 兑换码管理 ====================
+
+    @Test
+    @DisplayName("管理员 — GET /api/v2/admin/redeem-codes 返回兑换码列表")
+    void listRedeemCodes_admin_shouldReturnPage() throws Exception {
+        mockMvc.perform(get("/api/v2/admin/redeem-codes")
+                        .header("Authorization", adminJwtToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.list").isArray());
+    }
+
+    @Test
+    @DisplayName("管理员 — POST /api/v2/admin/redeem-codes/generate 批量生成兑换码")
+    void generateRedeemCodes_admin_shouldSucceed() throws Exception {
+        String body = "{\"type\":\"monthly\",\"count\":3,\"expireTime\":\"2027-12-31T00:00:00\"}";
+        mockMvc.perform(post("/api/v2/admin/redeem-codes/generate")
+                        .header("Authorization", adminJwtToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.count").value(3))
+                .andExpect(jsonPath("$.data.list[0].type").value("monthly"))
+                .andExpect(jsonPath("$.data.list[0].status").value(0));
+    }
+
+    @Test
+    @DisplayName("管理员 — PUT /api/v2/admin/redeem-codes/{id}/disable 作废未使用兑换码")
+    void disableRedeemCode_admin_shouldSucceed() throws Exception {
+        mockMvc.perform(put("/api/v2/admin/redeem-codes/1/disable")
+                        .header("Authorization", adminJwtToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.status").value(2));
     }
 
     // ==================== 反馈管理 ====================

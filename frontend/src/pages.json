@@ -28,19 +28,19 @@
     {
       "path": "pages/premium/index",
       "style": {
-        "navigationBarTitleText": "兑换会员"
+        "navigationBarTitleText": "素材权限"
       }
     },
     {
       "path": "pages/redeem/index",
       "style": {
-        "navigationBarTitleText": "兑换会员"
+        "navigationBarTitleText": "输入通行码"
       }
     },
     {
       "path": "pages/redeem/result",
       "style": {
-        "navigationBarTitleText": "兑换结果"
+        "navigationBarTitleText": "激活结果"
       }
     },
     {

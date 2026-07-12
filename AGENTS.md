@@ -44,6 +44,37 @@ docker-compose logs -f         # 查看日志
 docker-compose stop backend    # 停止单个服务
 ```
 
+### 生产部署（固定规则）
+
+生产服务器固定为 `root@111.229.148.112`，项目根目录固定为 `/root/journaling-materials-hub/`，实际 Docker Compose 部署目录固定为 `/root/journaling-materials-hub/deploy/`。
+
+部署时必须上传本地 `deploy/` 目录里的内容到服务器 `/root/journaling-materials-hub/deploy/`，使服务器该目录下直接包含：
+`docker-compose.yml`、`backend/`、`admin-frontend/`、`nginx/`、`db/` 等文件/目录。
+
+不要上传到 `/opt/journaling-hub`，也不要在服务器上形成 `/root/journaling-materials-hub/deploy/deploy/` 这种多套一层的目录。服务器真实环境变量文件为 `/root/journaling-materials-hub/deploy/.env`，部署包不应覆盖它。上传后在服务器执行：
+```bash
+cd /root/journaling-materials-hub/deploy
+docker compose restart backend
+docker compose ps
+```
+
+后端更新方式固定为“只更新 JAR，不重新构建 Docker 镜像”：
+
+1. 本地执行 `cd backend && mvn clean package -DskipTests`
+2. 上传 `backend/target/journaling-materials-hub-1.0.0.jar` 到服务器 `/root/journaling-materials-hub/deploy/backend/journaling-materials-hub-1.0.0.jar`
+3. 在服务器执行 `cd /root/journaling-materials-hub/deploy && docker compose restart backend`
+4. 验证 `docker compose ps` 和后端健康检查
+
+除非用户明确要求重建镜像，否则不要执行 `docker compose up -d --build`，不要修改 Dockerfile，不要拉取基础镜像。
+
+管理后台前端更新也必须沿用挂载目录方式：
+
+1. 本地执行 `cd admin-frontend && npm run build`。
+2. 将 `admin-frontend/dist/` **目录内的文件**同步至服务器 `/root/journaling-materials-hub/deploy/admin-frontend/dist/`。
+3. 不得删除、移动或重新创建服务器上的 `dist` 目录本身，否则运行中 Nginx 容器的 bind mount 会继续指向旧目录节点，导致页面和分包文件 403/404。
+4. 上传完成后仅执行 `cd /root/journaling-materials-hub/deploy && docker compose restart nginx`，让现有容器重新挂载目录；不要 `--force-recreate`，不要重建镜像，也不要影响 backend。
+5. 验证首页和当前 `index.html` 引用的 `/assets/*.js` 均返回 HTTP 200。
+
 ## 架构
 
 ### 后端分层（Spring Boot）

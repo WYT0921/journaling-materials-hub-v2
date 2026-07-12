@@ -41,8 +41,8 @@ export const requireLogin = (callback) => {
 }
 
 /**
- * 需要会员的装饰器
- * 如果未登录或非会员，弹出相应提示
+ * 需要素材权限的装饰器
+ * 如果未登录或权限未激活，弹出相应提示
  */
 export const requirePremium = (callback) => {
   const userStore = useUserStore()
@@ -64,8 +64,8 @@ export const requirePremium = (callback) => {
 
   if (!userStore.isPremium) {
     uni.showModal({
-      title: '会员专享',
-      content: '此功能需要会员权限，是否前往开通？',
+      title: '需要素材权限',
+      content: '此功能需要素材权限，是否前往输入通行码？',
       success: (res) => {
         if (res.confirm) {
           uni.navigateTo({ url: '/pages/premium/index' })

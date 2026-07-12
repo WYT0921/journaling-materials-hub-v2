@@ -7,12 +7,15 @@ import com.journaling.hub.common.BusinessException;
 import com.journaling.hub.common.ErrorCode;
 import com.journaling.hub.common.PageResult;
 import com.journaling.hub.common.Result;
+import com.journaling.hub.dto.RedeemCodeGenerateRequest;
 import com.journaling.hub.entity.Feedback;
 import com.journaling.hub.entity.Material;
+import com.journaling.hub.entity.RedeemCode;
 import com.journaling.hub.entity.Tool;
 import com.journaling.hub.entity.User;
 import com.journaling.hub.mapper.FeedbackMapper;
 import com.journaling.hub.mapper.MaterialMapper;
+import com.journaling.hub.mapper.RedeemCodeMapper;
 import com.journaling.hub.mapper.ToolMapper;
 import com.journaling.hub.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -20,8 +23,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -44,6 +50,12 @@ public class AdminController {
     @Autowired
     private FeedbackMapper feedbackMapper;
 
+    @Autowired
+    private RedeemCodeMapper redeemCodeMapper;
+
+    private static final SecureRandom REDEEM_RANDOM = new SecureRandom();
+    private static final String REDEEM_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
     // ==================== 素材管理 ====================
 
     /**
@@ -54,12 +66,17 @@ public class AdminController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int limit,
             @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String materialType,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String keyword) {
 
         LambdaQueryWrapper<Material> wrapper = new LambdaQueryWrapper<>();
         if (status != null) {
             wrapper.eq(Material::getStatus, status);
+        }
+        if (StringUtils.hasText(materialType)) {
+            validateMaterialType(materialType);
+            wrapper.eq(Material::getMaterialType, materialType);
         }
         if (StringUtils.hasText(category)) {
             wrapper.eq(Material::getCategory, category);
@@ -78,6 +95,11 @@ public class AdminController {
      */
     @PostMapping("/materials")
     public Result<?> createMaterial(@RequestBody Material material) {
+        if (!StringUtils.hasText(material.getMaterialType())) {
+            material.setMaterialType("single");
+        } else {
+            validateMaterialType(material.getMaterialType());
+        }
         if (material.getStatus() == null) {
             material.setStatus(1);
         }
@@ -108,6 +130,10 @@ public class AdminController {
         if (material.getTitle() != null) existing.setTitle(material.getTitle());
         if (material.getDescription() != null) existing.setDescription(material.getDescription());
         if (material.getCategory() != null) existing.setCategory(material.getCategory());
+        if (material.getMaterialType() != null) {
+            validateMaterialType(material.getMaterialType());
+            existing.setMaterialType(material.getMaterialType());
+        }
         if (material.getImageUrl() != null) existing.setImageUrl(material.getImageUrl());
         if (material.getThumbnailUrl() != null) existing.setThumbnailUrl(material.getThumbnailUrl());
         if (material.getIsPremium() != null) existing.setIsPremium(material.getIsPremium());
@@ -143,6 +169,12 @@ public class AdminController {
         }
         materialMapper.deleteById(id);
         return Result.ok(null);
+    }
+
+    private void validateMaterialType(String materialType) {
+        if (!"single".equals(materialType) && !"bundle".equals(materialType)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "素材类型必须为 single 或 bundle");
+        }
     }
 
     // ==================== 工具管理 ====================
@@ -313,6 +345,114 @@ public class AdminController {
         log.info("管理员调整用户会员: userId={}, memberType={}, expireTime={}",
                 id, existing.getMemberType(), existing.getMemberExpireTime());
         return Result.ok(existing);
+    }
+
+    // ==================== 兑换码管理 ====================
+
+    /**
+     * 兑换码列表
+     */
+    @GetMapping("/redeem-codes")
+    public Result<?> listRedeemCodes(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String keyword) {
+
+        LambdaQueryWrapper<RedeemCode> wrapper = new LambdaQueryWrapper<>();
+        if (status != null) {
+            wrapper.eq(RedeemCode::getStatus, status);
+        }
+        if (StringUtils.hasText(type)) {
+            validateRedeemType(type);
+            wrapper.eq(RedeemCode::getType, type);
+        }
+        if (StringUtils.hasText(keyword)) {
+            wrapper.like(RedeemCode::getCode, normalizeRedeemKeyword(keyword));
+        }
+        wrapper.orderByDesc(RedeemCode::getCreatedAt);
+
+        IPage<RedeemCode> result = redeemCodeMapper.selectPage(new Page<>(page, limit), wrapper);
+        return Result.ok(PageResult.from(result));
+    }
+
+    /**
+     * 批量生成一次性兑换码
+     */
+    @PostMapping("/redeem-codes/generate")
+    public Result<?> generateRedeemCodes(@RequestBody RedeemCodeGenerateRequest request) {
+        String type = request != null ? request.getType() : null;
+        Integer count = request != null ? request.getCount() : null;
+
+        validateRedeemType(type);
+        if (count == null || count < 1 || count > 500) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "生成数量必须在 1 到 500 之间");
+        }
+
+        List<RedeemCode> generated = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            RedeemCode code = new RedeemCode();
+            code.setCode(generateUniqueRedeemCode());
+            code.setType(type);
+            code.setStatus(0);
+            code.setExpireTime(request.getExpireTime());
+            redeemCodeMapper.insert(code);
+            generated.add(code);
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("count", generated.size());
+        data.put("list", generated);
+        return Result.ok(data);
+    }
+
+    /**
+     * 作废未使用兑换码
+     */
+    @PutMapping("/redeem-codes/{id}/disable")
+    public Result<?> disableRedeemCode(@PathVariable Long id) {
+        RedeemCode existing = redeemCodeMapper.selectById(id);
+        if (existing == null) {
+            throw new BusinessException(ErrorCode.REDEEM_CODE_NOT_FOUND);
+        }
+        if (existing.getStatus() == 1) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "已使用的兑换码不能作废");
+        }
+        existing.setStatus(2);
+        redeemCodeMapper.updateById(existing);
+        return Result.ok(existing);
+    }
+
+    private void validateRedeemType(String type) {
+        if (!"monthly".equals(type) && !"yearly".equals(type) && !"permanent".equals(type)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "会员类型必须是 monthly、yearly 或 permanent");
+        }
+    }
+
+    private String normalizeRedeemKeyword(String keyword) {
+        String raw = keyword == null ? "" : keyword.replace("-", "").replaceAll("\\s+", "").toUpperCase();
+        if (raw.length() == 12) {
+            return raw.substring(0, 4) + "-" + raw.substring(4, 8) + "-" + raw.substring(8);
+        }
+        return keyword == null ? "" : keyword.toUpperCase();
+    }
+
+    private String generateUniqueRedeemCode() {
+        String code;
+        do {
+            code = randomRedeemSegment() + "-" + randomRedeemSegment() + "-" + randomRedeemSegment();
+        } while (redeemCodeMapper.selectCount(new LambdaQueryWrapper<RedeemCode>()
+                .eq(RedeemCode::getCode, code)) > 0);
+        return code;
+    }
+
+    private String randomRedeemSegment() {
+        StringBuilder builder = new StringBuilder(4);
+        for (int i = 0; i < 4; i++) {
+            builder.append(REDEEM_ALPHABET.charAt(REDEEM_RANDOM.nextInt(REDEEM_ALPHABET.length())));
+        }
+        return builder.toString();
     }
 
     // ==================== 反馈管理 ====================

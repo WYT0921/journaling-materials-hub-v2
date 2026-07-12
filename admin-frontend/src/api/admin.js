@@ -70,6 +70,16 @@ export const updateUserStatus = (id, status) =>
 export const updateUserMember = (id, data) =>
   http.put(`/v2/admin/users/${id}/member`, data)
 
+// ===== Redeem Codes =====
+export const getRedeemCodes = (params) =>
+  http.get('/v2/admin/redeem-codes', { params })
+
+export const generateRedeemCodes = (data) =>
+  http.post('/v2/admin/redeem-codes/generate', data)
+
+export const disableRedeemCode = (id) =>
+  http.put(`/v2/admin/redeem-codes/${id}/disable`)
+
 // ===== Feedbacks =====
 export const getFeedbacks = (params) =>
   http.get('/v2/admin/feedbacks', { params })

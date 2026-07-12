@@ -15,6 +15,7 @@ export const useMaterialStore = defineStore('material', () => {
   const total = ref(0)
   const hasMore = ref(true)
   const isLoading = ref(false)
+  const activeMaterialType = ref('single')
   const activeCategory = ref('')
   const keyword = ref('')
   const sortBy = ref('default')
@@ -46,6 +47,8 @@ export const useMaterialStore = defineStore('material', () => {
         page: page.value,
         limit: limit.value
       }
+
+      params.materialType = activeMaterialType.value || 'single'
 
       if (activeCategory.value) {
         params.category = activeCategory.value
@@ -120,6 +123,16 @@ export const useMaterialStore = defineStore('material', () => {
   }
 
   /**
+   * 切换一级素材类型
+   */
+  const switchMaterialType = async (materialType) => {
+    activeMaterialType.value = materialType || 'single'
+    activeCategory.value = ''
+    await loadCategories()
+    await resetAndLoad()
+  }
+
+  /**
    * 切换分类
    */
   const switchCategory = async (category) => {
@@ -140,7 +153,9 @@ export const useMaterialStore = defineStore('material', () => {
    */
   const loadCategories = async () => {
     try {
-      const result = await materialApi.getCategories()
+      const params = {}
+      params.materialType = activeMaterialType.value || 'single'
+      const result = await materialApi.getCategories(params)
       categories.value = result || []
     } catch (error) {
       console.error('加载分类失败:', error)
@@ -163,6 +178,7 @@ export const useMaterialStore = defineStore('material', () => {
     total,
     hasMore,
     isLoading,
+    activeMaterialType,
     activeCategory,
     keyword,
     sortBy,
@@ -172,6 +188,7 @@ export const useMaterialStore = defineStore('material', () => {
     searchMaterials,
     loadMore,
     resetAndLoad,
+    switchMaterialType,
     switchCategory,
     setSortBy,
     loadCategories,

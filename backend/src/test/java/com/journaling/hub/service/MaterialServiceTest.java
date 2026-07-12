@@ -4,7 +4,10 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.journaling.hub.BaseTest;
 import com.journaling.hub.common.BusinessException;
 import com.journaling.hub.entity.Material;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
@@ -12,9 +15,6 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * MaterialService 单元测试
- */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class MaterialServiceTest extends BaseTest {
 
@@ -24,7 +24,7 @@ class MaterialServiceTest extends BaseTest {
     @Test
     @Order(1)
     void testListMaterials_All() {
-        IPage<Material> page = materialService.listMaterials(1, 10, null, null, null);
+        IPage<Material> page = materialService.listMaterials(1, 10, null, null, null, null);
         assertNotNull(page);
         assertTrue(page.getTotal() >= 3);
     }
@@ -32,15 +32,15 @@ class MaterialServiceTest extends BaseTest {
     @Test
     @Order(2)
     void testListMaterials_ByCategory() {
-        IPage<Material> page = materialService.listMaterials(1, 10, "贴纸", null, null);
+        IPage<Material> page = materialService.listMaterials(1, 10, null, "sticker", null, null);
         assertNotNull(page);
-        page.getRecords().forEach(m -> assertEquals("贴纸", m.getCategory()));
+        page.getRecords().forEach(m -> assertEquals("sticker", m.getCategory()));
     }
 
     @Test
     @Order(3)
     void testListMaterials_ByKeyword() {
-        IPage<Material> page = materialService.listMaterials(1, 10, null, "star", null);
+        IPage<Material> page = materialService.listMaterials(1, 10, null, null, "star", null);
         assertNotNull(page);
         assertTrue(page.getTotal() >= 0);
     }
@@ -48,7 +48,7 @@ class MaterialServiceTest extends BaseTest {
     @Test
     @Order(4)
     void testListMaterials_MultiKeyword() {
-        IPage<Material> page = materialService.listMaterials(1, 10, null, "vintage note", null);
+        IPage<Material> page = materialService.listMaterials(1, 10, null, null, "vintage note", null);
         assertNotNull(page);
         assertTrue(page.getTotal() >= 0);
     }
@@ -56,31 +56,70 @@ class MaterialServiceTest extends BaseTest {
     @Test
     @Order(5)
     void testListMaterials_Pagination() {
-        IPage<Material> page1 = materialService.listMaterials(1, 2, null, null, null);
-        IPage<Material> page2 = materialService.listMaterials(2, 2, null, null, null);
+        IPage<Material> page1 = materialService.listMaterials(1, 2, null, null, null, null);
+        IPage<Material> page2 = materialService.listMaterials(2, 2, null, null, null, null);
         assertNotEquals(page1.getRecords().get(0).getId(), page2.getRecords().get(0).getId());
     }
 
     @Test
     @Order(6)
+    void testListMaterials_ByMaterialType() {
+        IPage<Material> page = materialService.listMaterials(1, 10, "bundle", null, null, null);
+        assertNotNull(page);
+        assertFalse(page.getRecords().isEmpty());
+        page.getRecords().forEach(m -> assertEquals("bundle", m.getMaterialType()));
+    }
+
+    @Test
+    @Order(7)
+    void testListMaterials_ByMaterialTypeAndCategory() {
+        IPage<Material> page = materialService.listMaterials(1, 10, "bundle", "sticker", null, null);
+        assertNotNull(page);
+        assertFalse(page.getRecords().isEmpty());
+        page.getRecords().forEach(m -> {
+            assertEquals("bundle", m.getMaterialType());
+            assertEquals("sticker", m.getCategory());
+        });
+    }
+
+    @Test
+    @Order(8)
     void testGetDetail() {
         Material material = materialService.getDetail(1L);
         assertNotNull(material);
         assertNotNull(material.getTitle());
         assertNotNull(material.getCategory());
+        assertNotNull(material.getMaterialType());
     }
 
     @Test
-    @Order(7)
+    @Order(9)
     void testGetDetail_NotFound() {
         assertThrows(BusinessException.class, () -> materialService.getDetail(999L));
     }
 
     @Test
-    @Order(8)
-    void testGetCategories() {
-        List<Map<String, Object>> categories = materialService.getCategories();
+    @Order(10)
+    void testGetCategories_fromCategoryTable() {
+        List<Map<String, Object>> categories = materialService.getCategories(null);
         assertNotNull(categories);
         assertFalse(categories.isEmpty());
+        assertEquals("sticker", categories.get(0).get("category"));
+        assertEquals("background", categories.get(1).get("category"));
+        assertEquals("note", categories.get(2).get("category"));
+        assertEquals("tape", categories.get(3).get("category"));
+        assertEquals(0L, categories.get(3).get("count"));
+        assertTrue(categories.stream().noneMatch(c -> "disabled-material".equals(c.get("category"))));
+    }
+
+    @Test
+    @Order(11)
+    void testGetCategories_ByMaterialTypeOnlyChangesCounts() {
+        List<Map<String, Object>> categories = materialService.getCategories("bundle");
+        assertNotNull(categories);
+        assertEquals(4, categories.size());
+        assertTrue(categories.stream().anyMatch(c -> "sticker".equals(c.get("category")) && Long.valueOf(1L).equals(c.get("count"))));
+        assertTrue(categories.stream().anyMatch(c -> "background".equals(c.get("category")) && Long.valueOf(0L).equals(c.get("count"))));
+        assertTrue(categories.stream().anyMatch(c -> "tape".equals(c.get("category")) && Long.valueOf(0L).equals(c.get("count"))));
     }
 }

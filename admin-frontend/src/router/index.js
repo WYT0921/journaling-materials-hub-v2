@@ -35,6 +35,11 @@ const routes = [
         component: () => import('../views/users/UserList.vue')
       },
       {
+        path: 'redeem-codes',
+        name: 'RedeemCodes',
+        component: () => import('../views/redeem-codes/RedeemCodeList.vue')
+      },
+      {
         path: 'feedbacks',
         name: 'Feedbacks',
         component: () => import('../views/feedbacks/FeedbackList.vue')

@@ -54,6 +54,10 @@ export function getMockData(url) {
         return materialDetail
       }
 
+      if (key === '/materials/categories') {
+        return filterCategories(url, data)
+      }
+
       // 素材列表支持分页（/materials?page=...）
       if (
         key === '/materials' &&
@@ -83,13 +87,47 @@ function paginateMaterials(url, data) {
 
   const page = parseInt(params.page || '1')
   const limit = parseInt(params.limit || '10')
-  const allItems = data.data.list || []
+  let allItems = data.data.list || []
+  if (params.materialType) {
+    allItems = allItems.filter(item => item.materialType === params.materialType)
+  }
+  if (params.category) {
+    allItems = allItems.filter(item => item.category === params.category)
+  }
   const start = (page - 1) * limit
   const paged = allItems.slice(start, start + limit)
 
   return {
     success: true,
     data: { total: allItems.length, list: paged },
+    error: null
+  }
+}
+
+/**
+ * 按一级素材类型过滤分类统计
+ */
+function filterCategories(url, data) {
+  const queryStr = (url.split('?')[1] || '')
+  const params = {}
+  queryStr.split('&').forEach(p => {
+    const [k, v] = p.split('=')
+    if (k && v) params[k] = decodeURIComponent(v)
+  })
+
+  const counts = (materialsList.data.list || [])
+    .filter(item => !params.materialType || item.materialType === params.materialType)
+    .reduce((acc, item) => {
+      acc[item.category] = (acc[item.category] || 0) + 1
+      return acc
+    }, {})
+
+  return {
+    success: true,
+    data: (data.data || []).map(item => ({
+      ...item,
+      count: counts[item.category || item.name] || 0
+    })),
     error: null
   }
 }

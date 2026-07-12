@@ -39,7 +39,7 @@ export const uploadAvatar = (filePath) => {
 }
 
 /**
- * 获取会员状态
+ * 获取素材权限状态
  */
 export const getPremiumStatus = () => {
   return get('/user/premium-status')

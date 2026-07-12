@@ -1,16 +1,16 @@
 <template>
-  <view class="material-card" @tap="handleTap">
+  <view class="material-card" :class="cardClass" @tap="handleTap">
     <!-- 图片区域 -->
     <view class="card-image-wrapper">
       <image
         class="card-image"
-        :src="material.imageUrl || material.thumbnailUrl"
-        mode="widthFix"
+        :src="displayImage"
+        mode="aspectFit"
         lazy-load
       />
-      <!-- VIP 角标（黑底白字） -->
+      <!-- 权限角标（黑底白字） -->
       <view v-if="material.isPremium" class="vip-badge">
-        <text class="vip-text">VIP</text>
+        <text class="vip-text">权限</text>
       </view>
     </view>
 
@@ -26,14 +26,27 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
+
 const props = defineProps({
   material: {
     type: Object,
     required: true
+  },
+  layout: {
+    type: String,
+    default: 'grid'
   }
 })
 
 const emit = defineEmits(['select'])
+
+const displayImage = computed(() => props.material.thumbnailUrl || props.material.imageUrl)
+
+const cardClass = computed(() => ({
+  'material-card-wide': props.layout === 'wide',
+  'material-card-bundle': props.material.materialType === 'bundle'
+}))
 
 const handleTap = () => {
   emit('select', props.material)
@@ -51,6 +64,9 @@ const handleTap = () => {
   /* 1px 极淡边框，零阴影 */
   border: 1rpx solid #EEEEEE;
   margin-bottom: 18rpx;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 @supports not ((-webkit-backdrop-filter: blur(10px)) or (backdrop-filter: blur(10px))) {
@@ -62,14 +78,26 @@ const handleTap = () => {
 .card-image-wrapper {
   position: relative;
   width: 100%;
+  height: 320rpx;
+  background: #fff;
+  overflow: hidden;
 }
 
 .card-image {
   width: 100%;
+  height: 100%;
   display: block;
 }
 
-/* VIP 角标：黑底白字（左上角） */
+.material-card-bundle .card-image-wrapper {
+  height: 360rpx;
+}
+
+.material-card-wide .card-image-wrapper {
+  height: 560rpx;
+}
+
+/* 权限角标：黑底白字（左上角） */
 .vip-badge {
   position: absolute;
   top: 12rpx;

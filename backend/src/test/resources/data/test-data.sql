@@ -15,12 +15,13 @@ INSERT INTO users (id, openid, nickname, avatar_url, member_type, member_expire_
 (3, 'test-openid-disabled', '禁用用户', NULL, 'normal', NULL, 0, 0, 0),
 (4, 'test-openid-free-quota', '免费额度用户', 'https://example.com/avatar4.png', 'normal', NULL, 80, 4, 1);
 
--- 测试素材（不同分类 + 免费/VIP 混合）
-INSERT INTO materials (id, title, description, image_url, thumbnail_url, category, tags, is_premium, download_count, status, sort_order) VALUES
-(1, '春日花园贴纸', '清新花园主题', 'https://example.com/img1.png', 'https://example.com/thumb1.png', '贴纸', '["春天","花园"]', 0, 100, 1, 1),
-(2, '梦幻星空背景', '星空渐变素材', 'https://example.com/img2.png', 'https://example.com/thumb2.png', '背景纸', '["星空","梦幻"]', 1, 50, 1, 2),
-(3, '复古便签纸', '复古做旧便签', 'https://example.com/img3.png', 'https://example.com/thumb3.png', '便签', '["复古"]', 0, 200, 1, 3),
-(4, '已下架素材', '不可见的素材', 'https://example.com/img4.png', 'https://example.com/thumb4.png', '贴纸', '[]', 0, 10, 0, 4);
+-- 测试素材（不同类型/分类 + 免费/VIP 混合）
+INSERT INTO materials (id, title, description, image_url, thumbnail_url, category, material_type, tags, is_premium, download_count, status, sort_order) VALUES
+(1, 'Spring Sticker', 'Fresh garden theme', 'https://example.com/img1.png', 'https://example.com/thumb1.png', 'sticker', 'single', '["spring","garden"]', 0, 100, 1, 1),
+(2, 'Star Background', 'Gradient background', 'https://example.com/img2.png', 'https://example.com/thumb2.png', 'background', 'single', '["star","dream"]', 1, 50, 1, 2),
+(3, 'Vintage Note', 'Vintage note paper', 'https://example.com/img3.png', 'https://example.com/thumb3.png', 'note', 'single', '["vintage"]', 0, 200, 1, 3),
+(4, 'Offline Sticker', 'Hidden material', 'https://example.com/img4.png', 'https://example.com/thumb4.png', 'sticker', 'single', '[]', 0, 10, 0, 4),
+(5, 'Spring Sticker Bundle', 'Bundle material pack', 'https://example.com/img5.png', 'https://example.com/thumb5.png', 'sticker', 'bundle', '["bundle","sticker"]', 0, 30, 1, 5);
 
 -- 测试兑换码（未使用/已使用/永久）
 INSERT INTO redeem_codes (id, code, type, status, user_id, used_time, expire_time) VALUES
@@ -30,11 +31,13 @@ INSERT INTO redeem_codes (id, code, type, status, user_id, used_time, expire_tim
 
 -- 测试分类
 INSERT INTO categories (id, name, type, status, sort_order) VALUES
-(1, '贴纸', 'material', 1, 1),
-(2, '背景纸', 'material', 1, 2),
-(3, '写作与项目', 'tool', 1, 1),
-(4, '在线设计', 'tool', 1, 2),
-(5, '已禁用分类', 'material', 0, 99);
+(1, 'sticker', 'material', 1, 1),
+(2, 'background', 'material', 1, 2),
+(3, 'note', 'material', 1, 3),
+(4, 'tape', 'material', 1, 4),
+(5, 'disabled-material', 'material', 0, 99),
+(6, '写作与项目', 'tool', 1, 1),
+(7, '在线设计', 'tool', 1, 2);
 
 -- 测试默认工具
 INSERT INTO tools (id, name, description, icon, url, category, sort_order, is_default, user_id, status) VALUES

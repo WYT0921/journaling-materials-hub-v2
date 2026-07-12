@@ -45,6 +45,7 @@ const navItems = [
   { path: '/materials', icon: '🖼️', label: '素材管理' },
   { path: '/tools', icon: '🔧', label: '工具管理' },
   { path: '/users', icon: '👥', label: '用户管理' },
+  { path: '/redeem-codes', icon: '🎟️', label: '兑换码管理' },
   { path: '/feedbacks', icon: '💬', label: '反馈管理' }
 ]
 

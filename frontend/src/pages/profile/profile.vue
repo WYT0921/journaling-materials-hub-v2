@@ -15,7 +15,7 @@
         </view>
         <view class="profile-info">
           <text class="profile-name">{{ userStore.nickname }}</text>
-          <text class="profile-level">{{ userStore.isPremium ? '会员' : '普通用户' }}</text>
+          <text class="profile-level">{{ userStore.isPremium ? '素材权限已开启' : '普通用户' }}</text>
         </view>
       </view>
 
@@ -60,14 +60,14 @@
     </view>
 
     <view class="profile-block">
-      <text class="section-title">会员服务</text>
+      <text class="section-title">素材权限</text>
       <view class="member-card" @tap="handleGoRedeem">
         <view class="member-icon">
           <text class="member-icon-text">♕</text>
         </view>
         <view class="member-info">
-          <text class="member-title">兑换会员</text>
-          <text class="member-desc">解锁高清素材 + 全部工具</text>
+          <text class="member-title">输入通行码</text>
+          <text class="member-desc">开启高清素材 + 全部工具</text>
         </view>
         <text class="member-arrow">›</text>
       </view>
@@ -76,6 +76,7 @@
     <view class="profile-block more-block">
       <text class="section-title">更多</text>
 
+      <!-- 手机号绑定入口暂时隐藏，后续需要时恢复此段即可
       <view v-if="userStore.isLoggedIn && userStore.userInfo?.phone" class="more-row phone-bound">
         <view class="more-icon">
           <text class="phone-icon-text">▯</text>
@@ -105,6 +106,7 @@
         <text class="more-title">绑定手机号</text>
         <text class="card-arrow">›</text>
       </view>
+      -->
 
       <view class="more-row" @tap="openFeedbackDialog">
         <view class="more-icon">
