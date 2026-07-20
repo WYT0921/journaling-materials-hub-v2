@@ -14,6 +14,13 @@
       }
     },
     {
+      "path": "pages/collage/index",
+      "style": {
+        "navigationBarTitleText": "自由拼贴",
+        "disableScroll": true
+      }
+    },
+    {
       "path": "pages/tools/tools",
       "style": {
         "navigationBarTitleText": "工具推荐"

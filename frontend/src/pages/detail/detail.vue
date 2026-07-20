@@ -63,6 +63,15 @@
           <text class="favorite-action-text">{{ isFavorited ? '已收藏' : '收藏' }}</text>
         </button>
 
+        <button
+          v-if="material.materialType === 'single'"
+          class="collage-action"
+          @tap="handleCollage"
+        >
+          <text class="collage-action-icon">✦</text>
+          <text class="collage-action-text">自由拼贴</text>
+        </button>
+
         <!-- 描述 -->
         <text v-if="material.description" class="material-desc">{{ material.description }}</text>
 
@@ -300,6 +309,16 @@ const handleImagePreview = () => {
 // 预览按钮
 const handlePreview = () => {
   handleImagePreview()
+}
+
+const openCollage = () => {
+  uni.navigateTo({ url: `/pages/collage/index?materialId=${materialId.value}` })
+}
+
+const handleCollage = () => {
+  if (!material.value || material.value.materialType !== 'single') return
+  if (!requireLogin(openCollage)) return
+  openCollage()
 }
 
 // 激活权限后下载
@@ -842,4 +861,21 @@ const handleShare = () => {
   color: #333;
   font-weight: 700;
 }
+
+.collage-action {
+  width: 100%;
+  height: 84rpx;
+  margin: 20rpx 0 0;
+  border: 1rpx solid #111;
+  border-radius: 42rpx;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+}
+
+.collage-action::after { border: none; }
+.collage-action-icon { color: #111; font-size: 30rpx; }
+.collage-action-text { color: #111; font-size: 28rpx; font-weight: 600; }
 </style>
