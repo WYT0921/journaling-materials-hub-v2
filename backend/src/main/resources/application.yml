@@ -3,6 +3,10 @@ server:
   servlet:
     context-path: /
 
+app:
+  download:
+    free-limit: ${FREE_DOWNLOAD_LIMIT:50}
+
 spring:
   config:
     import:

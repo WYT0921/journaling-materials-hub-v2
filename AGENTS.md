@@ -173,9 +173,14 @@ frontend/src/
 
 ## 项目文档
 
+### 专项操作规则
+
+执行素材盘点、图片重命名、批量上传、补传或线上分类调整时，必须先读取并遵守 `docs/runbooks/material-upload.md`。此类操作属于内容运营，不得自动套用 Git 分支、开发规格、代码提交流程或完整项目构建测试。
+
 | 文件 | 内容 |
 |------|------|
 | `docs/api.md` | API 接口文档 |
 | `docs/database.md` | 数据库 Schema 与 ER 图 |
 | `docs/deployment.md` | 部署指南（Nginx、SSL、域名备案） |
+| `docs/runbooks/material-upload.md` | 素材重命名、批量上传、分类调整与验证 SOP |
 | `PROJECT_SUMMARY.md` | 项目总览 |
