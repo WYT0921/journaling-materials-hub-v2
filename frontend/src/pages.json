@@ -87,6 +87,12 @@
         "selectedIconPath": "static/icons/home-active.png"
       },
       {
+        "pagePath": "pages/collage/index",
+        "text": "拼贴",
+        "iconPath": "static/icons/tools.png",
+        "selectedIconPath": "static/icons/tools-active.png"
+      },
+      {
         "pagePath": "pages/tools/tools",
         "text": "工具",
         "iconPath": "static/icons/tools.png",

@@ -84,6 +84,16 @@ class MaterialServiceTest extends BaseTest {
 
     @Test
     @Order(8)
+    void testListMaterials_PseudoEmptyKeywordReturnsAll() {
+        long expected = materialService.listMaterials(1, 10, "single", null, null, null).getTotal();
+
+        assertEquals(expected, materialService.listMaterials(1, 10, "single", null, "undefined", null).getTotal());
+        assertEquals(expected, materialService.listMaterials(1, 10, "single", null, "null", null).getTotal());
+        assertEquals(expected, materialService.listMaterials(1, 10, "single", null, "  ", null).getTotal());
+    }
+
+    @Test
+    @Order(9)
     void testGetDetail() {
         Material material = materialService.getDetail(1L);
         assertNotNull(material);
@@ -93,13 +103,13 @@ class MaterialServiceTest extends BaseTest {
     }
 
     @Test
-    @Order(9)
+    @Order(10)
     void testGetDetail_NotFound() {
         assertThrows(BusinessException.class, () -> materialService.getDetail(999L));
     }
 
     @Test
-    @Order(10)
+    @Order(11)
     void testGetCategories_fromCategoryTable() {
         List<Map<String, Object>> categories = materialService.getCategories(null);
         assertNotNull(categories);
@@ -113,7 +123,7 @@ class MaterialServiceTest extends BaseTest {
     }
 
     @Test
-    @Order(11)
+    @Order(12)
     void testGetCategories_ByMaterialTypeOnlyChangesCounts() {
         List<Map<String, Object>> categories = materialService.getCategories("bundle");
         assertNotNull(categories);

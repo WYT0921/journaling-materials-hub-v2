@@ -8,7 +8,9 @@
         :class="{ active: current === index }"
         @tap="handleTabTap(index)"
       >
+        <text v-if="tab.iconText" class="tab-icon tab-icon-text">{{ tab.iconText }}</text>
         <image
+          v-else
           class="tab-icon"
           :src="current === index ? tab.activeIcon : tab.icon"
           mode="aspectFit"
@@ -36,6 +38,11 @@ const tabs = [
     icon: '/static/icons/home.png',
     activeIcon: '/static/icons/home-active.png',
     pagePath: '/pages/index/index'
+  },
+  {
+    text: '拼贴',
+    iconText: '✦',
+    pagePath: '/pages/collage/index'
   },
   {
     text: '工具',
@@ -103,6 +110,19 @@ function handleTabTap(index) {
   width: 44rpx;
   height: 44rpx;
   margin-bottom: 4rpx;
+}
+
+.tab-icon-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38rpx;
+  line-height: 44rpx;
+  color: #999;
+}
+
+.tab-item.active .tab-icon-text {
+  color: #000;
 }
 
 .tab-label {

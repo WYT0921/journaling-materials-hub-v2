@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test:pagination": "node --test tests/pagination-total.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

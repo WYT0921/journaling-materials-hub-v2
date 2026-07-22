@@ -1,6 +1,6 @@
 <template>
   <view class="collage-page">
-    <GlassNavBar title="自由拼贴" :show-back="true">
+    <GlassNavBar title="自由拼贴" :show-back="false">
       <template #right>
         <button class="header-button" @tap="handleSizeRequest">{{ canvasLabel }}</button>
       </template>
@@ -15,6 +15,7 @@
       <!-- #ifdef MP-WEIXIN -->
       <canvas
         id="collageCanvas"
+        v-show="!hasOpenSheet"
         type="2d"
         class="collage-canvas"
         disable-scroll
@@ -22,6 +23,12 @@
         @touchmove="handleTouchMove"
         @touchend="handleTouchEnd"
         @touchcancel="handleTouchEnd"
+      />
+      <image
+        v-if="hasOpenSheet && canvasPreviewPath"
+        class="canvas-preview"
+        :src="canvasPreviewPath"
+        mode="aspectFit"
       />
       <!-- #endif -->
       <!-- #ifndef MP-WEIXIN -->
@@ -41,14 +48,16 @@
       :has-selection="Boolean(collageStore.selectedLayerId)"
       :layer-count="collageStore.scene.layers.length"
       :exporting="exporting"
-      @add="showMaterialPicker = true"
+      @add="openMaterialPicker"
       @undo="collageStore.undo()"
       @redo="collageStore.redo()"
       @duplicate="handleDuplicate"
       @remove="collageStore.removeSelected()"
-      @layers="showLayerPanel = true"
+      @layers="openLayerPanel"
       @export="handleExport"
     />
+
+    <CustomTabBar :current="1" />
 
     <CanvasSizeSheet :visible="showSizeSheet" @confirm="handleCanvasConfirm" />
     <MaterialPicker
@@ -67,7 +76,7 @@
 
 <script setup>
 import { computed, getCurrentInstance, nextTick, ref, watch } from 'vue'
-import { onBackPress, onLoad, onReady, onUnload } from '@dcloudio/uni-app'
+import { onBackPress, onLoad, onReady, onShow, onUnload } from '@dcloudio/uni-app'
 import { useCollageStore } from '../../stores/collage'
 import { getMaterialDetail } from '../../api/material'
 import { requireLogin } from '../../utils/auth'
@@ -75,8 +84,9 @@ import { createImageLayer } from '../../utils/collage/scene-graph.mjs'
 import { angle, distance, findTopLayerAtPoint, normalizeAngleDelta, screenToLogical } from '../../utils/collage/geometry.mjs'
 import { clearMaterialImageCache, createCanvasImage, loadMaterialImage } from '../../utils/collage/image-loader'
 import { createViewport, drawScene } from '../../utils/collage/renderer.mjs'
-import { exportCollage, saveCollageToAlbum } from '../../utils/collage/exporter.mjs'
+import { exportCollage, renderCollagePreview, saveCollageToAlbum } from '../../utils/collage/exporter.mjs'
 import GlassNavBar from '../../components/GlassNavBar.vue'
+import CustomTabBar from '../../components/CustomTabBar.vue'
 import CanvasSizeSheet from '../../components/collage/CanvasSizeSheet.vue'
 import MaterialPicker from '../../components/collage/MaterialPicker.vue'
 import EditorToolbar from '../../components/collage/EditorToolbar.vue'
@@ -88,6 +98,7 @@ const showSizeSheet = ref(true)
 const showMaterialPicker = ref(false)
 const showLayerPanel = ref(false)
 const canvasReady = ref(false)
+const canvasPreviewPath = ref('')
 const exporting = ref(false)
 const entryMaterialId = ref(null)
 const entryMaterialLoaded = ref(false)
@@ -105,6 +116,9 @@ const orientationLabel = computed(() => (
   collageStore.scene.canvas.orientation === 'portrait' ? '竖版' : '横版'
 ))
 const canvasLabel = computed(() => `${collageStore.scene.canvas.paperSize}${orientationLabel.value}`)
+const hasOpenSheet = computed(() => (
+  showSizeSheet.value || showMaterialPicker.value || showLayerPanel.value
+))
 
 const queryCanvas = () => new Promise((resolve, reject) => {
   const query = uni.createSelectorQuery().in(instance.proxy)
@@ -153,6 +167,30 @@ const renderScene = () => {
   else setTimeout(draw, 16)
 }
 
+const captureCanvasPreview = async () => {
+  if (!canvasNode || collageStore.scene.layers.length === 0) {
+    canvasPreviewPath.value = ''
+    return
+  }
+  try {
+    const result = await renderCollagePreview(collageStore.scene)
+    canvasPreviewPath.value = result.filePath
+  } catch (error) {
+    canvasPreviewPath.value = ''
+    uni.showToast({ title: error.message || '画布预览生成失败', icon: 'none' })
+  }
+}
+
+const openMaterialPicker = async () => {
+  await captureCanvasPreview()
+  showMaterialPicker.value = true
+}
+
+const openLayerPanel = async () => {
+  await captureCanvasPreview()
+  showLayerPanel.value = true
+}
+
 const addMaterial = async material => {
   uni.showLoading({ title: '加载素材...' })
   try {
@@ -181,7 +219,6 @@ const addMaterial = async material => {
 
 const handleAddMaterial = material => {
   if (!requireLogin(() => addMaterial(material))) return
-  addMaterial(material)
 }
 
 const loadEntryMaterial = async () => {
@@ -206,6 +243,7 @@ const handleCanvasConfirm = async ({ paperSize, orientation }) => {
 
 const handleSizeRequest = () => {
   if (collageStore.scene.layers.length === 0) {
+    canvasPreviewPath.value = ''
     showSizeSheet.value = true
     return
   }
@@ -213,8 +251,11 @@ const handleSizeRequest = () => {
     title: '重新选择画布？',
     content: '更换画布会清空当前所有素材，且无法撤销。',
     confirmText: '继续',
-    success: result => {
-      if (result.confirm) showSizeSheet.value = true
+    success: async result => {
+      if (result.confirm) {
+        await captureCanvasPreview()
+        showSizeSheet.value = true
+      }
     }
   })
 }
@@ -386,10 +427,27 @@ onLoad(options => {
   entryMaterialId.value = options.materialId || null
 })
 
+onShow(() => {
+  const pendingMaterialId = collageStore.consumePendingMaterialId()
+  if (!pendingMaterialId) return
+  collageStore.reset()
+  entryMaterialId.value = pendingMaterialId
+  entryMaterialLoaded.value = false
+  showMaterialPicker.value = false
+  showLayerPanel.value = false
+  showSizeSheet.value = true
+})
+
 onReady(initializeCanvas)
 
 watch(() => collageStore.scene, renderScene, { deep: true })
 watch(() => collageStore.selectedLayerId, renderScene)
+watch(hasOpenSheet, visible => {
+  if (!visible) {
+    canvasPreviewPath.value = ''
+    nextTick(renderScene)
+  }
+})
 
 onBackPress(() => {
   if (allowLeave || !collageStore.hasUnexportedChanges) return false
@@ -423,6 +481,7 @@ onUnload(() => {
 .editor-status { display: flex; justify-content: space-between; padding: 12rpx 28rpx; color: #777; font-size: 22rpx; }
 .canvas-shell { position: relative; flex: 1; min-height: 0; margin: 0 20rpx 16rpx; border-radius: 22rpx; overflow: hidden; background: #dcdcdc; }
 .collage-canvas { width: 100%; height: 100%; display: block; }
+.canvas-preview { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .platform-placeholder, .empty-tip { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #888; font-size: 26rpx; }
 .empty-tip { flex-direction: column; gap: 14rpx; pointer-events: none; }
 .empty-icon { font-size: 54rpx; color: #bbb; }

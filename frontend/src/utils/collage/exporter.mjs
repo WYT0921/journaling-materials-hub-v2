@@ -17,7 +17,7 @@ const loadCanvasImage = (canvas, src) => new Promise((resolve, reject) => {
   image.src = src
 })
 
-const toTempFilePath = (canvas, size) => new Promise((resolve, reject) => {
+const toTempFilePath = (canvas, size, fileType = 'jpg', quality = 0.95) => new Promise((resolve, reject) => {
   wx.canvasToTempFilePath({
     canvas,
     x: 0,
@@ -26,20 +26,22 @@ const toTempFilePath = (canvas, size) => new Promise((resolve, reject) => {
     height: size.height,
     destWidth: size.width,
     destHeight: size.height,
-    fileType: 'jpg',
-    quality: 0.95,
+    fileType,
+    quality,
     success: result => resolve(result.tempFilePath),
     fail: reject
   })
 })
 
-export const exportCollage = async (scene, dpi = 300) => {
-  validateSceneForExport(scene)
-  if (typeof wx === 'undefined' || !wx.createOffscreenCanvas) {
-    throw new Error('当前环境不支持微信离屏 Canvas')
+export const getPreviewSize = (canvas, maxEdge = 720) => {
+  const scale = maxEdge / Math.max(canvas.logicalWidth, canvas.logicalHeight)
+  return {
+    width: Math.max(1, Math.round(canvas.logicalWidth * scale)),
+    height: Math.max(1, Math.round(canvas.logicalHeight * scale))
   }
+}
 
-  const size = getExportSize(scene.canvas.paperSize, scene.canvas.orientation, dpi)
+const renderSceneToTempFile = async (scene, size, fileType = 'jpg', quality = 0.95) => {
   const canvas = wx.createOffscreenCanvas({ type: '2d', width: size.width, height: size.height })
   canvas.width = size.width
   canvas.height = size.height
@@ -71,7 +73,27 @@ export const exportCollage = async (scene, dpi = 300) => {
     showSelection: false
   })
 
-  const filePath = await toTempFilePath(canvas, size)
+  return toTempFilePath(canvas, size, fileType, quality)
+}
+
+export const renderCollagePreview = async (scene, maxEdge = 720) => {
+  validateSceneForExport(scene)
+  if (typeof wx === 'undefined' || !wx.createOffscreenCanvas) {
+    throw new Error('当前环境不支持微信离屏 Canvas')
+  }
+  const size = getPreviewSize(scene.canvas, maxEdge)
+  const filePath = await renderSceneToTempFile(scene, size, 'png', 1)
+  return { filePath, ...size }
+}
+
+export const exportCollage = async (scene, dpi = 300) => {
+  validateSceneForExport(scene)
+  if (typeof wx === 'undefined' || !wx.createOffscreenCanvas) {
+    throw new Error('当前环境不支持微信离屏 Canvas')
+  }
+
+  const size = getExportSize(scene.canvas.paperSize, scene.canvas.orientation, dpi)
+  const filePath = await renderSceneToTempFile(scene, size)
   return { filePath, width: size.width, height: size.height, dpi }
 }
 

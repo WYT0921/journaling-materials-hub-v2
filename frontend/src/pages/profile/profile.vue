@@ -213,7 +213,7 @@
     <CustomToast ref="toastRef" />
 
     <!-- 底部 TabBar -->
-    <CustomTabBar :current="2" />
+    <CustomTabBar :current="3" />
   </view>
 </template>
 

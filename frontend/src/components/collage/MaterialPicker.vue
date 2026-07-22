@@ -1,5 +1,10 @@
 <template>
-  <BottomSheet :visible="visible" title="添加单个素材" @update:visible="emit('update:visible', $event)">
+  <BottomSheet
+    :visible="visible"
+    title="添加单个素材"
+    max-height="68vh"
+    @update:visible="emit('update:visible', $event)"
+  >
     <view class="picker-search">
       <input v-model="keyword" placeholder="搜索素材" confirm-type="search" @confirm="refresh" />
       <button @tap="refresh">搜索</button>
@@ -45,12 +50,14 @@ const load = async reset => {
   }
   loading.value = true
   try {
-    const result = await getMaterials({
+    const normalizedKeyword = keyword.value.trim()
+    const params = {
       materialType: 'single',
-      keyword: keyword.value.trim() || undefined,
       page: page.value,
       limit: 12
-    })
+    }
+    if (normalizedKeyword) params.keyword = normalizedKeyword
+    const result = await getMaterials(params)
     const list = result.list || []
     materials.value.push(...list)
     hasMore.value = list.length === 12
@@ -79,7 +86,7 @@ watch(() => props.visible, value => {
 .picker-search input { flex: 1; height: 68rpx; padding: 0 24rpx; border-radius: 34rpx; background: #f5f5f5; }
 .picker-search button { width: 120rpx; height: 68rpx; line-height: 68rpx; margin: 0; border-radius: 34rpx; background: #111; color: #fff; font-size: 24rpx; }
 .picker-search button::after { border: none; }
-.picker-list { height: 58vh; }
+.picker-list { height: calc(68vh - 190rpx); }
 .material-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16rpx; }
 .end-text { display: block; padding: 30rpx; text-align: center; color: #aaa; font-size: 24rpx; }
 </style>

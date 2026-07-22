@@ -27,7 +27,7 @@ const emit = defineEmits(['add', 'undo', 'redo', 'duplicate', 'remove', 'layers'
 
 <style scoped lang="scss">
 .toolbar-scroll { width: 100%; white-space: nowrap; background: rgba(255, 255, 255, .98); }
-.toolbar-row { display: inline-flex; gap: 10rpx; padding: 14rpx 20rpx calc(14rpx + env(safe-area-inset-bottom)); }
+.toolbar-row { display: inline-flex; gap: 10rpx; padding: 14rpx 20rpx; }
 .tool { width: 104rpx; height: 82rpx; margin: 0; padding: 6rpx 0; border-radius: 18rpx; background: #f3f3f3; color: #333; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 22rpx; line-height: 1.25; }
 .tool::after { border: none; }
 .tool[disabled] { opacity: .35; }

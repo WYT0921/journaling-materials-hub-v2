@@ -166,6 +166,7 @@
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { useUserStore } from '../../stores/user'
+import { useCollageStore } from '../../stores/collage'
 import { getMaterialDetail, getMaterials } from '../../api/material'
 import { downloadMaterial } from '../../api/download'
 import { toggleFavorite, checkFavorite } from '../../api/favorite'
@@ -176,6 +177,7 @@ import EmptyState from '../../components/EmptyState.vue'
 import BottomSheet from '../../components/BottomSheet.vue'
 
 const userStore = useUserStore()
+const collageStore = useCollageStore()
 
 const materialId = ref(null)
 const material = ref(null)
@@ -312,7 +314,8 @@ const handlePreview = () => {
 }
 
 const openCollage = () => {
-  uni.navigateTo({ url: `/pages/collage/index?materialId=${materialId.value}` })
+  collageStore.setPendingMaterialId(materialId.value)
+  uni.switchTab({ url: '/pages/collage/index' })
 }
 
 const handleCollage = () => {

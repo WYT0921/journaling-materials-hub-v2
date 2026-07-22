@@ -12,6 +12,7 @@
     v-if="visible"
     class="bottomsheet-panel"
     :class="{ 'bottomsheet-panel-show': visible }"
+    :style="{ maxHeight }"
   >
     <!-- 把手条 -->
     <view class="bottomsheet-handle-bar">
@@ -51,6 +52,10 @@ const props = defineProps({
   maskClosable: {
     type: Boolean,
     default: true
+  },
+  maxHeight: {
+    type: String,
+    default: '85vh'
   }
 })
 

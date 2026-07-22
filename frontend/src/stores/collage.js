@@ -6,6 +6,7 @@ import { createHistory } from '../utils/collage/history.mjs'
 export const useCollageStore = defineStore('collage', () => {
   const scene = ref(createEmptyScene())
   const selectedLayerId = ref(null)
+  const pendingMaterialId = ref(null)
   const dirty = ref(false)
   const revision = ref(0)
   const exportedRevision = ref(-1)
@@ -145,6 +146,16 @@ export const useCollageStore = defineStore('collage', () => {
     exportedRevision.value = revision.value
   }
 
+  const setPendingMaterialId = materialId => {
+    pendingMaterialId.value = materialId ? String(materialId) : null
+  }
+
+  const consumePendingMaterialId = () => {
+    const materialId = pendingMaterialId.value
+    pendingMaterialId.value = null
+    return materialId
+  }
+
   const reset = () => {
     const next = createEmptyScene()
     scene.value = next
@@ -159,6 +170,7 @@ export const useCollageStore = defineStore('collage', () => {
   return {
     scene,
     selectedLayerId,
+    pendingMaterialId,
     selectedLayer,
     dirty,
     revision,
@@ -175,6 +187,8 @@ export const useCollageStore = defineStore('collage', () => {
     undo,
     redo,
     markExported,
+    setPendingMaterialId,
+    consumePendingMaterialId,
     reset
   }
 })

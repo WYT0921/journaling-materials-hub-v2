@@ -33,6 +33,7 @@ public class MaterialServiceImpl implements MaterialService {
     @Override
     public IPage<Material> listMaterials(int page, int limit, String materialType, String category, String keyword, String sortBy) {
         Page<Material> pageParam = new Page<>(page, limit);
+        String normalizedKeyword = normalizeOptionalKeyword(keyword);
 
         LambdaQueryWrapper<Material> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Material::getStatus, 1);
@@ -47,8 +48,8 @@ public class MaterialServiceImpl implements MaterialService {
         }
 
         // 多关键词搜索（空格分隔，AND 关系提高精度）
-        if (keyword != null && !keyword.isEmpty()) {
-            String[] keywords = keyword.trim().split("\\s+");
+        if (normalizedKeyword != null) {
+            String[] keywords = normalizedKeyword.split("\\s+");
             wrapper.and(w -> {
                 for (int i = 0; i < keywords.length; i++) {
                     final String kw = keywords[i];
@@ -149,5 +150,18 @@ public class MaterialServiceImpl implements MaterialService {
         if (!"single".equals(materialType) && !"bundle".equals(materialType)) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "素材类型必须为 single 或 bundle");
         }
+    }
+
+    private String normalizeOptionalKeyword(String keyword) {
+        if (keyword == null) {
+            return null;
+        }
+        String normalized = keyword.trim();
+        if (normalized.isEmpty()
+                || "undefined".equalsIgnoreCase(normalized)
+                || "null".equalsIgnoreCase(normalized)) {
+            return null;
+        }
+        return normalized;
     }
 }

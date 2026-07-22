@@ -77,6 +77,7 @@
           <button :disabled="page === 1" @click="changePage(page - 1)">上一页</button>
           <span>第 <strong class="current">{{ page }}</strong> 页 / 共 {{ totalPages }} 页</span>
           <button :disabled="page >= totalPages" @click="changePage(page + 1)">下一页</button>
+          <span style="margin-left:12px">共 {{ total }} 条</span>
         </div>
       </div>
     </div>
