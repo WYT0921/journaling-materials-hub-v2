@@ -164,7 +164,7 @@ const renderScene = () => {
     })
   }
   if (canvasNode?.requestAnimationFrame) canvasNode.requestAnimationFrame(draw)
-  else setTimeout(draw, 16)
+  setTimeout(() => { if (renderPending) draw() }, 50)
 }
 
 const captureCanvasPreview = async () => {
