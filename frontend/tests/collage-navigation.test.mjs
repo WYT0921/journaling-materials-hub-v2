@@ -26,9 +26,13 @@ test('detail page passes a material through the collage store before switching t
   assert.match(detail, /uni\.switchTab\(\{\s*url:\s*'\/pages\/collage\/index'/)
 })
 
-test('collage hides its Canvas while a sheet is open and renders its tab bar', async () => {
+test('collage uses DOM image layers for editing and renders its tab bar', async () => {
   const collage = await readSource('src/pages/collage/index.vue')
-  assert.match(collage, /v-show="!hasOpenSheet"/)
+  assert.match(collage, /class="paper-stage"/)
+  assert.match(collage, /v-for="layer in collageStore\.scene\.layers"/)
+  assert.match(collage, /class="stage-layer-image"/)
+  assert.match(collage, /class="selection-outline"/)
+  assert.doesNotMatch(collage, /<canvas/)
   assert.match(collage, /<CustomTabBar\s+:current="1"/)
 })
 
@@ -44,9 +48,9 @@ test('material picker omits keyword when the search input is empty', async () =>
   assert.doesNotMatch(picker, /keyword:\s*keyword\.value\.trim\(\)\s*\|\|\s*undefined/)
 })
 
-test('collage shows a captured preview while the native Canvas is hidden', async () => {
+test('collage does not generate a sheet preview for the live editor', async () => {
   const collage = await readSource('src/pages/collage/index.vue')
-  assert.match(collage, /v-if="hasOpenSheet\s*&&\s*canvasPreviewPath"/)
-  assert.match(collage, /renderCollagePreview\(collageStore\.scene\)/)
+  assert.doesNotMatch(collage, /canvasPreviewPath/)
+  assert.doesNotMatch(collage, /renderCollagePreview\(collageStore\.scene\)/)
   assert.doesNotMatch(collage, /canvasToTempFilePath/)
 })

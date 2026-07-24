@@ -27,7 +27,7 @@ export const loadMaterialImage = async material => {
   const path = await downloadFile(entitlement.url)
   const info = await getImageInfo(path)
   const loaded = {
-    path: info.path || path,
+    path,
     width: info.width,
     height: info.height
   }

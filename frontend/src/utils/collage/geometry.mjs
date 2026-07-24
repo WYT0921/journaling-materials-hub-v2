@@ -3,6 +3,11 @@ export const screenToLogical = (point, viewport) => ({
   y: (point.y - viewport.offsetY) / viewport.scale
 })
 
+export const logicalToScreen = (point, viewport) => ({
+  x: viewport.offsetX + point.x * viewport.scale,
+  y: viewport.offsetY + point.y * viewport.scale
+})
+
 export const distance = (a, b) => Math.hypot(b.x - a.x, b.y - a.y)
 
 export const angle = (a, b) => Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI

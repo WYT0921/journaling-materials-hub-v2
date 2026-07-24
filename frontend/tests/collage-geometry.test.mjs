@@ -5,6 +5,7 @@ import {
   angle,
   distance,
   hitTestLayer,
+  logicalToScreen,
   normalizeAngleDelta,
   screenToLogical
 } from '../src/utils/collage/geometry.mjs'
@@ -17,6 +18,16 @@ test('converts screen coordinates into logical canvas coordinates', () => {
   })
 
   assert.deepEqual(point, { x: 200, y: 400 })
+})
+
+test('converts logical canvas coordinates into DOM stage coordinates', () => {
+  const point = logicalToScreen({ x: 200, y: 400 }, {
+    offsetX: 20,
+    offsetY: 20,
+    scale: 0.5
+  })
+
+  assert.deepEqual(point, { x: 120, y: 220 })
 })
 
 test('detects points inside and outside an unrotated layer', () => {

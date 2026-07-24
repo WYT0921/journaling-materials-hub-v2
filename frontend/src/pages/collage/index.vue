@@ -11,34 +11,30 @@
       <text>{{ collageStore.scene.canvas.paperSize }} · {{ orientationLabel }}</text>
     </view>
 
-    <view class="canvas-shell">
-      <!-- #ifdef MP-WEIXIN -->
-      <canvas
-        id="collageCanvas"
-        v-show="!hasOpenSheet"
-        type="2d"
-        class="collage-canvas"
-        disable-scroll
-        @touchstart="handleTouchStart"
-        @touchmove="handleTouchMove"
-        @touchend="handleTouchEnd"
-        @touchcancel="handleTouchEnd"
-      />
-      <image
-        v-if="hasOpenSheet && canvasPreviewPath"
-        class="canvas-preview"
-        :src="canvasPreviewPath"
-        mode="aspectFit"
-      />
-      <!-- #endif -->
-      <!-- #ifndef MP-WEIXIN -->
-      <view class="platform-placeholder">
-        <text>自由拼贴编辑器请在微信小程序中使用</text>
-      </view>
-      <!-- #endif -->
-      <view v-if="collageStore.scene.layers.length === 0 && canvasReady" class="empty-tip">
-        <text class="empty-icon">✦</text>
-        <text>点击下方“添加素材”开始拼贴</text>
+    <view
+      id="collageStage"
+      class="canvas-shell"
+      @touchstart="handleTouchStart"
+      @touchmove.stop.prevent="handleTouchMove"
+      @touchend="handleTouchEnd"
+      @touchcancel="handleTouchEnd"
+    >
+      <view v-if="stageReady" class="paper-stage" :style="paperStageStyle">
+        <view
+          v-for="layer in collageStore.scene.layers"
+          v-show="layer.visible !== false"
+          :key="layer.id"
+          class="stage-layer"
+          :style="layerStyle(layer)"
+        >
+          <image class="stage-layer-image" :src="layer.localImagePath" mode="aspectFit" />
+          <view v-if="layer.id === collageStore.selectedLayerId" class="selection-outline" />
+          <view v-if="layer.id === collageStore.selectedLayerId" class="selection-handle" />
+        </view>
+        <view v-if="collageStore.scene.layers.length === 0" class="empty-tip">
+          <text class="empty-icon">✦</text>
+          <text>点击下方“添加素材”开始拼贴</text>
+        </view>
       </view>
     </view>
 
@@ -75,16 +71,16 @@
 </template>
 
 <script setup>
-import { computed, getCurrentInstance, nextTick, ref, watch } from 'vue'
+import { computed, getCurrentInstance, nextTick, ref } from 'vue'
 import { onBackPress, onLoad, onReady, onShow, onUnload } from '@dcloudio/uni-app'
 import { useCollageStore } from '../../stores/collage'
 import { getMaterialDetail } from '../../api/material'
 import { requireLogin } from '../../utils/auth'
 import { createImageLayer } from '../../utils/collage/scene-graph.mjs'
-import { angle, distance, findTopLayerAtPoint, normalizeAngleDelta, screenToLogical } from '../../utils/collage/geometry.mjs'
-import { clearMaterialImageCache, createCanvasImage, loadMaterialImage } from '../../utils/collage/image-loader'
-import { createViewport, drawScene } from '../../utils/collage/renderer.mjs'
-import { exportCollage, renderCollagePreview, saveCollageToAlbum } from '../../utils/collage/exporter.mjs'
+import { angle, distance, findTopLayerAtPoint, logicalToScreen, normalizeAngleDelta, screenToLogical } from '../../utils/collage/geometry.mjs'
+import { clearMaterialImageCache, loadMaterialImage } from '../../utils/collage/image-loader'
+import { createViewport } from '../../utils/collage/renderer.mjs'
+import { exportCollage, saveCollageToAlbum } from '../../utils/collage/exporter.mjs'
 import GlassNavBar from '../../components/GlassNavBar.vue'
 import CustomTabBar from '../../components/CustomTabBar.vue'
 import CanvasSizeSheet from '../../components/collage/CanvasSizeSheet.vue'
@@ -97,97 +93,88 @@ const instance = getCurrentInstance()
 const showSizeSheet = ref(true)
 const showMaterialPicker = ref(false)
 const showLayerPanel = ref(false)
-const canvasReady = ref(false)
-const canvasPreviewPath = ref('')
+const stageReady = ref(false)
+const viewport = ref(null)
 const exporting = ref(false)
 const entryMaterialId = ref(null)
 const entryMaterialLoaded = ref(false)
-let canvasNode = null
-let canvasContext = null
-let canvasSize = { width: 0, height: 0 }
-let viewport = null
-let canvasRect = { left: 0, top: 0 }
-let renderPending = false
+let stageSize = { width: 0, height: 0 }
+let stageRect = { left: 0, top: 0 }
 let allowLeave = false
 let gesture = null
-const canvasImages = new Map()
 
 const orientationLabel = computed(() => (
   collageStore.scene.canvas.orientation === 'portrait' ? '竖版' : '横版'
 ))
 const canvasLabel = computed(() => `${collageStore.scene.canvas.paperSize}${orientationLabel.value}`)
-const hasOpenSheet = computed(() => (
-  showSizeSheet.value || showMaterialPicker.value || showLayerPanel.value
-))
+const paperStageStyle = computed(() => {
+  const current = viewport.value
+  if (!current) return {}
+  return {
+    left: `${current.offsetX}px`,
+    top: `${current.offsetY}px`,
+    width: `${current.width}px`,
+    height: `${current.height}px`,
+    backgroundColor: collageStore.scene.canvas.background
+  }
+})
 
-const queryCanvas = () => new Promise((resolve, reject) => {
+const layerStyle = layer => {
+  const current = viewport.value
+  if (!current) return {}
+  const width = layer.baseWidth * layer.scale * current.scale
+  const height = layer.baseHeight * layer.scale * current.scale
+  const center = logicalToScreen({ x: layer.x, y: layer.y }, {
+    ...current,
+    offsetX: 0,
+    offsetY: 0
+  })
+  return {
+    left: `${center.x - width / 2}px`,
+    top: `${center.y - height / 2}px`,
+    width: `${width}px`,
+    height: `${height}px`,
+    transform: `rotate(${layer.rotation}deg)`
+  }
+}
+
+const refreshViewport = () => {
+  if (!stageSize.width || !stageSize.height) return
+  viewport.value = createViewport(
+    collageStore.scene,
+    stageSize.width,
+    stageSize.height,
+    14
+  )
+}
+
+const queryStage = () => new Promise((resolve, reject) => {
   const query = uni.createSelectorQuery().in(instance.proxy)
-  query.select('#collageCanvas').fields({ node: true, size: true, rect: true }).exec(result => {
-    const canvas = result?.[0]
-    if (!canvas?.node) reject(new Error('Canvas 初始化失败'))
-    else resolve(canvas)
+  query.select('#collageStage').fields({ size: true, rect: true }).exec(result => {
+    const stage = result?.[0]
+    if (!stage?.width || !stage?.height) reject(new Error('编辑区初始化失败'))
+    else resolve(stage)
   })
 })
 
-const initializeCanvas = async () => {
-  // #ifdef MP-WEIXIN
+const initializeStage = async () => {
   try {
     await nextTick()
-    const result = await queryCanvas()
-    canvasNode = result.node
-    canvasSize = { width: result.width, height: result.height }
-    canvasRect = { left: result.left || 0, top: result.top || 0 }
-    const dpr = uni.getSystemInfoSync().pixelRatio || 1
-    canvasNode.width = result.width * dpr
-    canvasNode.height = result.height * dpr
-    canvasContext = canvasNode.getContext('2d')
-    canvasContext.scale(dpr, dpr)
-    canvasReady.value = true
-    renderScene()
+    const result = await queryStage()
+    stageSize = { width: result.width, height: result.height }
+    stageRect = { left: result.left || 0, top: result.top || 0 }
+    refreshViewport()
+    stageReady.value = true
   } catch (error) {
-    uni.showToast({ title: error.message || '画布初始化失败', icon: 'none' })
-  }
-  // #endif
-}
-
-const renderScene = () => {
-  if (!canvasContext || renderPending) return
-  renderPending = true
-  const draw = () => {
-    renderPending = false
-    viewport = createViewport(collageStore.scene, canvasSize.width, canvasSize.height, 14)
-    drawScene(canvasContext, collageStore.scene, canvasImages, viewport, {
-      outputWidth: canvasSize.width,
-      outputHeight: canvasSize.height,
-      selectedLayerId: collageStore.selectedLayerId,
-      showSelection: true
-    })
-  }
-  if (canvasNode?.requestAnimationFrame) canvasNode.requestAnimationFrame(draw)
-  setTimeout(() => { if (renderPending) draw() }, 50)
-}
-
-const captureCanvasPreview = async () => {
-  if (!canvasNode || collageStore.scene.layers.length === 0) {
-    canvasPreviewPath.value = ''
-    return
-  }
-  try {
-    const result = await renderCollagePreview(collageStore.scene)
-    canvasPreviewPath.value = result.filePath
-  } catch (error) {
-    canvasPreviewPath.value = ''
-    uni.showToast({ title: error.message || '画布预览生成失败', icon: 'none' })
+    uni.showToast({ title: error.message || '编辑区初始化失败', icon: 'none' })
   }
 }
 
-const openMaterialPicker = async () => {
-  await captureCanvasPreview()
+const openMaterialPicker = () => {
   showMaterialPicker.value = true
 }
 
-const openLayerPanel = async () => {
-  await captureCanvasPreview()
+const openLayerPanel = () => {
   showLayerPanel.value = true
 }
 
@@ -195,12 +182,8 @@ const addMaterial = async material => {
   uni.showLoading({ title: '加载素材...' })
   try {
     const info = await loadMaterialImage(material)
-    if (!canvasImages.has(info.path)) {
-      canvasImages.set(info.path, await createCanvasImage(canvasNode, info.path))
-    }
     const layer = createImageLayer(material, info, collageStore.scene.canvas)
     collageStore.addLayer(layer)
-    renderScene()
   } catch (error) {
     if (error.code === 4004) {
       uni.showModal({
@@ -218,7 +201,7 @@ const addMaterial = async material => {
 }
 
 const handleAddMaterial = material => {
-  if (!requireLogin(() => addMaterial(material))) return
+  if (requireLogin(() => addMaterial(material))) addMaterial(material)
 }
 
 const loadEntryMaterial = async () => {
@@ -237,13 +220,12 @@ const loadEntryMaterial = async () => {
 const handleCanvasConfirm = async ({ paperSize, orientation }) => {
   collageStore.configureCanvas(paperSize, orientation)
   showSizeSheet.value = false
-  renderScene()
+  refreshViewport()
   await loadEntryMaterial()
 }
 
 const handleSizeRequest = () => {
   if (collageStore.scene.layers.length === 0) {
-    canvasPreviewPath.value = ''
     showSizeSheet.value = true
     return
   }
@@ -251,22 +233,19 @@ const handleSizeRequest = () => {
     title: '重新选择画布？',
     content: '更换画布会清空当前所有素材，且无法撤销。',
     confirmText: '继续',
-    success: async result => {
-      if (result.confirm) {
-        await captureCanvasPreview()
-        showSizeSheet.value = true
-      }
+    success: result => {
+      if (result.confirm) showSizeSheet.value = true
     }
   })
 }
 
 const touchToScreenPoint = touch => ({
-  x: touch.clientX !== undefined ? touch.clientX - canvasRect.left : touch.x,
-  y: touch.clientY !== undefined ? touch.clientY - canvasRect.top : touch.y
+  x: touch.clientX !== undefined ? touch.clientX - stageRect.left : touch.x,
+  y: touch.clientY !== undefined ? touch.clientY - stageRect.top : touch.y
 })
 
 const logicalTouches = event => Array.from(event.touches || []).map(touch => (
-  screenToLogical(touchToScreenPoint(touch), viewport)
+  screenToLogical(touchToScreenPoint(touch), viewport.value)
 ))
 
 const beginTransform = points => {
@@ -288,7 +267,7 @@ const beginTransform = points => {
 }
 
 const handleTouchStart = event => {
-  if (!viewport) return
+  if (!viewport.value) return
   const points = logicalTouches(event)
   if (points.length >= 2 && collageStore.selectedLayer) {
     gesture = beginTransform(points)
@@ -311,7 +290,7 @@ const handleTouchStart = event => {
 }
 
 const handleTouchMove = event => {
-  if (!viewport || !gesture) return
+  if (!viewport.value || !gesture) return
   const points = logicalTouches(event)
   if (points.length >= 2) {
     if (gesture.type !== 'transform') gesture = beginTransform(points)
@@ -438,16 +417,7 @@ onShow(() => {
   showSizeSheet.value = true
 })
 
-onReady(initializeCanvas)
-
-watch(() => collageStore.scene, renderScene, { deep: true })
-watch(() => collageStore.selectedLayerId, renderScene)
-watch(hasOpenSheet, visible => {
-  if (!visible) {
-    canvasPreviewPath.value = ''
-    nextTick(renderScene)
-  }
-})
+onReady(initializeStage)
 
 onBackPress(() => {
   if (allowLeave || !collageStore.hasUnexportedChanges) return false
@@ -468,9 +438,6 @@ onBackPress(() => {
 onUnload(() => {
   collageStore.reset()
   clearMaterialImageCache()
-  canvasImages.clear()
-  canvasNode = null
-  canvasContext = null
 })
 </script>
 
@@ -480,9 +447,12 @@ onUnload(() => {
 .header-button::after { border: none; }
 .editor-status { display: flex; justify-content: space-between; padding: 12rpx 28rpx; color: #777; font-size: 22rpx; }
 .canvas-shell { position: relative; flex: 1; min-height: 0; margin: 0 20rpx 16rpx; border-radius: 22rpx; overflow: hidden; background: #dcdcdc; }
-.collage-canvas { width: 100%; height: 100%; display: block; }
-.canvas-preview { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.platform-placeholder, .empty-tip { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #888; font-size: 26rpx; }
+.paper-stage { position: absolute; overflow: hidden; box-shadow: 0 4rpx 18rpx rgba(0, 0, 0, 0.08); }
+.stage-layer { position: absolute; transform-origin: center center; pointer-events: none; }
+.stage-layer-image { width: 100%; height: 100%; display: block; }
+.selection-outline { position: absolute; inset: 0; box-sizing: border-box; border: 3rpx dashed #111; }
+.selection-handle { position: absolute; right: -10rpx; bottom: -10rpx; width: 20rpx; height: 20rpx; border-radius: 50%; background: #111; }
+.empty-tip { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #888; font-size: 26rpx; }
 .empty-tip { flex-direction: column; gap: 14rpx; pointer-events: none; }
 .empty-icon { font-size: 54rpx; color: #bbb; }
 </style>
