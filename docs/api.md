@@ -253,6 +253,9 @@ GET /api/materials
 | materialType | string | 否 | 一级类型筛选：`single` 单个素材 / `bundle` 合并素材 |
 | category | string | 否 | 分类筛选 |
 | keyword | string | 否 | 搜索关键词 |
+| sortBy | string | 否 | `default` 综合排序、`newest` 最新发布、`downloads` 最多下载 |
+| issueYear | number | 否 | 上传年份；必须与 `issueNumber` 同时提供 |
+| issueNumber | number | 否 | 上传期号；必须与 `issueYear` 同时提供且大于 0 |
 
 **响应**
 
@@ -272,6 +275,8 @@ GET /api/materials
         "thumbnailUrl": "缩略图URL",
         "category": "治愈系",
         "materialType": "single",
+        "issueYear": 2026,
+        "issueNumber": 7,
         "tags": ["猫咪", "贴纸", "可爱"],
         "isPremium": false,
         "downloadCount": 156,
@@ -303,6 +308,8 @@ GET /api/materials/:id
     "thumbnailUrl": "缩略图URL",
     "category": "治愈系",
     "materialType": "single",
+    "issueYear": 2026,
+    "issueNumber": 7,
     "tags": ["猫咪", "贴纸", "可爱"],
     "isPremium": false,
     "downloadCount": 156,
@@ -361,6 +368,27 @@ GET /api/materials/categories
       "name": "极简风",
       "count": 18
     }
+  ]
+}
+```
+
+### 5. 获取上传期数
+
+```
+GET /api/materials/issues
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| materialType | string | 否 | `single` 或 `bundle`；仅返回该类型上架素材实际存在的期数 |
+
+结果按年份、期号倒序排列；无完整期数的素材不参与统计。
+
+```json
+{
+  "success": true,
+  "data": [
+    { "issueYear": 2026, "issueNumber": 7, "label": "2026年第七期", "count": 42 }
   ]
 }
 ```

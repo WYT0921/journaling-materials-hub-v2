@@ -93,7 +93,7 @@ const request = (options) => {
 const handleMockRequest = (options, resolve, reject) => {
   // 模拟网络延迟
   setTimeout(() => {
-    const mockData = mockGetMockData(options.url)
+    const mockData = mockGetMockData(options.url, options.data)
 
     if (mockData && mockData.success) {
       resolve(mockData.data)

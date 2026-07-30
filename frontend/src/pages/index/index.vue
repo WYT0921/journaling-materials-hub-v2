@@ -51,6 +51,27 @@
           </view>
         </view>
       </view>
+      <view class="filter-section issue-filter-section">
+        <text class="filter-label">上传期数</text>
+        <view class="filter-options issue-options">
+          <view
+            class="filter-chip issue-chip"
+            :class="{ active: !materialStore.activeIssueYear }"
+            @tap="handleIssueChange(null)"
+          >
+            <text class="filter-chip-text">全部</text>
+          </view>
+          <view
+            v-for="issue in materialStore.issues"
+            :key="`${issue.issueYear}-${issue.issueNumber}`"
+            class="filter-chip issue-chip"
+            :class="{ active: materialStore.activeIssueYear === issue.issueYear && materialStore.activeIssueNumber === issue.issueNumber }"
+            @tap="handleIssueChange(issue)"
+          >
+            <text class="filter-chip-text">{{ issue.label }}</text>
+          </view>
+        </view>
+      </view>
     </view>
 
     <!-- 一级素材类型 Tabs -->
@@ -203,6 +224,7 @@ onShow(() => {
 const initData = async () => {
   await Promise.all([
     materialStore.loadCategories(),
+    materialStore.loadIssues(),
     materialStore.loadMaterials(true)
   ])
 }
@@ -270,6 +292,11 @@ const handleFilterTap = () => {
 // 排序切换
 const handleSortChange = (value) => {
   materialStore.setSortBy(value)
+  showFilter.value = false
+}
+
+const handleIssueChange = (issue) => {
+  materialStore.switchIssue(issue)
   showFilter.value = false
 }
 
@@ -388,6 +415,20 @@ onPullDownRefresh(() => {
   display: flex;
   flex-direction: column;
   gap: 16rpx;
+}
+
+.issue-filter-section {
+  margin-top: 24rpx;
+}
+
+.issue-options {
+  flex-wrap: wrap;
+}
+
+.issue-chip {
+  flex: none;
+  min-width: 180rpx;
+  padding: 14rpx 20rpx;
 }
 
 .filter-label {

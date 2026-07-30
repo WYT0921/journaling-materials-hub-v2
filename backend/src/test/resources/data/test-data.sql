@@ -16,12 +16,12 @@ INSERT INTO users (id, openid, nickname, avatar_url, member_type, member_expire_
 (4, 'test-openid-free-quota', '免费额度用户', 'https://example.com/avatar4.png', 'normal', NULL, 80, 4, 1);
 
 -- 测试素材（不同类型/分类 + 免费/VIP 混合）
-INSERT INTO materials (id, title, description, image_url, thumbnail_url, category, material_type, tags, is_premium, download_count, status, sort_order) VALUES
-(1, 'Spring Sticker', 'Fresh garden theme', 'https://example.com/img1.png', 'https://example.com/thumb1.png', 'sticker', 'single', '["spring","garden"]', 0, 100, 1, 1),
-(2, 'Star Background', 'Gradient background', 'https://example.com/img2.png', 'https://example.com/thumb2.png', 'background', 'single', '["star","dream"]', 1, 50, 1, 2),
-(3, 'Vintage Note', 'Vintage note paper', 'https://example.com/img3.png', 'https://example.com/thumb3.png', 'note', 'single', '["vintage"]', 0, 200, 1, 3),
-(4, 'Offline Sticker', 'Hidden material', 'https://example.com/img4.png', 'https://example.com/thumb4.png', 'sticker', 'single', '[]', 0, 10, 0, 4),
-(5, 'Spring Sticker Bundle', 'Bundle material pack', 'https://example.com/img5.png', 'https://example.com/thumb5.png', 'sticker', 'bundle', '["bundle","sticker"]', 0, 30, 1, 5);
+INSERT INTO materials (id, title, description, image_url, thumbnail_url, category, material_type, issue_year, issue_number, tags, is_premium, download_count, status, sort_order) VALUES
+(1, 'Spring Sticker', 'Fresh garden theme', 'https://example.com/img1.png', 'https://example.com/thumb1.png', 'sticker', 'single', 2026, 7, '["spring","garden"]', 0, 100, 1, 1),
+(2, 'Star Background', 'Gradient background', 'https://example.com/img2.png', 'https://example.com/thumb2.png', 'background', 'single', 2026, 6, '["star","dream"]', 1, 50, 1, 2),
+(3, 'Vintage Note', 'Vintage note paper', 'https://example.com/img3.png', 'https://example.com/thumb3.png', 'note', 'single', NULL, NULL, '["vintage"]', 0, 200, 1, 3),
+(4, 'Offline Sticker', 'Hidden material', 'https://example.com/img4.png', 'https://example.com/thumb4.png', 'sticker', 'single', 2027, 1, '[]', 0, 10, 0, 4),
+(5, 'Spring Sticker Bundle', 'Bundle material pack', 'https://example.com/img5.png', 'https://example.com/thumb5.png', 'sticker', 'bundle', 2026, 7, '["bundle","sticker"]', 0, 30, 1, 5);
 
 -- 测试兑换码（未使用/已使用/永久）
 INSERT INTO redeem_codes (id, code, type, status, user_id, used_time, expire_time) VALUES

@@ -59,8 +59,11 @@
 - `isPremium: true`
 - `status: 1`
 - `sortOrder: 0`
+- `issueYear` 与 `issueNumber` 必须显式提交且成对出现，例如 `2026`、`7`；数据库以数值保存，界面显示为“2026年第七期”
 - 描述包含年份、期数和来源文件夹；
 - 标签包含期数、分类、来源主题以及“单个素材”或“合并素材”。
+
+描述和标签中的期数只用于展示与搜索辅助；小程序期数筛选以 `issueYear`、`issueNumber` 为唯一依据。
 
 ### 4. 认证信息安全
 
@@ -80,6 +83,7 @@
 3. 不同素材发生同名时，平台标题添加期数或主题前缀，不覆盖旧记录。
 4. 调用 `POST /api/v2/admin/upload` 上传图片，取得 `imageUrl` 和 `thumbnailUrl`。
 5. 上传成功后调用 `POST /api/v2/admin/materials` 创建素材记录。
+   请求体必须包含从来源目录确认的 `issueYear`、`issueNumber`，不得仅依赖描述或标签中的期数文本。
 6. 不得删除或修改旧记录来解决重名，除非用户明确要求。
 7. 单张失败不得阻断其他图片；将失败项写入报告后单独重试。
 8. 重试前必须重新查重，避免已成功记录被重复创建。
@@ -111,9 +115,22 @@
 2. `failed = 0`，否则列出失败项并重试；
 3. 管理 API 中能匹配全部预期标题；
 4. 每条记录的 `category`、`materialType`、`status` 正确；
-5. 每条记录都有 `imageUrl` 和 `thumbnailUrl`；
-6. 对新增记录的原图与缩略图执行 HTTP 检查，全部返回 2xx；
-7. 最终向用户报告各目录数量、新增/跳过/失败数量及报告路径。
+5. 每条有期数来源的记录，其 `issueYear`、`issueNumber` 与来源目录一致；
+6. 每条记录都有 `imageUrl` 和 `thumbnailUrl`；
+7. 对新增记录的原图与缩略图执行 HTTP 检查，全部返回 2xx；
+8. 最终向用户报告各目录数量、新增/跳过/失败数量及报告路径。
+
+## 历史期数识别
+
+只读生成复核清单：
+
+```powershell
+$env:ADMIN_TOKEN='<临时管理令牌>'
+node scripts/identify-material-issues.mjs
+Remove-Item Env:ADMIN_TOKEN
+```
+
+脚本只读取管理 API 与 `release/*.json`，将识别结果写入 `release/material-issue-recognition-*.json`，不会调用更新接口。`high` 结果仍需人工复核，`conflict` 与 `unmatched` 不得自动回填。
 
 检查长时间运行的上传任务时，应先确认进程状态和报告是否生成，不得因为终端暂时没有新输出就判断任务已中断，也不得在原进程仍运行时并发重跑。
 

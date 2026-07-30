@@ -41,7 +41,10 @@ const mockMap = {
  * @param {string} url - API 请求路径
  * @returns {object|null} mock 响应对象
  */
-export function getMockData(url) {
+export function getMockData(url, requestParams = {}) {
+  if (url.includes('/materials/issues')) {
+    return buildIssues(requestParams)
+  }
   // 按 key 长度降序排列，优先匹配更具体的路径
   const keys = Object.keys(mockMap).sort((a, b) => b.length - a.length)
 
@@ -55,7 +58,7 @@ export function getMockData(url) {
       }
 
       if (key === '/materials/categories') {
-        return filterCategories(url, data)
+        return filterCategories(url, data, requestParams)
       }
 
       // 素材列表支持分页（/materials?page=...）
@@ -64,7 +67,7 @@ export function getMockData(url) {
         !url.includes('/materials/categories') &&
         !url.includes('/materials/search')
       ) {
-        return paginateMaterials(url, data)
+        return paginateMaterials(url, data, requestParams)
       }
 
       return data
@@ -77,22 +80,38 @@ export function getMockData(url) {
 /**
  * 对素材列表做客户端分页
  */
-function paginateMaterials(url, data) {
+function parseParams(url, requestParams = {}) {
   const queryStr = (url.split('?')[1] || '')
-  const params = {}
+  const params = { ...requestParams }
   queryStr.split('&').forEach(p => {
     const [k, v] = p.split('=')
     if (k && v) params[k] = decodeURIComponent(v)
   })
 
+  return params
+}
+
+function withMockIssue(item) {
+  if (item.issueYear && item.issueNumber) return item
+  const issueNumber = item.id <= 6 ? 7 : item.id <= 12 ? 6 : 5
+  return { ...item, issueYear: 2026, issueNumber }
+}
+
+function paginateMaterials(url, data, requestParams) {
+  const params = parseParams(url, requestParams)
   const page = parseInt(params.page || '1')
   const limit = parseInt(params.limit || '10')
-  let allItems = data.data.list || []
+  let allItems = (data.data.list || []).map(withMockIssue)
   if (params.materialType) {
     allItems = allItems.filter(item => item.materialType === params.materialType)
   }
   if (params.category) {
     allItems = allItems.filter(item => item.category === params.category)
+  }
+  if (params.issueYear && params.issueNumber) {
+    allItems = allItems.filter(item =>
+      item.issueYear === Number(params.issueYear) && item.issueNumber === Number(params.issueNumber)
+    )
   }
   const start = (page - 1) * limit
   const paged = allItems.slice(start, start + limit)
@@ -107,13 +126,8 @@ function paginateMaterials(url, data) {
 /**
  * 按一级素材类型过滤分类统计
  */
-function filterCategories(url, data) {
-  const queryStr = (url.split('?')[1] || '')
-  const params = {}
-  queryStr.split('&').forEach(p => {
-    const [k, v] = p.split('=')
-    if (k && v) params[k] = decodeURIComponent(v)
-  })
+function filterCategories(url, data, requestParams) {
+  const params = parseParams(url, requestParams)
 
   const counts = (materialsList.data.list || [])
     .filter(item => !params.materialType || item.materialType === params.materialType)
@@ -130,4 +144,31 @@ function filterCategories(url, data) {
     })),
     error: null
   }
+}
+
+function buildIssues(params = {}) {
+  const counts = (materialsList.data.list || [])
+    .map(withMockIssue)
+    .filter(item => !params.materialType || item.materialType === params.materialType)
+    .reduce((acc, item) => {
+      const key = `${item.issueYear}-${item.issueNumber}`
+      acc[key] = (acc[key] || 0) + 1
+      return acc
+    }, {})
+
+  const chineseNumbers = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
+  const toChineseNumber = number => chineseNumbers[number] || String(number)
+  const list = Object.entries(counts)
+    .map(([key, count]) => {
+      const [issueYear, issueNumber] = key.split('-').map(Number)
+      return {
+        issueYear,
+        issueNumber,
+        label: `${issueYear}年第${toChineseNumber(issueNumber)}期`,
+        count
+      }
+    })
+    .sort((a, b) => b.issueYear - a.issueYear || b.issueNumber - a.issueNumber)
+
+  return { success: true, data: list, error: null }
 }

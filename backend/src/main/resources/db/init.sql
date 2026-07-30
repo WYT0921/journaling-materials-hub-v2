@@ -33,6 +33,8 @@ CREATE TABLE IF NOT EXISTS materials (
   thumbnail_url VARCHAR(256) DEFAULT NULL,
   category VARCHAR(32) DEFAULT NULL,
   material_type VARCHAR(16) NOT NULL DEFAULT 'single',
+  issue_year INT DEFAULT NULL,
+  issue_number INT DEFAULT NULL,
   tags JSON DEFAULT NULL,
   is_premium TINYINT(1) DEFAULT 0,
   download_count INT DEFAULT 0,
@@ -42,9 +44,14 @@ CREATE TABLE IF NOT EXISTS materials (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_materials_category (category),
   INDEX idx_materials_material_type (material_type),
+  INDEX idx_materials_issue (issue_year, issue_number),
   INDEX idx_materials_is_premium (is_premium),
   INDEX idx_materials_status (status),
-  INDEX idx_materials_sort_order (sort_order)
+  INDEX idx_materials_sort_order (sort_order),
+  CONSTRAINT chk_materials_issue_pair CHECK (
+    (issue_year IS NULL AND issue_number IS NULL)
+    OR (issue_year BETWEEN 1000 AND 9999 AND issue_number > 0)
+  )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 兑换码表

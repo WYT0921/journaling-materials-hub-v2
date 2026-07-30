@@ -16,6 +16,8 @@
             <option value="">全部类型</option>
             <option v-for="t in materialTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
           </select>
+          <input v-model.number="filterIssueYear" type="number" min="1000" max="9999" placeholder="年份" style="width:90px" @keyup.enter="search" />
+          <input v-model.number="filterIssueNumber" type="number" min="1" placeholder="期号" style="width:80px" @keyup.enter="search" />
           <select v-model="filterStatus" @change="search">
             <option :value="null">全部状态</option>
             <option :value="1">上架</option>
@@ -28,7 +30,7 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>ID</th><th>缩略图</th><th>标题</th><th>类型</th><th>分类</th><th>VIP</th><th>下载</th><th>状态</th><th>操作</th>
+              <th>ID</th><th>缩略图</th><th>标题</th><th>类型</th><th>分类</th><th>上传期数</th><th>VIP</th><th>下载</th><th>状态</th><th>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -38,6 +40,7 @@
               <td class="truncate" style="max-width:160px">{{ m.title }}</td>
               <td>{{ getMaterialTypeLabel(m.materialType) }}</td>
               <td>{{ m.category }}</td>
+              <td>{{ formatIssue(m.issueYear, m.issueNumber) }}</td>
               <td><span :class="['tag', m.isPremium ? 'tag-warning' : 'tag-default']">{{ m.isPremium ? 'VIP' : '免费' }}</span></td>
               <td>{{ m.downloadCount }}</td>
               <td><span :class="['tag', m.status === 1 ? 'tag-success' : 'tag-danger']">{{ m.status === 1 ? '上架' : '下架' }}</span></td>
@@ -92,6 +95,16 @@
             <select v-model="form.materialType" class="form-select">
               <option v-for="t in materialTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
             </select>
+          </div>
+          <div class="flex gap-3">
+            <div class="form-group" style="flex:1">
+              <label class="form-label">上传年份</label>
+              <input v-model.number="form.issueYear" type="number" min="1000" max="9999" class="form-input" placeholder="如 2026" />
+            </div>
+            <div class="form-group" style="flex:1">
+              <label class="form-label">上传期号</label>
+              <input v-model.number="form.issueNumber" type="number" min="1" class="form-input" placeholder="如 7" />
+            </div>
           </div>
           <div class="form-group">
             <label class="form-label">图片上传</label>
@@ -152,12 +165,14 @@ const limit = 20
 const searchKeyword = ref('')
 const filterCategory = ref('')
 const filterMaterialType = ref('')
+const filterIssueYear = ref('')
+const filterIssueNumber = ref('')
 const filterStatus = ref(null)
 const dialogVisible = ref(false)
 const editingId = ref(null)
 
 const form = reactive({
-  title: '', description: '', category: '', materialType: 'single', imageUrl: '', thumbnailUrl: '',
+  title: '', description: '', category: '', materialType: 'single', issueYear: '', issueNumber: '', imageUrl: '', thumbnailUrl: '',
   isPremium: false, status: 1, sortOrder: 0, tags: ''
 })
 
@@ -184,6 +199,10 @@ async function loadData() {
     if (searchKeyword.value) params.keyword = searchKeyword.value
     if (filterCategory.value) params.category = filterCategory.value
     if (filterMaterialType.value) params.materialType = filterMaterialType.value
+    if (filterIssueYear.value !== '' && filterIssueNumber.value !== '') {
+      params.issueYear = filterIssueYear.value
+      params.issueNumber = filterIssueNumber.value
+    }
     if (filterStatus.value !== null) params.status = filterStatus.value
     const res = await getMaterials(params)
     list.value = res.list || []
@@ -191,11 +210,29 @@ async function loadData() {
   } catch (e) { console.error(e) }
 }
 
-function search() { page.value = 1; loadData() }
+function search() {
+  const hasYear = filterIssueYear.value !== ''
+  const hasNumber = filterIssueNumber.value !== ''
+  if (hasYear !== hasNumber) return alert('筛选年份和期号必须同时填写')
+  page.value = 1
+  loadData()
+}
 function changePage(p) { page.value = p; loadData() }
 
 function getMaterialTypeLabel(type) {
   return type === 'bundle' ? '合并素材' : '单个素材'
+}
+
+function toChineseNumber(number) {
+  const digits = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九']
+  if (number < 10) return digits[number]
+  if (number < 20) return `十${number % 10 ? digits[number % 10] : ''}`
+  if (number < 100) return `${digits[Math.floor(number / 10)]}十${number % 10 ? digits[number % 10] : ''}`
+  return String(number)
+}
+
+function formatIssue(year, number) {
+  return year && number ? `${year}年第${toChineseNumber(number)}期` : '—'
 }
 
 function openDialog(m) {
@@ -203,13 +240,14 @@ function openDialog(m) {
     editingId.value = m.id
     Object.assign(form, {
       title: m.title, description: m.description || '', category: m.category || '', materialType: m.materialType || 'single',
+      issueYear: m.issueYear ?? '', issueNumber: m.issueNumber ?? '',
       imageUrl: m.imageUrl, thumbnailUrl: m.thumbnailUrl || '',
       isPremium: m.isPremium, status: m.status, sortOrder: m.sortOrder || 0,
       tags: typeof m.tags === 'string' ? m.tags : JSON.stringify(m.tags || [])
     })
   } else {
     editingId.value = null
-    Object.assign(form, { title: '', description: '', category: '', materialType: 'single', imageUrl: '', thumbnailUrl: '', isPremium: false, status: 1, sortOrder: 0, tags: '' })
+    Object.assign(form, { title: '', description: '', category: '', materialType: 'single', issueYear: '', issueNumber: '', imageUrl: '', thumbnailUrl: '', isPremium: false, status: 1, sortOrder: 0, tags: '' })
   }
   dialogVisible.value = true
 }
@@ -226,8 +264,19 @@ async function handleUpload(e) {
 
 async function handleSave() {
   if (!form.title) return alert('请输入标题')
+  const hasIssueYear = form.issueYear !== '' && form.issueYear !== null
+  const hasIssueNumber = form.issueNumber !== '' && form.issueNumber !== null
+  if (hasIssueYear !== hasIssueNumber) return alert('上传年份和期号必须同时填写')
+  if (hasIssueYear && (form.issueYear < 1000 || form.issueYear > 9999 || form.issueNumber <= 0)) {
+    return alert('年份必须为四位数字，期号必须大于 0')
+  }
   try {
-    const data = { ...form, tags: form.tags || '[]' }
+    const data = {
+      ...form,
+      issueYear: hasIssueYear ? Number(form.issueYear) : null,
+      issueNumber: hasIssueNumber ? Number(form.issueNumber) : null,
+      tags: form.tags || '[]'
+    }
     if (editingId.value) {
       await updateMaterial(editingId.value, data)
     } else {

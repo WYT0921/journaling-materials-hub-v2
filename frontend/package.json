@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "手账素材小程序前端",
   "scripts": {
-    "test:collage": "node --test tests/collage-scene-graph.test.mjs tests/collage-geometry.test.mjs tests/collage-export.test.mjs tests/collage-navigation.test.mjs",
+    "test:collage": "node --test tests/collage-scene-graph.test.mjs tests/collage-geometry.test.mjs tests/collage-export.test.mjs tests/collage-material-picker.test.mjs tests/collage-navigation.test.mjs",
     "dev:mp-weixin": "uni -p mp-weixin",
     "build:mp-weixin": "uni build -p mp-weixin",
     "dev:h5": "uni",

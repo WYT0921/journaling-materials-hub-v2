@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS materials (
   thumbnail_url VARCHAR(256) DEFAULT NULL,
   category VARCHAR(32) DEFAULT NULL,
   material_type VARCHAR(16) NOT NULL DEFAULT 'single',
+  issue_year INT DEFAULT NULL,
+  issue_number INT DEFAULT NULL,
   tags VARCHAR(500) DEFAULT NULL,
   is_premium TINYINT DEFAULT 0,
   download_count INT DEFAULT 0,

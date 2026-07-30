@@ -1,6 +1,7 @@
 package com.journaling.hub.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.journaling.hub.common.BusinessException;
@@ -68,7 +69,11 @@ public class AdminController {
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) String materialType,
             @RequestParam(required = false) String category,
-            @RequestParam(required = false) String keyword) {
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer issueYear,
+            @RequestParam(required = false) Integer issueNumber) {
+
+        validateIssue(issueYear, issueNumber);
 
         LambdaQueryWrapper<Material> wrapper = new LambdaQueryWrapper<>();
         if (status != null) {
@@ -84,6 +89,10 @@ public class AdminController {
         if (StringUtils.hasText(keyword)) {
             wrapper.like(Material::getTitle, keyword);
         }
+        if (issueYear != null) {
+            wrapper.eq(Material::getIssueYear, issueYear)
+                    .eq(Material::getIssueNumber, issueNumber);
+        }
         wrapper.orderByDesc(Material::getCreatedAt);
 
         IPage<Material> result = materialMapper.selectPage(new Page<>(page, limit), wrapper);
@@ -95,6 +104,7 @@ public class AdminController {
      */
     @PostMapping("/materials")
     public Result<?> createMaterial(@RequestBody Material material) {
+        validateIssue(material.getIssueYear(), material.getIssueNumber());
         if (!StringUtils.hasText(material.getMaterialType())) {
             material.setMaterialType("single");
         } else {
@@ -134,6 +144,14 @@ public class AdminController {
             validateMaterialType(material.getMaterialType());
             existing.setMaterialType(material.getMaterialType());
         }
+        if (material.isIssueYearSpecified() != material.isIssueNumberSpecified()) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "年份和期号必须同时提交");
+        }
+        if (material.isIssueYearSpecified()) {
+            validateIssue(material.getIssueYear(), material.getIssueNumber());
+            existing.setIssueYear(material.getIssueYear());
+            existing.setIssueNumber(material.getIssueNumber());
+        }
         if (material.getImageUrl() != null) existing.setImageUrl(material.getImageUrl());
         if (material.getThumbnailUrl() != null) existing.setThumbnailUrl(material.getThumbnailUrl());
         if (material.getIsPremium() != null) existing.setIsPremium(material.getIsPremium());
@@ -141,6 +159,12 @@ public class AdminController {
         if (material.getSortOrder() != null) existing.setSortOrder(material.getSortOrder());
 
         materialMapper.updateById(existing);
+        if (material.isIssueYearSpecified() && material.getIssueYear() == null) {
+            materialMapper.update(null, new LambdaUpdateWrapper<Material>()
+                    .eq(Material::getId, id)
+                    .set(Material::getIssueYear, null)
+                    .set(Material::getIssueNumber, null));
+        }
         return Result.ok(existing);
     }
 
@@ -174,6 +198,18 @@ public class AdminController {
     private void validateMaterialType(String materialType) {
         if (!"single".equals(materialType) && !"bundle".equals(materialType)) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "素材类型必须为 single 或 bundle");
+        }
+    }
+
+    private void validateIssue(Integer issueYear, Integer issueNumber) {
+        if ((issueYear == null) != (issueNumber == null)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "年份和期号必须同时提供");
+        }
+        if (issueYear != null && (issueYear < 1000 || issueYear > 9999)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "年份必须为四位数字");
+        }
+        if (issueNumber != null && issueNumber <= 0) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "期号必须大于 0");
         }
     }
 

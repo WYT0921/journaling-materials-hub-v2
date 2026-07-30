@@ -46,6 +46,8 @@
 | thumbnail_url | VARCHAR(256) | NULL | 缩略图URL |
 | category | VARCHAR(32) | NULL | 分类 |
 | material_type | VARCHAR(16) | DEFAULT 'single' | 一级类型：single=单个素材，bundle=合并素材 |
+| issue_year | INT | NULL | 上传年份，与 issue_number 同时为空或同时有值 |
+| issue_number | INT | NULL | 上传期号，必须大于 0 |
 | tags | JSON | NULL | 标签数组 |
 | is_premium | BOOLEAN | DEFAULT FALSE | 是否为会员素材 |
 | download_count | INT | DEFAULT 0 | 下载次数 |
@@ -57,9 +59,12 @@
 **索引:**
 - `idx_materials_category` - category
 - `idx_materials_material_type` - material_type
+- `idx_materials_issue` - issue_year, issue_number
 - `idx_materials_is_premium` - is_premium
 - `idx_materials_status` - status
 - `idx_materials_sort_order` - sort_order
+
+**检查约束:** `chk_materials_issue_pair` 保证期数两字段同时为空，或年份为四位数且期号大于 0。
 
 ### 3. 兑换码表 (redeem_codes)
 

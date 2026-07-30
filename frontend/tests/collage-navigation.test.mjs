@@ -41,6 +41,13 @@ test('material picker requests a compact bottom sheet', async () => {
   assert.match(picker, /max-height="68vh"/)
 })
 
+test('material picker can switch between all materials and favorites', async () => {
+  const picker = await readSource('src/components/collage/MaterialPicker.vue')
+  assert.match(picker, />全部素材</)
+  assert.match(picker, />我的收藏</)
+  assert.match(picker, /getFavorites/)
+})
+
 test('material picker omits keyword when the search input is empty', async () => {
   const picker = await readSource('src/components/collage/MaterialPicker.vue')
   assert.match(picker, /const\s+params\s*=\s*\{[\s\S]*materialType:\s*'single'/)

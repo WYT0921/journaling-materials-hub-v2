@@ -35,9 +35,12 @@ public class MaterialController {
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "default") String sortBy,
+            @RequestParam(required = false) Integer issueYear,
+            @RequestParam(required = false) Integer issueNumber,
             HttpServletRequest request) {
 
-        IPage<Material> materials = materialService.listMaterials(page, limit, materialType, category, keyword, sortBy);
+        IPage<Material> materials = materialService.listMaterials(
+                page, limit, materialType, category, keyword, sortBy, issueYear, issueNumber);
 
         // 处理付费内容模糊化
         Boolean isPremium = (Boolean) request.getAttribute("isPremium");
@@ -76,6 +79,14 @@ public class MaterialController {
     }
 
     /**
+     * 获取已有上传期数
+     */
+    @GetMapping("/issues")
+    public Result<?> getIssues(@RequestParam(required = false) String materialType) {
+        return Result.ok(materialService.getIssues(materialType));
+    }
+
+    /**
      * 获取素材详情
      */
     @GetMapping("/{id}")
@@ -94,6 +105,8 @@ public class MaterialController {
         result.put("thumbnailUrl", material.getThumbnailUrl());
         result.put("category", material.getCategory());
         result.put("materialType", material.getMaterialType());
+        result.put("issueYear", material.getIssueYear());
+        result.put("issueNumber", material.getIssueNumber());
         result.put("tags", material.getTags());
         result.put("isPremium", material.getIsPremium());
         result.put("downloadCount", material.getDownloadCount());

@@ -47,6 +47,17 @@ class AdminControllerTest extends ControllerTestBase {
     }
 
     @Test
+    @DisplayName("管理员 — GET /api/v2/admin/materials 支持期数筛选")
+    void listMaterials_filterByIssue() throws Exception {
+        mockMvc.perform(get("/api/v2/admin/materials")
+                        .header("Authorization", adminJwtToken())
+                        .param("issueYear", "2026")
+                        .param("issueNumber", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.total").value(2));
+    }
+
+    @Test
     @DisplayName("管理员 — POST /api/v2/admin/materials 新增素材")
     void createMaterial_admin_shouldSucceed() throws Exception {
         String body = "{"
@@ -70,6 +81,30 @@ class AdminControllerTest extends ControllerTestBase {
     }
 
     @Test
+    @DisplayName("管理员 — POST /api/v2/admin/materials 拒绝不完整期数")
+    void createMaterial_withPartialIssue_shouldFail() throws Exception {
+        String body = "{\"title\":\"错误期数\",\"imageUrl\":\"https://example.com/img.png\",\"issueYear\":2026}";
+        mockMvc.perform(post("/api/v2/admin/materials")
+                        .header("Authorization", adminJwtToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    @DisplayName("管理员 — POST /api/v2/admin/materials 拒绝非法期数")
+    void createMaterial_withInvalidIssue_shouldFail() throws Exception {
+        String body = "{\"title\":\"错误期数\",\"imageUrl\":\"https://example.com/img.png\",\"issueYear\":999,\"issueNumber\":0}";
+        mockMvc.perform(post("/api/v2/admin/materials")
+                        .header("Authorization", adminJwtToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
     @DisplayName("管理员 — PUT /api/v2/admin/materials/{id} 编辑素材")
     void updateMaterial_admin_shouldSucceed() throws Exception {
         String body = "{\"title\":\"管理员修改后的标题\"}";
@@ -79,6 +114,22 @@ class AdminControllerTest extends ControllerTestBase {
                         .content(body))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @DisplayName("管理员 — PUT /api/v2/admin/materials/{id} 可清空期数")
+    void updateMaterial_canClearIssue() throws Exception {
+        mockMvc.perform(put("/api/v2/admin/materials/1")
+                        .header("Authorization", adminJwtToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"issueYear\":null,\"issueNumber\":null}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        mockMvc.perform(get("/api/materials/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.issueYear").doesNotExist())
+                .andExpect(jsonPath("$.data.issueNumber").doesNotExist());
     }
 
     @Test

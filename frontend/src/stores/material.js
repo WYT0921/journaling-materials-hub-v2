@@ -20,6 +20,9 @@ export const useMaterialStore = defineStore('material', () => {
   const keyword = ref('')
   const sortBy = ref('default')
   const categories = ref([])
+  const activeIssueYear = ref(null)
+  const activeIssueNumber = ref(null)
+  const issues = ref([])
 
   // 计算属性
   const isEmpty = computed(() => materials.value.length === 0 && !isLoading.value)
@@ -60,6 +63,11 @@ export const useMaterialStore = defineStore('material', () => {
 
       if (sortBy.value !== 'default') {
         params.sortBy = sortBy.value
+      }
+
+      if (activeIssueYear.value && activeIssueNumber.value) {
+        params.issueYear = activeIssueYear.value
+        params.issueNumber = activeIssueNumber.value
       }
 
       const result = await materialApi.getMaterials(params)
@@ -128,7 +136,14 @@ export const useMaterialStore = defineStore('material', () => {
   const switchMaterialType = async (materialType) => {
     activeMaterialType.value = materialType || 'single'
     activeCategory.value = ''
-    await loadCategories()
+    await Promise.all([loadCategories(), loadIssues()])
+    const issueStillExists = issues.value.some(item =>
+      item.issueYear === activeIssueYear.value && item.issueNumber === activeIssueNumber.value
+    )
+    if (!issueStillExists) {
+      activeIssueYear.value = null
+      activeIssueNumber.value = null
+    }
     await resetAndLoad()
   }
 
@@ -148,6 +163,12 @@ export const useMaterialStore = defineStore('material', () => {
     await resetAndLoad()
   }
 
+  const switchIssue = async (issue) => {
+    activeIssueYear.value = issue?.issueYear || null
+    activeIssueNumber.value = issue?.issueNumber || null
+    await resetAndLoad()
+  }
+
   /**
    * 加载分类列表
    */
@@ -159,6 +180,18 @@ export const useMaterialStore = defineStore('material', () => {
       categories.value = result || []
     } catch (error) {
       console.error('加载分类失败:', error)
+    }
+  }
+
+  const loadIssues = async () => {
+    try {
+      const result = await materialApi.getIssues({
+        materialType: activeMaterialType.value || 'single'
+      })
+      issues.value = result || []
+    } catch (error) {
+      console.error('加载上传期数失败:', error)
+      issues.value = []
     }
   }
 
@@ -183,6 +216,9 @@ export const useMaterialStore = defineStore('material', () => {
     keyword,
     sortBy,
     categories,
+    activeIssueYear,
+    activeIssueNumber,
+    issues,
     isEmpty,
     loadMaterials,
     searchMaterials,
@@ -191,7 +227,9 @@ export const useMaterialStore = defineStore('material', () => {
     switchMaterialType,
     switchCategory,
     setSortBy,
+    switchIssue,
     loadCategories,
+    loadIssues,
     refresh
   }
 })

@@ -1,6 +1,7 @@
 package com.journaling.hub.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -32,6 +33,30 @@ public class Material {
 
     @TableField("material_type")
     private String materialType;
+
+    @TableField("issue_year")
+    private Integer issueYear;
+
+    @TableField("issue_number")
+    private Integer issueNumber;
+
+    @JsonIgnore
+    @TableField(exist = false)
+    private boolean issueYearSpecified;
+
+    @JsonIgnore
+    @TableField(exist = false)
+    private boolean issueNumberSpecified;
+
+    public void setIssueYear(Integer issueYear) {
+        this.issueYear = issueYear;
+        this.issueYearSpecified = true;
+    }
+
+    public void setIssueNumber(Integer issueNumber) {
+        this.issueNumber = issueNumber;
+        this.issueNumberSpecified = true;
+    }
 
     /**
      * 标签，数据库中存储为 JSON 字符串

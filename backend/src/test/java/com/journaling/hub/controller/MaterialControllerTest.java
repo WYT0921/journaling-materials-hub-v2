@@ -96,7 +96,30 @@ class MaterialControllerTest extends ControllerTestBase {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.id").value(1))
                 .andExpect(jsonPath("$.data.title").exists())
-                .andExpect(jsonPath("$.data.materialType").value("single"));
+                .andExpect(jsonPath("$.data.materialType").value("single"))
+                .andExpect(jsonPath("$.data.issueYear").value(2026))
+                .andExpect(jsonPath("$.data.issueNumber").value(7));
+    }
+
+    @Test
+    @DisplayName("GET /api/materials filters by issue")
+    void listMaterials_byIssue_shouldFilter() throws Exception {
+        mockMvc.perform(get("/api/materials")
+                        .param("issueYear", "2026")
+                        .param("issueNumber", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.total").value(2))
+                .andExpect(jsonPath("$.data.list[0].issueYear").value(2026))
+                .andExpect(jsonPath("$.data.list[0].issueNumber").value(7));
+    }
+
+    @Test
+    @DisplayName("GET /api/materials/issues returns published issues")
+    void getIssues_shouldReturnNewestFirst() throws Exception {
+        mockMvc.perform(get("/api/materials/issues").param("materialType", "single"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].label").value("2026年第七期"))
+                .andExpect(jsonPath("$.data[0].count").value(1));
     }
 
     @Test

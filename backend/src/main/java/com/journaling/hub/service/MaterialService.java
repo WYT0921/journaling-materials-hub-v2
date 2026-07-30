@@ -14,7 +14,8 @@ public interface MaterialService {
     /**
      * 获取素材列表（分页）
      */
-    IPage<Material> listMaterials(int page, int limit, String materialType, String category, String keyword, String sortBy);
+    IPage<Material> listMaterials(int page, int limit, String materialType, String category,
+                                 String keyword, String sortBy, Integer issueYear, Integer issueNumber);
 
     /**
      * 获取素材详情
@@ -30,4 +31,9 @@ public interface MaterialService {
      * 获取所有分类
      */
     List<Map<String, Object>> getCategories(String materialType);
+
+    /**
+     * 获取已有上传期数
+     */
+    List<Map<String, Object>> getIssues(String materialType);
 }

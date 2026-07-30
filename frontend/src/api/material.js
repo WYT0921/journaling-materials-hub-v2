@@ -30,3 +30,10 @@ export const searchMaterials = (params) => {
 export const getCategories = (params) => {
   return get('/materials/categories', params)
 }
+
+/**
+ * 获取已有上传期数
+ */
+export const getIssues = (params) => {
+  return get('/materials/issues', params)
+}
