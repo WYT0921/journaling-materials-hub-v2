@@ -10,8 +10,6 @@ app:
 spring:
   config:
     import:
-      - optional:file:.env.example[.properties]
-      - optional:file:../.env.example[.properties]
       - optional:file:.env[.properties]
       - optional:file:../.env[.properties]
   profiles:
