@@ -64,7 +64,7 @@ mybatis-plus:
   mapper-locations: classpath:mapper/*.xml
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
   global-config:
     db-config:
       id-type: auto
@@ -87,6 +87,20 @@ admin:
 wechat:
   appid: ${WECHAT_APPID:}
   secret: ${WECHAT_SECRET:}
+  official:
+    app-id: ${WECHAT_OFFICIAL_APP_ID:}
+    app-secret: ${WECHAT_OFFICIAL_APP_SECRET:}
+    token: ${WECHAT_OFFICIAL_TOKEN:}
+    callback-path: /api/wechat/official/callback
+    message-mode: plaintext
+    probe-api-enabled: ${WECHAT_OFFICIAL_PROBE_API_ENABLED:false}
+    max-file-size: ${WECHAT_PROBE_MAX_FILE_SIZE:10485760}
+    connect-timeout-millis: ${WECHAT_PROBE_CONNECT_TIMEOUT_MS:5000}
+    read-timeout-millis: ${WECHAT_PROBE_READ_TIMEOUT_MS:15000}
+    max-redirects: ${WECHAT_PROBE_MAX_REDIRECTS:3}
+    executor-core-pool-size: ${WECHAT_PROBE_EXECUTOR_CORE_SIZE:2}
+    executor-max-pool-size: ${WECHAT_PROBE_EXECUTOR_MAX_SIZE:4}
+    executor-queue-capacity: ${WECHAT_PROBE_EXECUTOR_QUEUE_CAPACITY:100}
 
 # MinIO 对象存储配置
 minio:
@@ -101,6 +115,7 @@ logging:
   level:
     root: INFO
     com.journaling.hub: DEBUG
+    com.journaling.hub.mapper: INFO
     org.springframework.web: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

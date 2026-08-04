@@ -33,6 +33,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/api/materials/{id}",
                         "/api/redeem/verify",
                         "/api/feedback",
+                        "/api/wechat/official/callback",
                         "/api/v2/admin/auth/**",
                         "/api/v2/categories",
                         "/actuator/**"

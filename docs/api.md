@@ -1,5 +1,15 @@
 # API 文档
 
+## 微信公众号消息能力验证
+
+> 仅支持明文回调，详细联调方式见 `docs/微信公众号消息能力验证.md`。
+
+- `GET /api/wechat/official/callback`：微信服务器URL验证，无JWT，校验微信签名。
+- `POST /api/wechat/official/callback`：接收明文XML，无JWT，校验签名并快速返回 `success`。
+- `GET /api/v2/admin/wechat-probe/messages?page=1&limit=20`：管理员分页查询验证记录。
+- `GET /api/v2/admin/wechat-probe/messages/{id}`：管理员查询脱敏详情。
+- `POST /api/v2/admin/wechat-probe/simulate`：仅dev Profile的管理员XML模拟入口。
+
 ## 基础信息
 
 - 基础URL: `https://your-domain.com/api`
