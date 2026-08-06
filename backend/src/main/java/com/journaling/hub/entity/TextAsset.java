@@ -5,32 +5,27 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
-/**
- * 分类实体
- */
 @Data
-@TableName("categories")
-public class Category {
-
+@TableName("text_assets")
+public class TextAsset {
     @TableId(type = IdType.AUTO)
     private Long id;
-
-    @TableField("name")
-    private String name;
-
-    /** 分类类型: material / tool(legacy) / kaomoji / emoji */
-    @TableField("type")
+    private String content;
+    @TableField("content_hash")
+    private String contentHash;
     private String type;
-
-    @TableField("status")
+    private String category;
+    private String tags;
+    private String source;
+    @TableField("source_url")
+    private String sourceUrl;
+    @TableField("risk_level")
+    private String riskLevel;
     private Integer status;
-
     @TableField("sort_order")
     private Integer sortOrder;
-
     @TableField(value = "created_at", fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
-
     @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedAt;
 }

@@ -1,0 +1,8 @@
+{
+  "delayMs": 2000,
+  "retries": 2,
+  "targets": [
+    { "source": "cuteinternet", "url": "https://cuteinternet.com/middleFinger" },
+    { "source": "emojidb", "url": "https://emojidb.org/" }
+  ]
+}

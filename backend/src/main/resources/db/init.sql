@@ -128,3 +128,21 @@ CREATE TABLE IF NOT EXISTS feedbacks (
   INDEX idx_feedbacks_created_at (created_at),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS text_assets (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  content TEXT NOT NULL,
+  content_hash CHAR(64) NOT NULL,
+  type VARCHAR(16) NOT NULL,
+  category VARCHAR(32) NOT NULL,
+  tags JSON DEFAULT NULL,
+  source VARCHAR(32) NOT NULL DEFAULT 'manual',
+  source_url VARCHAR(512) DEFAULT NULL,
+  risk_level VARCHAR(16) NOT NULL DEFAULT 'safe',
+  status TINYINT NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE INDEX uk_text_assets_content_hash (content_hash),
+  INDEX idx_text_assets_public (type, status, category, sort_order, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

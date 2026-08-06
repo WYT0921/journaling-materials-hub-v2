@@ -23,7 +23,19 @@
     {
       "path": "pages/tools/tools",
       "style": {
-        "navigationBarTitleText": "工具推荐"
+        "navigationBarTitleText": "工具箱"
+      }
+    },
+    {
+      "path": "pages/tools/fonts",
+      "style": {
+        "navigationBarTitleText": "特殊字体"
+      }
+    },
+    {
+      "path": "pages/tools/text-assets",
+      "style": {
+        "navigationBarTitleText": "颜文字与 Emoji"
       }
     },
     {

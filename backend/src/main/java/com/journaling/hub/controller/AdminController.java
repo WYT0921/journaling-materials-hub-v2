@@ -12,12 +12,10 @@ import com.journaling.hub.dto.RedeemCodeGenerateRequest;
 import com.journaling.hub.entity.Feedback;
 import com.journaling.hub.entity.Material;
 import com.journaling.hub.entity.RedeemCode;
-import com.journaling.hub.entity.Tool;
 import com.journaling.hub.entity.User;
 import com.journaling.hub.mapper.FeedbackMapper;
 import com.journaling.hub.mapper.MaterialMapper;
 import com.journaling.hub.mapper.RedeemCodeMapper;
-import com.journaling.hub.mapper.ToolMapper;
 import com.journaling.hub.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,9 +42,6 @@ public class AdminController {
 
     @Autowired
     private UserMapper userMapper;
-
-    @Autowired
-    private ToolMapper toolMapper;
 
     @Autowired
     private FeedbackMapper feedbackMapper;
@@ -211,98 +206,6 @@ public class AdminController {
         if (issueNumber != null && issueNumber <= 0) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "期号必须大于 0");
         }
-    }
-
-    // ==================== 工具管理 ====================
-
-    /**
-     * 工具列表（含已下架）
-     */
-    @GetMapping("/tools")
-    public Result<?> listTools(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int limit,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) String category) {
-
-        LambdaQueryWrapper<Tool> wrapper = new LambdaQueryWrapper<>();
-        if (status != null) {
-            wrapper.eq(Tool::getStatus, status);
-        } else {
-            // 默认只显示启用和默认工具，加上自定义工具
-        }
-        if (StringUtils.hasText(category)) {
-            wrapper.eq(Tool::getCategory, category);
-        }
-        wrapper.orderByAsc(Tool::getSortOrder).orderByDesc(Tool::getCreatedAt);
-
-        IPage<Tool> result = toolMapper.selectPage(new Page<>(page, limit), wrapper);
-        return Result.ok(PageResult.from(result));
-    }
-
-    /**
-     * 新增工具
-     */
-    @PostMapping("/tools")
-    public Result<?> createTool(@RequestBody Tool tool) {
-        if (tool.getSortOrder() == null) {
-            tool.setSortOrder(0);
-        }
-        if (tool.getStatus() == null) {
-            tool.setStatus(1);
-        }
-        tool.setIsDefault(true); // 后台创建的工具标记为全局工具
-        toolMapper.insert(tool);
-        log.info("工具新增成功: id={}, name={}", tool.getId(), tool.getName());
-        return Result.ok(tool);
-    }
-
-    /**
-     * 编辑工具
-     */
-    @PutMapping("/tools/{id}")
-    public Result<?> updateTool(@PathVariable Long id, @RequestBody Tool tool) {
-        Tool existing = toolMapper.selectById(id);
-        if (existing == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND);
-        }
-
-        if (tool.getName() != null) existing.setName(tool.getName());
-        if (tool.getDescription() != null) existing.setDescription(tool.getDescription());
-        if (tool.getIcon() != null) existing.setIcon(tool.getIcon());
-        if (tool.getUrl() != null) existing.setUrl(tool.getUrl());
-        if (tool.getCategory() != null) existing.setCategory(tool.getCategory());
-        if (tool.getSortOrder() != null) existing.setSortOrder(tool.getSortOrder());
-
-        toolMapper.updateById(existing);
-        return Result.ok(existing);
-    }
-
-    /**
-     * 上下架工具
-     */
-    @PutMapping("/tools/{id}/status")
-    public Result<?> updateToolStatus(@PathVariable Long id, @RequestParam Integer status) {
-        Tool existing = toolMapper.selectById(id);
-        if (existing == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND);
-        }
-        existing.setStatus(status);
-        toolMapper.updateById(existing);
-        return Result.ok(existing);
-    }
-
-    /**
-     * 删除工具
-     */
-    @DeleteMapping("/tools/{id}")
-    public Result<?> deleteTool(@PathVariable Long id) {
-        Tool existing = toolMapper.selectById(id);
-        if (existing == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND);
-        }
-        toolMapper.deleteById(id);
-        return Result.ok(null);
     }
 
     // ==================== 用户管理 ====================

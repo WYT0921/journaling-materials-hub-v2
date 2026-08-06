@@ -44,21 +44,14 @@ export const uploadImage = (file) => {
   })
 }
 
-// ===== Tools =====
-export const getTools = (params) =>
-  http.get('/v2/admin/tools', { params })
-
-export const createTool = (data) =>
-  http.post('/v2/admin/tools', data)
-
-export const updateTool = (id, data) =>
-  http.put(`/v2/admin/tools/${id}`, data)
-
-export const updateToolStatus = (id, status) =>
-  http.put(`/v2/admin/tools/${id}/status`, null, { params: { status } })
-
-export const deleteTool = (id) =>
-  http.delete(`/v2/admin/tools/${id}`)
+// ===== Text Assets =====
+export const getTextAssets = params => http.get('/v2/admin/text-assets', { params })
+export const createTextAsset = data => http.post('/v2/admin/text-assets', data)
+export const updateTextAsset = (id, data) => http.put(`/v2/admin/text-assets/${id}`, data)
+export const updateTextAssetStatus = (id, status) => http.put(`/v2/admin/text-assets/${id}/status`, null, { params: { status } })
+export const batchUpdateTextAssetStatus = (ids, status) => http.put('/v2/admin/text-assets/batch-status', { ids, status })
+export const importTextAssets = items => http.post('/v2/admin/text-assets/import', { items })
+export const deleteTextAsset = id => http.delete(`/v2/admin/text-assets/${id}`)
 
 // ===== Users =====
 export const getUsers = (params) =>

@@ -84,6 +84,23 @@ CREATE TABLE IF NOT EXISTS categories (
   UNIQUE KEY uk_categories_name_type (name, type)
 );
 
+CREATE TABLE IF NOT EXISTS text_assets (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  content TEXT NOT NULL,
+  content_hash CHAR(64) NOT NULL,
+  type VARCHAR(16) NOT NULL,
+  category VARCHAR(32) NOT NULL,
+  tags VARCHAR(4000) DEFAULT NULL,
+  source VARCHAR(32) NOT NULL DEFAULT 'manual',
+  source_url VARCHAR(512) DEFAULT NULL,
+  risk_level VARCHAR(16) NOT NULL DEFAULT 'safe',
+  status TINYINT NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_text_assets_content_hash (content_hash)
+);
+
 CREATE TABLE IF NOT EXISTS favorites (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT NOT NULL,

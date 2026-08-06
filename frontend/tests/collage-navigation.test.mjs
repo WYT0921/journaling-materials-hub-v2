@@ -20,6 +20,22 @@ test('collage is the second primary tab and existing tab indexes move with it', 
   assert.match(profile, /<CustomTabBar\s+:current="3"/)
 })
 
+test('toolbox lists three internal modules and does not load external tool recommendations', async () => {
+  const pages = JSON.parse(await readSource('src/pages.json'))
+  const tools = await readSource('src/pages/tools/tools.vue')
+
+  assert.ok(pages.pages.some(page => page.path === 'pages/tools/fonts'))
+  assert.ok(pages.pages.some(page => page.path === 'pages/tools/text-assets'))
+  assert.match(tools, /name:\s*'特殊字体'/)
+  assert.match(tools, /route:\s*'\/pages\/tools\/fonts'/)
+  assert.match(tools, /name:\s*'颜文字 \/ Emoji'/)
+  assert.match(tools, /route:\s*'\/pages\/tools\/text-assets'/)
+  assert.match(tools, /name:\s*'自由拼贴'/)
+  assert.match(tools, /route:\s*'\/pages\/collage\/index'/)
+  assert.match(tools, /uni\.switchTab\(\{\s*url:\s*tool\.route/)
+  assert.doesNotMatch(tools, /fetchTools|useToolsStore|api\/tools/)
+})
+
 test('detail page passes a material through the collage store before switching tabs', async () => {
   const detail = await readSource('src/pages/detail/detail.vue')
   assert.match(detail, /setPendingMaterialId\(materialId\.value\)/)

@@ -134,13 +134,13 @@
 
 ### 6. 分类表 (categories)
 
-存储素材和工具的分类信息。
+存储图片素材、颜文字、Emoji 和遗留工具的分类信息。
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
 | id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | 分类ID |
 | name | VARCHAR(32) | NOT NULL | 分类名称 |
-| type | VARCHAR(16) | NOT NULL | 分类类型：material / tool |
+| type | VARCHAR(16) | NOT NULL | 分类类型：material / kaomoji / emoji / tool(遗留) |
 | status | TINYINT | DEFAULT 1 | 状态：0-禁用，1-正常 |
 | sort_order | INT | DEFAULT 0 | 排序序号 |
 | created_at | DATETIME | NOT NULL | 创建时间 |
@@ -150,6 +150,28 @@
 - `uk_categories_name_type` (唯一索引) - name, type
 - `idx_categories_type` - type
 - `idx_categories_status` - status
+
+### 7. 文本素材表 (text_assets)
+
+存储经过审核的颜文字和 Emoji 组合。采集器只生成候选 JSON，导入后默认处于待审核状态。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | 文本素材 ID |
+| content | TEXT | NOT NULL | 规范化后的可复制内容 |
+| content_hash | CHAR(64) | UNIQUE, NOT NULL | 内容 SHA-256，用于幂等去重 |
+| type | VARCHAR(16) | NOT NULL | kaomoji / emoji |
+| category | VARCHAR(32) | NOT NULL | 对应类型下的启用分类 |
+| tags | JSON | NULL | 搜索标签数组 |
+| source | VARCHAR(32) | DEFAULT manual | manual / cuteinternet / emojidb |
+| source_url | VARCHAR(512) | NULL | 来源页面 |
+| risk_level | VARCHAR(16) | DEFAULT safe | safe / mild |
+| status | TINYINT | DEFAULT 0 | 0待审核、1已发布、2已拒绝、3已停用 |
+| sort_order | INT | DEFAULT 0 | 排序权重 |
+| created_at | DATETIME | NOT NULL | 创建时间 |
+| updated_at | DATETIME | NOT NULL | 更新时间 |
+
+**索引:** `uk_text_assets_content_hash` 保证内容全局唯一；`idx_text_assets_public` 支持类型、状态、分类和排序查询。
 
 ---
 

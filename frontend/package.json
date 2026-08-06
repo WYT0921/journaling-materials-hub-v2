@@ -5,7 +5,7 @@
   "scripts": {
     "generate:fonts": "node scripts/generate-fonts.mjs",
     "test:fonts": "node --test tests/font-generator.test.mjs",
-    "test:collage": "node --test tests/collage-scene-graph.test.mjs tests/collage-geometry.test.mjs tests/collage-export.test.mjs tests/collage-material-picker.test.mjs tests/collage-navigation.test.mjs",
+    "test:collage": "node --test tests/collage-scene-graph.test.mjs tests/collage-geometry.test.mjs tests/collage-export.test.mjs tests/collage-material-picker.test.mjs tests/collage-navigation.test.mjs tests/text-assets-page.test.mjs",
     "dev:mp-weixin": "uni -p mp-weixin",
     "build:mp-weixin": "uni build -p mp-weixin",
     "dev:h5": "uni",

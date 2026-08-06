@@ -4,6 +4,7 @@ DELETE FROM favorites;
 DELETE FROM downloads;
 DELETE FROM redeem_codes;
 DELETE FROM tools;
+DELETE FROM text_assets;
 DELETE FROM categories;
 DELETE FROM materials;
 DELETE FROM users;
@@ -38,6 +39,18 @@ INSERT INTO categories (id, name, type, status, sort_order) VALUES
 (5, 'disabled-material', 'material', 0, 99),
 (6, '写作与项目', 'tool', 1, 1),
 (7, '在线设计', 'tool', 1, 2);
+
+INSERT INTO categories (id, name, type, status, sort_order) VALUES
+(8, '可爱', 'kaomoji', 1, 1),
+(9, '难过', 'kaomoji', 1, 2),
+(10, '爱心', 'emoji', 1, 1),
+(11, '装饰', 'emoji', 1, 2),
+(12, '停用分类', 'emoji', 0, 99);
+
+INSERT INTO text_assets (id, content, content_hash, type, category, tags, source, risk_level, status, sort_order) VALUES
+(1, '(｡･ω･｡)', '7222c39a69189bf63584d9d6a661cbd10b43b4f0a9a6d4f3338e07f9916d162a', 'kaomoji', '可爱', '["可爱"]', 'manual', 'safe', 1, 1),
+(2, '(｡•́︿•̀｡)', 'fa8eb34de58556033bd1f622a0c9f044f2f05df5c9ee77a355349347c50bb61a', 'kaomoji', '难过', '["难过"]', 'manual', 'safe', 0, 2),
+(3, '₊˚⊹♡', 'ab2a88c3316f8bae975854f3702f9306e734fa0895b8f2b357e389fc31436f58', 'emoji', '爱心', '["爱心"]', 'emojidb', 'safe', 1, 1);
 
 -- 测试默认工具
 INSERT INTO tools (id, name, description, icon, url, category, sort_order, is_default, user_id, status) VALUES

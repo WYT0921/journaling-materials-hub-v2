@@ -25,9 +25,9 @@ const routes = [
         component: () => import('../views/materials/MaterialList.vue')
       },
       {
-        path: 'tools',
-        name: 'Tools',
-        component: () => import('../views/tools/ToolList.vue')
+        path: 'text-assets',
+        name: 'TextAssets',
+        component: () => import('../views/text-assets/TextAssetList.vue')
       },
       {
         path: 'users',

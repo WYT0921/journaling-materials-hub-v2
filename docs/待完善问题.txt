@@ -296,15 +296,19 @@
   - 待真机验证：iOS/Android 双指手势、A4 300 DPI 内存表现、离屏 Canvas 导出和相册授权
   - 涉及：frontend/src/pages/collage、components/collage、stores/collage.js、utils/collage
 
-9.1 特殊字体生成器 ✅ 已完成 (2026-08-06)
-  - 原“工具”Tab 已替换为纯前端 Instagram 特殊字体生成器，不登录、不联网、不保存历史
+9.1 工具箱多模块入口 + 颜文字 / Emoji 素材库 ✅ 已完成 (2026-08-06)
+  - “工具”Tab 为可扩展自研功能网格，包含“特殊字体”“颜文字 / Emoji”“自由拼贴”
+  - 70 种 Unicode 转换功能恢复为独立“特殊字体”页面，不登录、不联网、不保存历史
+  - 新增颜文字 / Emoji 素材库：一级页签、分类、300ms 搜索防抖、分页和点击复制
+  - 新增 V10 text_assets、匿名公共接口、管理后台筛选/导入/批量审核/上下架
+  - 一次性 Playwright 采集器只允许指定域名，限速串行采集并输出待审核 JSON
   - 内置 70 种唯一 Unicode 字形，支持英文、数字、符号和 emoji；缺字与中文原样保留
   - 输入 300ms 防抖，最多 200 字符，结果全部平铺展示，点击卡片一键复制
   - 不包含分享、收藏、分类、装饰前后缀、删除线、下划线或 Zalgo/Glitch 组合符
-  - 原工具 Store、后端接口、管理后台及数据表保留，但小程序工具页不再请求或展示外部工具
-  - 验证：字体单测 7/7、拼贴回归 25/25、mp-weixin 生产构建、后端 159 测试全部通过
+  - 旧外部工具推荐前后端接口和后台入口已停用；tools 表暂留用于回滚
+  - 验证：字体 7/7、前端 28/28、采集器 6/6、后端 161/161；小程序和后台构建通过
   - 待真机验证：iOS/Android Unicode 字形显示、长文本滚动与剪贴板交互
-  - 涉及：frontend/src/pages/tools/tools.vue、utils/fonts、tests/font-generator.test.mjs
+  - 涉及：frontend/src/pages/tools、backend TextAsset 领域、V10、admin-frontend、collector、tests
 
 8.1 详情页图片加载优化
   - 大图加载应有 loading 状态和加载失败占位图

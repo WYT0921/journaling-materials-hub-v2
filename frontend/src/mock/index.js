@@ -17,6 +17,7 @@ import downloadRecord from './download-record.json'
 import downloadMaterial from './download-material.json'
 import userBindPhone from './user-bind-phone.json'
 import feedbackSubmit from './feedback-submit.json'
+import textAssets from './text-assets.json'
 
 // URL pattern → mock 数据模块映射
 const mockMap = {
@@ -36,12 +37,43 @@ const mockMap = {
   '/feedback': feedbackSubmit
 }
 
+function buildTextAssetResponse(url, requestParams = {}) {
+  const params = parseParams(url, requestParams)
+  let list = textAssets.data || []
+  if (params.type) list = list.filter(item => item.type === params.type)
+  if (params.category) list = list.filter(item => item.category === params.category)
+  if (params.keyword) {
+    const keyword = String(params.keyword).toLowerCase()
+    list = list.filter(item => `${item.content} ${item.category} ${(item.tags || []).join(' ')}`.toLowerCase().includes(keyword))
+  }
+
+  if (url.includes('/categories')) {
+    const counts = list.reduce((acc, item) => {
+      acc[item.category] = (acc[item.category] || 0) + 1
+      return acc
+    }, {})
+    return { success: true, data: Object.entries(counts).map(([name, count], index) => ({ name, count, sortOrder: index })), error: null }
+  }
+
+  const page = Number(params.page || 1)
+  const limit = Number(params.limit || 30)
+  const start = (page - 1) * limit
+  return {
+    success: true,
+    data: { list: list.slice(start, start + limit), total: list.length, page, limit, totalPages: Math.ceil(list.length / limit) },
+    error: null
+  }
+}
+
 /**
  * 根据请求 URL 查找对应的 mock 数据
  * @param {string} url - API 请求路径
  * @returns {object|null} mock 响应对象
  */
 export function getMockData(url, requestParams = {}) {
+  if (url.includes('/text-assets')) {
+    return buildTextAssetResponse(url, requestParams)
+  }
   if (url.includes('/materials/issues')) {
     return buildIssues(requestParams)
   }

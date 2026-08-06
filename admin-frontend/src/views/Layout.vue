@@ -43,7 +43,7 @@ const currentPath = computed(() => route.path)
 const navItems = [
   { path: '/categories', icon: '📂', label: '分类管理' },
   { path: '/materials', icon: '🖼️', label: '素材管理' },
-  { path: '/tools', icon: '🔧', label: '工具管理' },
+  { path: '/text-assets', icon: '☺', label: '颜文字 / Emoji' },
   { path: '/users', icon: '👥', label: '用户管理' },
   { path: '/redeem-codes', icon: '🎟️', label: '兑换码管理' },
   { path: '/feedbacks', icon: '💬', label: '反馈管理' }

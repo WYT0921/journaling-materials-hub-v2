@@ -1,128 +1,102 @@
 <template>
-  <view class="font-page">
-    <GlassNavBar title="Instagram 字体" />
+  <view class="tools-page">
+    <GlassNavBar title="工具箱" />
 
-    <scroll-view class="font-scroll" scroll-y>
+    <scroll-view class="tools-scroll" scroll-y>
       <view class="hero-section">
-        <text class="eyebrow">SPECIAL TYPE STUDIO</text>
-        <text class="page-title">特殊字体生成器</text>
-        <text class="page-subtitle">输入文字，即时生成可复制的 Unicode 字体</text>
+        <text class="eyebrow">CREATIVE TOOLBOX</text>
+        <text class="page-title">创作工具箱</text>
+        <text class="page-subtitle">把灵感变成作品，更多自研工具会陆续加入</text>
       </view>
 
-      <view class="input-card">
-        <view class="input-heading">
-          <text class="input-label">输入文字</text>
-          <text class="input-count">{{ sourceText.length }}/200</text>
-        </view>
-        <textarea
-          v-model="sourceText"
-          class="font-input"
-          :maxlength="200"
-          :auto-height="true"
-          :show-confirm-bar="false"
-          placeholder="输入英文、数字、符号或 emoji"
-          placeholder-class="font-input-placeholder"
-        />
-        <view class="input-footer">
-          <text class="input-tip">中文和未支持字符将保持原样</text>
-          <view v-if="sourceText" class="clear-button" @tap="clearInput">
-            <text class="clear-text">清空</text>
-          </view>
-        </view>
+      <view class="section-heading">
+        <text class="section-title">全部工具</text>
+        <text class="section-count">{{ tools.length }} 项</text>
       </view>
 
-      <view class="results-heading">
-        <view>
-          <text class="results-title">生成结果</text>
-          <text class="results-subtitle">点击任意卡片即可复制</text>
-        </view>
-        <text class="results-count">{{ results.length }}</text>
-      </view>
-
-      <view v-if="results.length" class="results-list">
+      <view class="tool-grid">
         <view
-          v-for="(item, index) in results"
-          :key="item.id"
-          class="font-result-card"
-          hover-class="font-result-card--active"
+          v-for="tool in tools"
+          :key="tool.id"
+          class="tool-card"
+          :class="`tool-card--${tool.theme}`"
+          hover-class="tool-card--active"
           hover-stay-time="80"
-          @tap="copyResult(item.text)"
+          @tap="openTool(tool)"
         >
-          <view class="result-meta">
-            <text class="result-number">{{ String(index + 1).padStart(2, '0') }}</text>
-            <text class="result-name">{{ item.name }}</text>
+          <view class="tool-card-top">
+            <view class="tool-icon">
+              <text class="tool-icon-text">{{ tool.icon }}</text>
+            </view>
+            <text class="tool-arrow">↗</text>
           </view>
-          <text class="result-preview" selectable>{{ item.text }}</text>
-          <view class="copy-row">
-            <view class="copy-line" />
-            <text class="copy-label">COPY</text>
+          <view class="tool-card-content">
+            <text class="tool-name">{{ tool.name }}</text>
+            <text class="tool-description">{{ tool.description }}</text>
           </view>
+          <text class="tool-tag">{{ tool.tag }}</text>
         </view>
       </view>
 
-      <view v-else class="empty-state">
-        <text class="empty-symbol">Aa</text>
-        <text class="empty-title">输入文字开始生成</text>
-        <text class="empty-desc">支持英文、数字、标点和 emoji</text>
-      </view>
-
-      <view class="page-footnote">
-        <text>UNICODE STYLES · NO FONT INSTALLATION</text>
+      <view class="coming-soon">
+        <text class="coming-symbol">＋</text>
+        <view>
+          <text class="coming-title">更多工具，正在制作</text>
+          <text class="coming-description">这里仅收录站内自研功能</text>
+        </view>
       </view>
     </scroll-view>
 
-    <CustomToast ref="toastRef" />
     <CustomTabBar :current="2" />
   </view>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import GlassNavBar from '../../components/GlassNavBar.vue'
-import CustomToast from '../../components/CustomToast.vue'
 import CustomTabBar from '../../components/CustomTabBar.vue'
-import fontStyles from '../../utils/fonts/fonts.json'
-import { generateFontResults } from '../../utils/fonts/font-generator.mjs'
 
-const sourceText = ref('fancy text')
-const convertedText = ref(sourceText.value)
-const toastRef = ref(null)
-let debounceTimer = null
-
-const results = computed(() => generateFontResults(convertedText.value, fontStyles))
-
-watch(sourceText, value => {
-  clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => {
-    convertedText.value = value
-  }, 300)
-})
-
-onMounted(() => {
-  if (typeof uni.hideShareMenu === 'function') {
-    uni.hideShareMenu()
+const tools = [
+  {
+    id: 'fonts',
+    name: '特殊字体',
+    description: '输入文字，生成 70 种可复制的 Unicode 特殊字形',
+    tag: '文字灵感',
+    icon: 'Aa',
+    theme: 'type',
+    route: '/pages/tools/fonts'
+  },
+  {
+    id: 'text-assets',
+    name: '颜文字 / Emoji',
+    description: '发现可爱的颜文字与 Emoji 组合，点击即可复制',
+    tag: '表达素材',
+    icon: '☺',
+    theme: 'emoji',
+    route: '/pages/tools/text-assets'
+  },
+  {
+    id: 'collage',
+    name: '自由拼贴',
+    description: '挑选喜欢的素材，自由组合并导出高清拼贴作品',
+    tag: '图片创作',
+    icon: '✦',
+    theme: 'collage',
+    route: '/pages/collage/index',
+    tab: true
   }
-})
+]
 
-onBeforeUnmount(() => {
-  clearTimeout(debounceTimer)
-})
-
-function clearInput() {
-  sourceText.value = ''
-}
-
-function copyResult(text) {
-  uni.setClipboardData({
-    data: text,
-    success: () => toastRef.value?.showToast('复制成功', 'check'),
-    fail: () => toastRef.value?.showToast('复制失败，请重试', 'error')
-  })
+function openTool(tool) {
+  if (tool.tab) {
+    uni.switchTab({ url: tool.route })
+    return
+  }
+  uni.navigateTo({ url: tool.route })
 }
 </script>
 
 <style lang="scss" scoped>
-.font-page {
+.tools-page {
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -130,13 +104,13 @@ function copyResult(text) {
   background: #f4efe6;
 }
 
-.font-scroll {
+.tools-scroll {
   flex: 1;
   height: 0;
 }
 
 .hero-section {
-  padding: 44rpx 32rpx 28rpx;
+  padding: 48rpx 32rpx 44rpx;
 }
 
 .eyebrow {
@@ -151,198 +125,160 @@ function copyResult(text) {
   display: block;
   margin-top: 14rpx;
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 52rpx;
+  font-size: 56rpx;
   font-weight: 500;
   line-height: 1.2;
 }
 
 .page-subtitle {
   display: block;
-  margin-top: 12rpx;
+  max-width: 580rpx;
+  margin-top: 14rpx;
   color: #706b63;
   font-size: 24rpx;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
-.input-card {
-  margin: 0 24rpx;
-  padding: 28rpx;
-  border: 1rpx solid #d8d1c5;
-  background: rgba(255, 253, 249, 0.92);
-}
-
-.input-heading,
-.input-footer,
-.results-heading,
-.result-meta,
-.copy-row {
+.section-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 0 28rpx 20rpx;
 }
 
-.input-label {
-  font-size: 22rpx;
-  font-weight: 600;
-  letter-spacing: 2rpx;
-}
-
-.input-count {
-  color: #999185;
-  font-size: 20rpx;
-}
-
-.font-input {
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 104rpx;
-  max-height: 260rpx;
-  margin-top: 20rpx;
-  color: #171512;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 36rpx;
-  line-height: 1.5;
-}
-
-:deep(.font-input-placeholder) {
-  color: #b8b1a6;
+.section-title {
   font-size: 28rpx;
-}
-
-.input-footer {
-  min-height: 48rpx;
-  margin-top: 16rpx;
-  padding-top: 16rpx;
-  border-top: 1rpx solid #ece6dc;
-}
-
-.input-tip {
-  color: #9a9388;
-  font-size: 20rpx;
-}
-
-.clear-button {
-  padding: 8rpx 0 8rpx 24rpx;
-}
-
-.clear-text {
-  color: #4f4a43;
-  font-size: 22rpx;
-  text-decoration: underline;
-}
-
-.results-heading {
-  padding: 42rpx 28rpx 18rpx;
-}
-
-.results-title {
-  display: block;
-  font-size: 30rpx;
   font-weight: 600;
 }
 
-.results-subtitle {
-  display: block;
-  margin-top: 6rpx;
-  color: #8d867c;
+.section-count {
+  color: #918a80;
   font-size: 21rpx;
 }
 
-.results-count {
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 48rpx;
-  font-style: italic;
-}
-
-.results-list {
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18rpx;
   padding: 0 24rpx;
 }
 
-.font-result-card {
-  margin-bottom: 18rpx;
-  padding: 24rpx 26rpx 20rpx;
+.tool-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-height: 390rpx;
+  padding: 24rpx;
   overflow: hidden;
-  border: 1rpx solid #d8d1c5;
-  background: rgba(255, 253, 249, 0.92);
-  transition: background-color 120ms ease, transform 120ms ease;
+  border: 1rpx solid rgba(80, 70, 56, 0.16);
+  transition: transform 120ms ease, opacity 120ms ease;
 }
 
-.font-result-card--active {
-  background: #ebe3d7;
-  transform: scale(0.992);
+.tool-card--type {
+  background: #eadfce;
 }
 
-.result-number,
-.result-name {
-  color: #8f887e;
+.tool-card--collage {
+  background: #dce4d5;
+}
+
+.tool-card--emoji {
+  background: #e6ddea;
+}
+
+.tool-card--active {
+  opacity: 0.86;
+  transform: scale(0.985);
+}
+
+.tool-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.tool-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 82rpx;
+  height: 82rpx;
+  border: 1rpx solid rgba(23, 21, 18, 0.14);
+  border-radius: 50%;
+  background: rgba(255, 253, 249, 0.48);
+}
+
+.tool-icon-text {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 31rpx;
+  font-style: italic;
+}
+
+.tool-arrow {
+  color: rgba(23, 21, 18, 0.62);
+  font-size: 30rpx;
+}
+
+.tool-card-content {
+  flex: 1;
+  padding-top: 50rpx;
+}
+
+.tool-name {
+  display: block;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 36rpx;
+  font-weight: 600;
+}
+
+.tool-description {
+  display: block;
+  margin-top: 16rpx;
+  color: #625d55;
+  font-size: 21rpx;
+  line-height: 1.55;
+}
+
+.tool-tag {
+  align-self: flex-start;
+  padding-top: 18rpx;
+  border-top: 1rpx solid rgba(23, 21, 18, 0.12);
+  color: #746d63;
   font-size: 18rpx;
   letter-spacing: 2rpx;
 }
 
-.result-name {
-  max-width: 72%;
-  overflow: hidden;
-  text-align: right;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.result-preview {
-  display: block;
-  margin: 30rpx 0 28rpx;
-  overflow-wrap: anywhere;
-  color: #111;
-  font-size: 36rpx;
-  line-height: 1.55;
-}
-
-.copy-line {
-  flex: 1;
-  height: 1rpx;
-  margin-right: 22rpx;
-  background: #ded7cc;
-}
-
-.copy-label {
-  color: #292621;
-  font-size: 19rpx;
-  font-weight: 700;
-  letter-spacing: 4rpx;
-}
-
-.empty-state {
+.coming-soon {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  margin: 0 24rpx;
-  padding: 90rpx 24rpx;
-  border: 1rpx solid #d8d1c5;
-  background: rgba(255, 253, 249, 0.72);
+  gap: 22rpx;
+  margin: 26rpx 24rpx 52rpx;
+  padding: 26rpx 28rpx;
+  border: 1rpx dashed #c9c1b5;
+  background: rgba(255, 253, 249, 0.4);
 }
 
-.empty-symbol {
+.coming-symbol {
+  color: #9c9488;
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 68rpx;
-  font-style: italic;
+  font-size: 48rpx;
+  font-weight: 300;
 }
 
-.empty-title {
-  margin-top: 22rpx;
-  font-size: 28rpx;
+.coming-title,
+.coming-description {
+  display: block;
+}
+
+.coming-title {
+  font-size: 23rpx;
   font-weight: 600;
 }
 
-.empty-desc {
-  margin-top: 8rpx;
+.coming-description {
+  margin-top: 6rpx;
   color: #918a80;
-  font-size: 22rpx;
-}
-
-.page-footnote {
-  padding: 44rpx 24rpx 180rpx;
-  color: #aaa297;
-  font-size: 17rpx;
-  letter-spacing: 3rpx;
-  text-align: center;
+  font-size: 20rpx;
 }
 </style>

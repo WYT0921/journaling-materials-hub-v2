@@ -607,15 +607,19 @@ POST /api/v2/admin/auth/login
 | DELETE | `/api/v2/admin/materials/:id` | 删除素材 |
 | POST | `/api/v2/admin/upload` | 上传图片（返回 imageUrl + thumbnailUrl） |
 
-### 4. 工具管理
+### 4. 颜文字 / Emoji 管理
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/api/v2/admin/tools` | 工具列表（支持 category/status 筛选） |
-| POST | `/api/v2/admin/tools` | 新增工具 |
-| PUT | `/api/v2/admin/tools/:id` | 编辑工具 |
-| PUT | `/api/v2/admin/tools/:id/status?status=0` | 上下架 |
-| DELETE | `/api/v2/admin/tools/:id` | 删除工具 |
+| GET | `/api/v2/admin/text-assets` | 列表，支持 type/category/keyword/status/source/riskLevel 筛选 |
+| POST | `/api/v2/admin/text-assets` | 新增文本素材 |
+| PUT | `/api/v2/admin/text-assets/:id` | 编辑文本素材 |
+| PUT | `/api/v2/admin/text-assets/:id/status?status=1` | 审核或上下架 |
+| PUT | `/api/v2/admin/text-assets/batch-status` | 批量审核 `{ids, status}`，最多 500 条 |
+| POST | `/api/v2/admin/text-assets/import` | 批量导入 `{items}`，最多 500 条且强制进入待审核 |
+| DELETE | `/api/v2/admin/text-assets/:id` | 删除文本素材 |
+
+旧 `/api/v2/tools` 与 `/api/v2/admin/tools` 已停用，`tools` 表暂时保留用于回滚。
 
 ### 5. 用户管理
 
@@ -665,6 +669,17 @@ GET /api/v2/categories?type=tool
   ]
 }
 ```
+
+## 颜文字 / Emoji 公共接口
+
+无需登录。`type` 必须为 `kaomoji` 或 `emoji`。
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/text-assets?type=kaomoji&category=可爱&keyword=&page=1&limit=30` | 已发布内容分页列表，limit 最大 100 |
+| GET | `/api/text-assets/categories?type=emoji` | 启用分类及已发布数量 |
+
+列表只返回 `id/content/type/category/tags`。状态：`0` 待审核、`1` 已发布、`2` 已拒绝、`3` 已停用；风险等级为 `safe` 或 `mild`。
 
 ---
 

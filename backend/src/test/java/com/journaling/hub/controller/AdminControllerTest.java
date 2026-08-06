@@ -151,68 +151,6 @@ class AdminControllerTest extends ControllerTestBase {
                 .andExpect(jsonPath("$.success").value(true));
     }
 
-    // ==================== 工具管理 ====================
-
-    @Test
-    @DisplayName("管理员 — GET /api/v2/admin/tools 返回工具列表")
-    void listTools_admin_shouldReturnPage() throws Exception {
-        mockMvc.perform(get("/api/v2/admin/tools")
-                        .header("Authorization", adminJwtToken()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.list").isArray());
-    }
-
-    @Test
-    @DisplayName("管理员 — POST /api/v2/admin/tools 新增工具")
-    void createTool_admin_shouldSucceed() throws Exception {
-        String body = "{"
-                + "\"name\":\"新工具\","
-                + "\"description\":\"工具描述\","
-                + "\"icon\":\"🔧\","
-                + "\"url\":\"https://newtool.com\","
-                + "\"category\":\"写作与项目\""
-                + "}";
-        mockMvc.perform(post("/api/v2/admin/tools")
-                        .header("Authorization", adminJwtToken())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.name").value("新工具"));
-    }
-
-    @Test
-    @DisplayName("管理员 — PUT /api/v2/admin/tools/{id} 编辑工具")
-    void updateTool_admin_shouldSucceed() throws Exception {
-        String body = "{\"name\":\"修改后的工具\"}";
-        mockMvc.perform(put("/api/v2/admin/tools/1")
-                        .header("Authorization", adminJwtToken())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
-    }
-
-    @Test
-    @DisplayName("管理员 — PUT /api/v2/admin/tools/{id}/status 上下架工具")
-    void updateToolStatus_admin_shouldSucceed() throws Exception {
-        mockMvc.perform(put("/api/v2/admin/tools/1/status")
-                        .header("Authorization", adminJwtToken())
-                        .param("status", "0"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
-    }
-
-    @Test
-    @DisplayName("管理员 — DELETE /api/v2/admin/tools/{id} 删除工具")
-    void deleteTool_admin_shouldSucceed() throws Exception {
-        mockMvc.perform(delete("/api/v2/admin/tools/3")
-                        .header("Authorization", adminJwtToken()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
-    }
-
     // ==================== 用户管理 ====================
 
     @Test
