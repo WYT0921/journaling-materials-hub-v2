@@ -1,7 +1,7 @@
 services:
   # SpringBoot 后端
   backend:
-    image: journaling-materials-hub-backend:20260804-98c549d-wechatprobe
+    image: journaling-materials-hub-backend:20260806-93bf6ed-wechatprobe
     build:
       context: ./backend
       dockerfile: Dockerfile
