@@ -1,39 +1,73 @@
 <template>
-  <view class="page-tools">
-    <GlassNavBar title="工具" />
+  <view class="font-page">
+    <GlassNavBar title="Instagram 字体" />
 
-    <scroll-view class="tools-scroll" scroll-y>
-      <view class="tools-header">
-        <text class="tools-title">创作工具箱</text>
-        <text class="tools-subtitle">精选设计工具，提升创作效率 · 点击复制链接即用</text>
+    <scroll-view class="font-scroll" scroll-y>
+      <view class="hero-section">
+        <text class="eyebrow">SPECIAL TYPE STUDIO</text>
+        <text class="page-title">特殊字体生成器</text>
+        <text class="page-subtitle">输入文字，即时生成可复制的 Unicode 字体</text>
       </view>
 
-      <scroll-view class="category-scroll" scroll-x enable-flex show-scrollbar="false">
-        <view class="category-list">
-          <view
-            v-for="category in toolCategories"
-            :key="category.value"
-            class="category-item"
-            :class="{ active: activeCategory === category.value }"
-            @tap="activeCategory = category.value"
-          >
-            <text class="category-text">{{ category.label }}</text>
+      <view class="input-card">
+        <view class="input-heading">
+          <text class="input-label">输入文字</text>
+          <text class="input-count">{{ sourceText.length }}/200</text>
+        </view>
+        <textarea
+          v-model="sourceText"
+          class="font-input"
+          :maxlength="200"
+          :auto-height="true"
+          :show-confirm-bar="false"
+          placeholder="输入英文、数字、符号或 emoji"
+          placeholder-class="font-input-placeholder"
+        />
+        <view class="input-footer">
+          <text class="input-tip">中文和未支持字符将保持原样</text>
+          <view v-if="sourceText" class="clear-button" @tap="clearInput">
+            <text class="clear-text">清空</text>
           </view>
         </view>
-      </scroll-view>
-
-      <view class="tool-grid">
-        <ToolCard
-          v-for="tool in filteredTools"
-          :key="tool.id"
-          :tool="tool"
-          @copy="handleCopyLink"
-        />
       </view>
 
-      <view v-if="filteredTools.length === 0" class="empty-tools">
-        <text class="empty-title">暂无工具</text>
-        <text class="empty-desc">切换其他分类看看</text>
+      <view class="results-heading">
+        <view>
+          <text class="results-title">生成结果</text>
+          <text class="results-subtitle">点击任意卡片即可复制</text>
+        </view>
+        <text class="results-count">{{ results.length }}</text>
+      </view>
+
+      <view v-if="results.length" class="results-list">
+        <view
+          v-for="(item, index) in results"
+          :key="item.id"
+          class="font-result-card"
+          hover-class="font-result-card--active"
+          hover-stay-time="80"
+          @tap="copyResult(item.text)"
+        >
+          <view class="result-meta">
+            <text class="result-number">{{ String(index + 1).padStart(2, '0') }}</text>
+            <text class="result-name">{{ item.name }}</text>
+          </view>
+          <text class="result-preview" selectable>{{ item.text }}</text>
+          <view class="copy-row">
+            <view class="copy-line" />
+            <text class="copy-label">COPY</text>
+          </view>
+        </view>
+      </view>
+
+      <view v-else class="empty-state">
+        <text class="empty-symbol">Aa</text>
+        <text class="empty-title">输入文字开始生成</text>
+        <text class="empty-desc">支持英文、数字、标点和 emoji</text>
+      </view>
+
+      <view class="page-footnote">
+        <text>UNICODE STYLES · NO FONT INSTALLATION</text>
       </view>
     </scroll-view>
 
@@ -43,141 +77,272 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { useToolsStore } from '../../stores/tools'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import GlassNavBar from '../../components/GlassNavBar.vue'
-import ToolCard from '../../components/ToolCard.vue'
 import CustomToast from '../../components/CustomToast.vue'
 import CustomTabBar from '../../components/CustomTabBar.vue'
+import fontStyles from '../../utils/fonts/fonts.json'
+import { generateFontResults } from '../../utils/fonts/font-generator.mjs'
 
-const toolsStore = useToolsStore()
+const sourceText = ref('fancy text')
+const convertedText = ref(sourceText.value)
 const toastRef = ref(null)
-const activeCategory = ref('')
+let debounceTimer = null
 
-const toolCategories = computed(() => {
-  const cats = [{ label: '全部', value: '' }]
-  toolsStore.categories.forEach((c) => {
-    cats.push({ label: c.name, value: c.name })
-  })
-  return cats
-})
+const results = computed(() => generateFontResults(convertedText.value, fontStyles))
 
-const filteredTools = computed(() => {
-  if (!activeCategory.value) return toolsStore.allTools
-  return toolsStore.allTools.filter((tool) => tool.category === activeCategory.value)
+watch(sourceText, value => {
+  clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => {
+    convertedText.value = value
+  }, 300)
 })
 
 onMounted(() => {
-  toolsStore.fetchTools()
-  toolsStore.fetchCategories()
+  if (typeof uni.hideShareMenu === 'function') {
+    uni.hideShareMenu()
+  }
 })
 
-function handleCopyLink(tool) {
+onBeforeUnmount(() => {
+  clearTimeout(debounceTimer)
+})
+
+function clearInput() {
+  sourceText.value = ''
+}
+
+function copyResult(text) {
   uni.setClipboardData({
-    data: tool.url,
-    success: () => {
-      toastRef.value?.showToast('链接已复制', 'check')
-    },
-    fail: () => {
-      toastRef.value?.showToast('复制失败，请重试', 'error')
-    }
+    data: text,
+    success: () => toastRef.value?.showToast('复制成功', 'check'),
+    fail: () => toastRef.value?.showToast('复制失败，请重试', 'error')
   })
 }
 </script>
 
 <style lang="scss" scoped>
-.page-tools {
+.font-page {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  color: #171512;
+  background: #f4efe6;
 }
 
-.tools-scroll {
+.font-scroll {
   flex: 1;
   height: 0;
 }
 
-.tools-header {
-  padding: 24rpx 28rpx 12rpx;
+.hero-section {
+  padding: 44rpx 32rpx 28rpx;
 }
 
-.tools-title {
-  font-size: 36rpx;
-  font-weight: 700;
-  color: #111;
+.eyebrow {
   display: block;
-  line-height: 1.25;
+  color: #8f887c;
+  font-size: 19rpx;
+  font-weight: 600;
+  letter-spacing: 5rpx;
 }
 
-.tools-subtitle {
-  font-size: 24rpx;
-  color: #666;
-  margin-top: 8rpx;
+.page-title {
   display: block;
-  line-height: 1.35;
-}
-
-.category-scroll {
-  white-space: nowrap;
-}
-
-.category-list {
-  display: inline-flex;
-  gap: 14rpx;
-  padding: 12rpx 24rpx 18rpx;
-}
-
-.category-item {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10rpx 24rpx;
-  border-radius: 32rpx;
-  border: 1rpx solid #eeeeee;
-  background: rgba(255, 255, 255, 0.65);
-  white-space: nowrap;
-  transition: background 0.15s, border-color 0.15s;
-
-  &.active {
-    background: #000;
-    border-color: #000;
-
-    .category-text {
-      color: #fff;
-    }
-  }
-}
-
-.category-text {
-  font-size: 24rpx;
-  color: #555;
+  margin-top: 14rpx;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 52rpx;
+  font-weight: 500;
   line-height: 1.2;
 }
 
-.tool-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16rpx;
-  padding: 0 24rpx 24rpx;
-  box-sizing: border-box;
+.page-subtitle {
+  display: block;
+  margin-top: 12rpx;
+  color: #706b63;
+  font-size: 24rpx;
+  line-height: 1.5;
 }
 
-.empty-tools {
+.input-card {
+  margin: 0 24rpx;
+  padding: 28rpx;
+  border: 1rpx solid #d8d1c5;
+  background: rgba(255, 253, 249, 0.92);
+}
+
+.input-heading,
+.input-footer,
+.results-heading,
+.result-meta,
+.copy-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.input-label {
+  font-size: 22rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+}
+
+.input-count {
+  color: #999185;
+  font-size: 20rpx;
+}
+
+.font-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 104rpx;
+  max-height: 260rpx;
+  margin-top: 20rpx;
+  color: #171512;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 36rpx;
+  line-height: 1.5;
+}
+
+:deep(.font-input-placeholder) {
+  color: #b8b1a6;
+  font-size: 28rpx;
+}
+
+.input-footer {
+  min-height: 48rpx;
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #ece6dc;
+}
+
+.input-tip {
+  color: #9a9388;
+  font-size: 20rpx;
+}
+
+.clear-button {
+  padding: 8rpx 0 8rpx 24rpx;
+}
+
+.clear-text {
+  color: #4f4a43;
+  font-size: 22rpx;
+  text-decoration: underline;
+}
+
+.results-heading {
+  padding: 42rpx 28rpx 18rpx;
+}
+
+.results-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.results-subtitle {
+  display: block;
+  margin-top: 6rpx;
+  color: #8d867c;
+  font-size: 21rpx;
+}
+
+.results-count {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 48rpx;
+  font-style: italic;
+}
+
+.results-list {
+  padding: 0 24rpx;
+}
+
+.font-result-card {
+  margin-bottom: 18rpx;
+  padding: 24rpx 26rpx 20rpx;
+  overflow: hidden;
+  border: 1rpx solid #d8d1c5;
+  background: rgba(255, 253, 249, 0.92);
+  transition: background-color 120ms ease, transform 120ms ease;
+}
+
+.font-result-card--active {
+  background: #ebe3d7;
+  transform: scale(0.992);
+}
+
+.result-number,
+.result-name {
+  color: #8f887e;
+  font-size: 18rpx;
+  letter-spacing: 2rpx;
+}
+
+.result-name {
+  max-width: 72%;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result-preview {
+  display: block;
+  margin: 30rpx 0 28rpx;
+  overflow-wrap: anywhere;
+  color: #111;
+  font-size: 36rpx;
+  line-height: 1.55;
+}
+
+.copy-line {
+  flex: 1;
+  height: 1rpx;
+  margin-right: 22rpx;
+  background: #ded7cc;
+}
+
+.copy-label {
+  color: #292621;
+  font-size: 19rpx;
+  font-weight: 700;
+  letter-spacing: 4rpx;
+}
+
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 96rpx 24rpx;
+  margin: 0 24rpx;
+  padding: 90rpx 24rpx;
+  border: 1rpx solid #d8d1c5;
+  background: rgba(255, 253, 249, 0.72);
+}
+
+.empty-symbol {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 68rpx;
+  font-style: italic;
 }
 
 .empty-title {
-  font-size: 30rpx;
+  margin-top: 22rpx;
+  font-size: 28rpx;
   font-weight: 600;
-  color: #333;
 }
 
 .empty-desc {
   margin-top: 8rpx;
-  font-size: 24rpx;
-  color: #999;
+  color: #918a80;
+  font-size: 22rpx;
+}
+
+.page-footnote {
+  padding: 44rpx 24rpx 180rpx;
+  color: #aaa297;
+  font-size: 17rpx;
+  letter-spacing: 3rpx;
+  text-align: center;
 }
 </style>
