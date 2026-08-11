@@ -399,3 +399,14 @@
      ├─ 管理后台录入、清空、展示与筛选 ✅
      ├─ 历史数据只读识别与人工复核流程 ✅
      └─ 后端 144 测试 / 小程序生产构建 / 管理后台生产构建 ✅
+
+  🆕 AURA Music Card 独立 App ✅ MVP 代码完成 (2026-08-11)
+     ├─ Flutter iOS/Android 工程与 View/ViewModel/Repository/Service 分层 ✅
+     ├─ 本地照片、SQLite 草稿、五步创作、5 个模板 × 3 种比例 ✅
+     ├─ 统一 AuraScene Painter 预览/导出、相册保存与系统分享 ✅
+     ├─ 本地 5 色提取、照片调整、背景/字体/播放器/装饰轻编辑 ✅
+     ├─ aura_templates / aura_assets、公开目录、ETag 与严格配置校验 ✅
+     ├─ 管理后台模板/资源 CRUD、上传、排序与上下架 ✅
+     ├─ Flutter 23/23（含 15 组 Golden）、后端 168/168、小程序 28/28，小程序与后台生产构建通过 ✅
+     ├─ 管理后台分页回归 4/4，旧 tools 页面过期断言已同步清理 ✅
+     └─ Android/iPhone 真机与移动端权限/恢复/相册/分享集成验收 ⏳ 待执行

@@ -156,3 +156,36 @@ CREATE TABLE IF NOT EXISTS wechat_message_probe (
   UNIQUE (msg_id),
   UNIQUE (delivery_key)
 );
+
+CREATE TABLE IF NOT EXISTS aura_templates (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  template_key VARCHAR(64) NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  style VARCHAR(32) NOT NULL,
+  preview_url VARCHAR(512),
+  supported_ratios VARCHAR(1000) NOT NULL,
+  config_json CLOB NOT NULL,
+  config_version INT NOT NULL DEFAULT 1,
+  status TINYINT NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_aura_templates_key (template_key)
+);
+
+CREATE TABLE IF NOT EXISTS aura_assets (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  asset_key VARCHAR(64) NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  type VARCHAR(16) NOT NULL,
+  file_url VARCHAR(512) NOT NULL,
+  preview_url VARCHAR(512),
+  sha256 CHAR(64) NOT NULL,
+  resource_version INT NOT NULL DEFAULT 1,
+  metadata_json CLOB,
+  status TINYINT NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_aura_assets_key (asset_key)
+);

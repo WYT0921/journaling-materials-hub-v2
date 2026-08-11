@@ -6,7 +6,6 @@ const paginatedViews = [
   'src/views/materials/MaterialList.vue',
   'src/views/users/UserList.vue',
   'src/views/redeem-codes/RedeemCodeList.vue',
-  'src/views/tools/ToolList.vue',
   'src/views/feedbacks/FeedbackList.vue'
 ]
 

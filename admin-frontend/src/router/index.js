@@ -30,6 +30,11 @@ const routes = [
         component: () => import('../views/text-assets/TextAssetList.vue')
       },
       {
+        path: 'aura',
+        name: 'AuraCatalog',
+        component: () => import('../views/aura/AuraCatalog.vue')
+      },
+      {
         path: 'users',
         name: 'Users',
         component: () => import('../views/users/UserList.vue')
