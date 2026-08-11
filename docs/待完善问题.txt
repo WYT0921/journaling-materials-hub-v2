@@ -396,3 +396,26 @@
   - ✅ 管理后台分页回归 4/4；已移除对正式停用的旧 tools 页面过期断言
   - ⏳ 当前 Windows 环境未安装 Android SDK，且不能构建 iOS；需在 Android/iPhone 真机完成权限、HEIC、内存、字体、相册和分享验收
   - ⏳ 杀进程恢复、权限拒绝、相册与分享的真机集成自动化留待具备移动 SDK 的验收环境执行
+
+
+═══════════════════════════════════════════════════════════════
+十一、AURA Music PWA 新技术路线 ✅ 原型完成 (2026-08-11)
+═══════════════════════════════════════════════════════════════
+
+11.1 移动端优先 Web 创作闭环 ✅
+  - 新增 aura-web/：Vue 3 + TypeScript + Vite + Pinia + Vue Router + Konva
+  - 首页、五步创作、模板浏览和移动端底部导航已实现
+  - 复用 GET /api/v2/aura/catalog，支持 ETag、缓存目录与 5 个内置模板回退
+  - 照片 Blob、版本化项目 JSON 与草稿索引仅保存到浏览器 IndexedDB
+  - 浏览器本地降采样和 5 色聚类，不上传照片或作品数据
+  - Konva 统一场景用于预览与 3 种精确尺寸 PNG 导出
+  - 支持系统文件分享，能力不可用时回退到 PNG 下载
+  - Manifest + Service Worker 提供可安装 PWA 和离线应用壳
+
+11.2 验证状态
+  - ✅ Vitest 3/3：导出尺寸、本地项目结构、确定性色卡聚类
+  - ✅ vue-tsc 严格类型检查与 Vite 生产构建通过
+  - ✅ PWA 生成 manifest.webmanifest、sw.js 与离线预缓存
+  - ✅ 390×844 浏览器实测：首页 → 音乐信息 → 模板 → Konva 编辑器
+  - ⏳ iPhone Safari 添加到主屏幕、相册/系统分享和 Android Chrome 真机验收
+  - ⏳ 正式域名、HTTPS 与 Nginx 部署尚未执行
