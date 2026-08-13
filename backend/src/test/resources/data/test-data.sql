@@ -1,4 +1,6 @@
 -- 测试种子数据（可重复执行：先清空再插入）
+DELETE FROM aura_assets;
+DELETE FROM aura_templates;
 DELETE FROM feedbacks;
 DELETE FROM favorites;
 DELETE FROM downloads;
@@ -69,3 +71,11 @@ INSERT INTO feedbacks (id, user_id, content, status) VALUES
 (1, 1, '测试反馈：希望增加更多素材', 0),
 (2, 2, '会员反馈：下载速度很快', 0),
 (3, NULL, '匿名反馈：界面很好看', 1);
+
+INSERT INTO aura_templates (id, template_key, name, style, preview_url, supported_ratios, config_json, config_version, status, sort_order) VALUES
+(1, 'fresh-rounded', '清新圆角', 'fresh', 'https://example.com/aura/fresh.png', '["1:1","4:3","9:16"]', '{"layers":[{"id":"background-main","type":"background","x":0,"y":0,"width":1,"height":1},{"id":"photo-main","type":"photo","x":0.05,"y":0.42,"width":0.9,"height":0.53},{"id":"player-main","type":"player","x":0.08,"y":0.08,"width":0.84,"height":0.28}]}', 1, 1, 1),
+(2, 'hidden-vinyl', '未上架黑胶', 'vinyl', NULL, '["1:1"]', '{"layers":[{"id":"background-main","type":"background","x":0,"y":0,"width":1,"height":1}]}', 1, 0, 2);
+
+INSERT INTO aura_assets (id, asset_key, name, type, file_url, preview_url, sha256, resource_version, metadata_json, status, sort_order) VALUES
+(1, 'sparkle-soft', '柔光星星', 'decoration', 'https://example.com/aura/sparkle.png', 'https://example.com/aura/sparkle-thumb.png', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 1, '{"width":128,"height":128}', 1, 1),
+(2, 'paper-hidden', '未上架纸张', 'texture', 'https://example.com/aura/paper.png', NULL, 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 1, '{}', 0, 2);

@@ -42,6 +42,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/api/music-card/templates",
                         "/api/music-card/assets",
                         "/api/v2/categories",
+                        "/api/v2/aura/catalog",
                         "/actuator/**"
                 );
 

@@ -656,6 +656,72 @@ POST /api/v2/admin/auth/login
 
 兑换码状态：`0` 未使用，`1` 已使用，`2` 已作废。每个兑换码只能成功激活一次。
 
+### 8. AURA 模板与资源管理
+
+需要管理员 JWT。模板稳定键和资源稳定键全局唯一；状态 `0` 为下架、`1` 为上架。
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/v2/admin/aura/templates` | 查看全部模板（含下架） |
+| POST | `/api/v2/admin/aura/templates` | 新增模板并校验比例、图层和归一化坐标 |
+| PUT | `/api/v2/admin/aura/templates/:id` | 编辑模板 |
+| PUT | `/api/v2/admin/aura/templates/:id/status?status=1` | 上下架模板 |
+| DELETE | `/api/v2/admin/aura/templates/:id` | 删除模板 |
+| GET | `/api/v2/admin/aura/assets?type=font` | 查看全部资源，可按类型筛选 |
+| POST | `/api/v2/admin/aura/assets/upload` | 上传不超过 10MB 的 PNG/JPG/WebP/TTF/OTF，返回 URL 与 SHA-256 |
+| POST | `/api/v2/admin/aura/assets` | 新增资源记录 |
+| PUT | `/api/v2/admin/aura/assets/:id` | 编辑资源记录 |
+| PUT | `/api/v2/admin/aura/assets/:id/status?status=1` | 上下架资源 |
+| DELETE | `/api/v2/admin/aura/assets/:id` | 删除资源记录 |
+
+模板 `config` 顶层只接受 `layers`，图层类型只接受 `background/photo/player/text/decoration/texture`，不允许远程可执行代码。资源类型只接受 `decoration/texture/font`；上传端同时校验扩展 MIME 与文件魔数。
+
+---
+
+## AURA Music Card 公共目录
+
+无需登录，仅返回已上架模板与资源，不包含数据库 ID、管理状态或内部存储凭证。客户端应保存响应中的 `ETag`，再次请求时通过 `If-None-Match` 发送；目录未变化时返回 `304 Not Modified`。
+
+```http
+GET /api/v2/aura/catalog
+```
+
+```json
+{
+  "success": true,
+  "data": {
+    "schemaVersion": 1,
+    "catalogVersion": "8d9c...",
+    "generatedAt": "2026-08-11T00:00:00",
+    "templates": [
+      {
+        "key": "fresh-rounded",
+        "name": "清新圆角",
+        "style": "fresh",
+        "previewUrl": null,
+        "supportedRatios": ["1:1", "4:3", "9:16"],
+        "configVersion": 1,
+        "config": { "layers": [] }
+      }
+    ],
+    "assets": [
+      {
+        "key": "font-example",
+        "name": "示例字体",
+        "type": "font",
+        "fileUrl": "https://cdn.example.com/aura/font.ttf",
+        "previewUrl": null,
+        "resourceVersion": 1,
+        "sha256": "64位小写十六进制摘要",
+        "metadata": { "family": "AuraExample", "styleKey": "serif" }
+      }
+    ]
+  }
+}
+```
+
+客户端网络失败时使用最后一次有效目录；首次离线时使用 App 内置的 5 个基础模板。
+
 ---
 
 ## 公共分类接口

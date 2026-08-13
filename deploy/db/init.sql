@@ -121,3 +121,39 @@ CREATE TABLE IF NOT EXISTS feedbacks (
   INDEX idx_feedbacks_created_at (created_at),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- AURA Music Card 声明式模板与远程资源
+CREATE TABLE IF NOT EXISTS aura_templates (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  template_key VARCHAR(64) NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  style VARCHAR(32) NOT NULL,
+  preview_url VARCHAR(512) DEFAULT NULL,
+  supported_ratios JSON NOT NULL,
+  config_json JSON NOT NULL,
+  config_version INT NOT NULL DEFAULT 1,
+  status TINYINT NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE INDEX uk_aura_templates_key (template_key),
+  INDEX idx_aura_templates_public (status, sort_order, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS aura_assets (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  asset_key VARCHAR(64) NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  type VARCHAR(16) NOT NULL,
+  file_url VARCHAR(512) NOT NULL,
+  preview_url VARCHAR(512) DEFAULT NULL,
+  sha256 CHAR(64) NOT NULL,
+  resource_version INT NOT NULL DEFAULT 1,
+  metadata_json JSON DEFAULT NULL,
+  status TINYINT NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE INDEX uk_aura_assets_key (asset_key),
+  INDEX idx_aura_assets_public (status, type, sort_order, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

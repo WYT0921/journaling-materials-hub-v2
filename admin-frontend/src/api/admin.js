@@ -96,3 +96,21 @@ export const updateMusicCardAssetStatus = (id, status) => http.put(`/v2/admin/mu
 export const deleteMusicCardAsset = id => http.delete(`/v2/admin/music-card/assets/${id}`)
 
 export const getMusicCardCreations = params => http.get('/v2/admin/music-card/creations', { params })
+
+// ===== AURA Music =====
+export const getAuraTemplates = () => http.get('/v2/admin/aura/templates')
+export const createAuraTemplate = data => http.post('/v2/admin/aura/templates', data)
+export const updateAuraTemplate = (id, data) => http.put(`/v2/admin/aura/templates/${id}`, data)
+export const updateAuraTemplateStatus = (id, status) => http.put(`/v2/admin/aura/templates/${id}/status`, null, { params: { status } })
+export const deleteAuraTemplate = id => http.delete(`/v2/admin/aura/templates/${id}`)
+
+export const getAuraAssets = type => http.get('/v2/admin/aura/assets', { params: type ? { type } : {} })
+export const createAuraAsset = data => http.post('/v2/admin/aura/assets', data)
+export const updateAuraAsset = (id, data) => http.put(`/v2/admin/aura/assets/${id}`, data)
+export const updateAuraAssetStatus = (id, status) => http.put(`/v2/admin/aura/assets/${id}/status`, null, { params: { status } })
+export const deleteAuraAsset = id => http.delete(`/v2/admin/aura/assets/${id}`)
+export const uploadAuraAsset = file => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return http.post('/v2/admin/aura/assets/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+}

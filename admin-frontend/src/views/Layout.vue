@@ -45,6 +45,7 @@ const navItems = [
   { path: '/materials', icon: '🖼️', label: '素材管理' },
   { path: '/text-assets', icon: '☺', label: '颜文字 / Emoji' },
   { path: '/collector-runs', icon: '↻', label: '采集记录' },
+  { path: '/aura', icon: '🎵', label: 'AURA 音乐卡片' },
   { path: '/users', icon: '👥', label: '用户管理' },
   { path: '/redeem-codes', icon: '🎟️', label: '兑换码管理' },
   { path: '/feedbacks', icon: '💬', label: '反馈管理' },

@@ -182,6 +182,49 @@
 
 **索引:** `uk_text_assets_content_hash` 保证内容全局唯一；`idx_text_assets_public` 支持类型、状态、分类和排序查询。
 
+### 8. AURA 模板表 (aura_templates)
+
+存储 AURA Music Card 的声明式模板配置，与现有 `materials` 表完全独立。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | 内部 ID，不在公共目录暴露 |
+| template_key | VARCHAR(64) | UNIQUE, NOT NULL | 客户端稳定键 |
+| name | VARCHAR(100) | NOT NULL | 模板名称 |
+| style | VARCHAR(32) | NOT NULL | 风格筛选键 |
+| preview_url | VARCHAR(512) | NULL | 预览图 URL |
+| supported_ratios | JSON | NOT NULL | 仅允许 1:1、4:3、9:16 |
+| config_json | JSON | NOT NULL | 版本化声明式图层配置 |
+| config_version | INT | DEFAULT 1 | 配置版本 |
+| status | TINYINT | DEFAULT 0 | 0下架、1上架 |
+| sort_order | INT | DEFAULT 0 | 展示顺序 |
+| created_at / updated_at | DATETIME | NOT NULL | 创建和更新时间 |
+
+**索引:** `uk_aura_templates_key` 保证稳定键唯一；`idx_aura_templates_public` 支持公开目录的状态与排序查询。
+
+### 9. AURA 资源表 (aura_assets)
+
+存储装饰、纹理和字体的远程分发元数据，不存储用户照片、作品或草稿。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | 内部 ID |
+| asset_key | VARCHAR(64) | UNIQUE, NOT NULL | 客户端稳定键 |
+| name | VARCHAR(100) | NOT NULL | 资源名称 |
+| type | VARCHAR(16) | NOT NULL | decoration / texture / font |
+| file_url | VARCHAR(512) | NOT NULL | MinIO/CDN 文件 URL |
+| preview_url | VARCHAR(512) | NULL | 预览 URL |
+| sha256 | CHAR(64) | NOT NULL | 客户端完整性校验摘要 |
+| resource_version | INT | DEFAULT 1 | 资源缓存版本 |
+| metadata_json | JSON | NULL | 字体 family/styleKey 等扩展元数据 |
+| status | TINYINT | DEFAULT 0 | 0下架、1上架 |
+| sort_order | INT | DEFAULT 0 | 展示顺序 |
+| created_at / updated_at | DATETIME | NOT NULL | 创建和更新时间 |
+
+**索引:** `uk_aura_assets_key` 保证稳定键唯一；`idx_aura_assets_public` 支持状态、类型与排序查询。
+
+两张 AURA 表之间不设外键：模板通过稳定资源键引用目录资源，便于独立版本发布与客户端缓存回退。
+
 ---
 
 ## 实体关系图
@@ -234,6 +277,8 @@
 ---
 
 ## 数据迁移
+
+Spring Boot 使用 `backend/src/main/resources/db/V11__create_aura_catalog.sql` 创建两张 AURA 表，并以幂等方式写入首批 5 个已上架基础模板。
 
 ### 运行迁移
 

@@ -454,3 +454,24 @@
 ✅ 严格按当前 URL 的 postId 定位主帖 pagelet，仅导出唯一 Giphy GIF/WebP URL。
 ✅ 弹窗显示帖子 ID、GIF/WebP 数量，并下载 threads-gif-<postId>.json。
 ✅ node --test test/extractor.test.cjs：4/4 通过；manifest 与 JavaScript 语法校验通过。
+  🆕 AURA Music Card 独立 App ✅ MVP 代码完成 (2026-08-11)
+     ├─ Flutter iOS/Android 工程与 View/ViewModel/Repository/Service 分层 ✅
+     ├─ 本地照片、SQLite 草稿、五步创作、5 个模板 × 3 种比例 ✅
+     ├─ 统一 AuraScene Painter 预览/导出、相册保存与系统分享 ✅
+     ├─ 本地 5 色提取、照片调整、背景/字体/播放器/装饰轻编辑 ✅
+     ├─ aura_templates / aura_assets、公开目录、ETag 与严格配置校验 ✅
+     ├─ 管理后台模板/资源 CRUD、上传、排序与上下架 ✅
+     ├─ Flutter 23/23（含 15 组 Golden）、后端 168/168、小程序 28/28，小程序与后台生产构建通过 ✅
+     ├─ 管理后台分页回归 4/4，旧 tools 页面过期断言已同步清理 ✅
+     └─ Android/iPhone 真机与移动端权限/恢复/相册/分享集成验收 ⏳ 待执行
+
+  🆕 AURA Music PWA 新路线 ✅ 可运行原型完成 (2026-08-11)
+     ├─ aura-web：Vue 3 + TypeScript + Vite + Pinia + Vue Router ✅
+     ├─ 首页 / 五步创作 / 模板浏览 / 移动端导航 ✅
+     ├─ Konva 统一预览与 1080/1440/1920 PNG 导出 ✅
+     ├─ IndexedDB 本地照片与草稿、自动保存和最近作品 ✅
+     ├─ 设备端 5 色提取、模板/比例/焦点/背景/装饰调整 ✅
+     ├─ 目录 ETag 缓存、内置模板回退、PWA 离线应用壳 ✅
+     ├─ 系统分享能力检测与 PNG 下载回退 ✅
+     ├─ Vitest 3/3、严格类型检查、生产构建和移动视口浏览器回归 ✅
+     └─ iPhone Safari / Android Chrome 真机和 HTTPS 部署 ⏳ 待执行
