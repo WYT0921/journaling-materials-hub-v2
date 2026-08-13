@@ -13,6 +13,7 @@ test('text asset library has tabs, filters, pagination, and copy interaction', a
   assert.match(page, /uni\.setClipboardData/)
   assert.match(page, /initialLoading/)
   assert.match(page, /loadError/)
+  assert.doesNotMatch(page, /item\.source|素材来源|来源：/)
 })
 
 test('special font page retains the unicode font generator identity', async () => {

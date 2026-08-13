@@ -15,7 +15,7 @@ public interface MaterialService {
      * 获取素材列表（分页）
      */
     IPage<Material> listMaterials(int page, int limit, String materialType, String category,
-                                 String keyword, String sortBy, Integer issueYear, Integer issueNumber);
+                                  String keyword, String sortBy, Integer issueYear, Integer issueNumber, String mediaType);
 
     /**
      * 获取素材详情

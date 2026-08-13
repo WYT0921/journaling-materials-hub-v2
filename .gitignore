@@ -66,5 +66,11 @@ uploads/
 # 工作流工具
 .spec-workflow/
 
+# 本地 Codex / 采集运行产物
+.claude/
+.venv-crawl4ai/
+local-tests/
+tools/threads-gif-collector-extension/download/
+
 # 微信开发者工具私有配置
 project.private.config.json

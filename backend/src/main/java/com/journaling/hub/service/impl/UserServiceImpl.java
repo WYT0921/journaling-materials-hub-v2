@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.dao.DuplicateKeyException;
+
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -64,7 +66,13 @@ public class UserServiceImpl implements UserService {
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
 
-        userMapper.insert(user);
+        try {
+            userMapper.insert(user);
+        } catch (DuplicateKeyException e) {
+            // 并发创建时另一个请求已插入，重新查询返回
+            log.info("并发创建用户，重新查询: openid={}", openid);
+            return findByOpenid(openid);
+        }
         log.info("创建新用户: id={}, openid={}", user.getId(), openid);
 
         return user;
@@ -157,11 +165,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void incrementDownloadCount(Long userId) {
-        User user = userMapper.selectById(userId);
-        if (user != null) {
-            user.setDownloadCount(user.getDownloadCount() + 1);
-            userMapper.updateById(user);
-        }
+        // 使用数据库原子更新避免 read-modify-write 竞态
+        com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<User> updateWrapper =
+                new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<>();
+        updateWrapper.eq(User::getId, userId)
+                .setSql("download_count = download_count + 1");
+        userMapper.update(null, updateWrapper);
     }
 
     @Override

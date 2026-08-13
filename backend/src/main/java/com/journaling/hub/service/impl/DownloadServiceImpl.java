@@ -83,14 +83,16 @@ public class DownloadServiceImpl implements DownloadService {
             // 增加用户下载次数
             userService.incrementDownloadCount(userId);
 
-        } catch (Exception e) {
+        } catch (org.springframework.dao.DuplicateKeyException e) {
             // 唯一索引冲突，说明已下载过
             log.warn("用户已下载过此素材: userId={}, materialId={}", userId, materialId);
         }
 
         Map<String, Object> result = new HashMap<>();
         result.put("url", material.getImageUrl());
-        result.put("filename", material.getTitle() + ".png");
+        boolean gif = "animated_gif".equals(material.getMediaType());
+        result.put("filename", material.getTitle() + (gif ? ".gif" : extensionFor(material.getMimeType())));
+        result.put("mimeType", gif ? "image/gif" : material.getMimeType());
         result.put("materialId", materialId);
         result.put("message", "下载成功");
         result.put("freeDownloadLimit", freeDownloadLimit);
@@ -98,6 +100,12 @@ public class DownloadServiceImpl implements DownloadService {
         result.put("freeDownloadRemaining", user.isPremium() ? null : Math.max(0, freeDownloadLimit - (createdDownload ? downloadCount + 1 : downloadCount)));
 
         return result;
+    }
+
+    private String extensionFor(String mimeType) {
+        if ("image/jpeg".equalsIgnoreCase(mimeType)) return ".jpg";
+        if ("image/webp".equalsIgnoreCase(mimeType)) return ".webp";
+        return ".png";
     }
 
     @Override

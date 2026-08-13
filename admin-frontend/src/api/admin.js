@@ -39,9 +39,7 @@ export const deleteMaterial = (id) =>
 export const uploadImage = (file) => {
   const formData = new FormData()
   formData.append('file', file)
-  return http.post('/v2/admin/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  })
+  return http.post('/v2/admin/upload', formData)
 }
 
 // ===== Text Assets =====
@@ -52,6 +50,7 @@ export const updateTextAssetStatus = (id, status) => http.put(`/v2/admin/text-as
 export const batchUpdateTextAssetStatus = (ids, status) => http.put('/v2/admin/text-assets/batch-status', { ids, status })
 export const importTextAssets = items => http.post('/v2/admin/text-assets/import', { items })
 export const deleteTextAsset = id => http.delete(`/v2/admin/text-assets/${id}`)
+export const getCollectorRuns = params => http.get('/v2/admin/collector-runs', { params })
 
 // ===== Users =====
 export const getUsers = (params) =>
@@ -82,3 +81,18 @@ export const updateFeedbackStatus = (id, status) =>
 
 export const deleteFeedback = (id) =>
   http.delete(`/v2/admin/feedbacks/${id}`)
+
+// ===== Music Card =====
+export const getMusicCardTemplates = params => http.get('/v2/admin/music-card/templates', { params })
+export const createMusicCardTemplate = data => http.post('/v2/admin/music-card/templates', data)
+export const updateMusicCardTemplate = (id, data) => http.put(`/v2/admin/music-card/templates/${id}`, data)
+export const updateMusicCardTemplateStatus = (id, status) => http.put(`/v2/admin/music-card/templates/${id}/status`, null, { params: { status } })
+export const deleteMusicCardTemplate = id => http.delete(`/v2/admin/music-card/templates/${id}`)
+
+export const getMusicCardAssets = params => http.get('/v2/admin/music-card/assets', { params })
+export const createMusicCardAsset = data => http.post('/v2/admin/music-card/assets', data)
+export const updateMusicCardAsset = (id, data) => http.put(`/v2/admin/music-card/assets/${id}`, data)
+export const updateMusicCardAssetStatus = (id, status) => http.put(`/v2/admin/music-card/assets/${id}/status`, null, { params: { status } })
+export const deleteMusicCardAsset = id => http.delete(`/v2/admin/music-card/assets/${id}`)
+
+export const getMusicCardCreations = params => http.get('/v2/admin/music-card/creations', { params })

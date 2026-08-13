@@ -1,5 +1,7 @@
 package com.journaling.hub.service.impl;
 
+import com.journaling.hub.common.BusinessException;
+import com.journaling.hub.common.ErrorCode;
 import com.journaling.hub.config.MinioProperties;
 import com.journaling.hub.service.FileService;
 import io.minio.*;
@@ -38,7 +40,7 @@ public class MinioFileServiceImpl implements FileService {
             return getUrl(objectName);
         } catch (Exception e) {
             log.error("Upload failed: {}", objectName, e);
-            throw new RuntimeException("文件上传失败", e);
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "文件上传失败");
         }
     }
 
@@ -56,7 +58,7 @@ public class MinioFileServiceImpl implements FileService {
             return getUrl(objectName);
         } catch (Exception e) {
             log.error("Upload failed: {}", objectName, e);
-            throw new RuntimeException("文件上传失败", e);
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "文件上传失败");
         }
     }
 
@@ -71,6 +73,17 @@ public class MinioFileServiceImpl implements FileService {
             log.info("File deleted: {}", objectName);
         } catch (Exception e) {
             log.warn("Delete failed (may not exist): {}", objectName);
+        }
+    }
+
+    @Override
+    public void deleteStrict(String objectName) {
+        try {
+            minioClient.removeObject(RemoveObjectArgs.builder().bucket(properties.getBucket()).object(objectName).build());
+            log.info("File deleted: {}", objectName);
+        } catch (Exception e) {
+            log.error("Delete failed: {}", objectName, e);
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "文件清理失败，请重试");
         }
     }
 

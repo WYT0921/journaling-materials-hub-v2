@@ -81,6 +81,7 @@ import GlassNavBar from '../../components/GlassNavBar.vue'
 import CustomToast from '../../components/CustomToast.vue'
 import fontStyles from '../../utils/fonts/fonts.json'
 import { generateFontResults } from '../../utils/fonts/font-generator.mjs'
+import { hidePageShareMenu } from '../../utils/tool-share'
 
 const sourceText = ref('fancy text')
 const convertedText = ref(sourceText.value)
@@ -97,9 +98,7 @@ watch(sourceText, value => {
 })
 
 onMounted(() => {
-  if (typeof uni.hideShareMenu === 'function') {
-    uni.hideShareMenu()
-  }
+  hidePageShareMenu()
 })
 
 onBeforeUnmount(() => {
@@ -124,8 +123,8 @@ function copyResult(text) {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  color: #171512;
-  background: #f4efe6;
+  color: #3f4d50;
+  background: linear-gradient(180deg, #f7fde9 0%, #f2fbdd 58%, #eaf7d2 100%);
 }
 
 .font-scroll {
@@ -139,7 +138,7 @@ function copyResult(text) {
 
 .eyebrow {
   display: block;
-  color: #8f887c;
+  color: #6f766f;
   font-size: 19rpx;
   font-weight: 600;
   letter-spacing: 5rpx;
@@ -157,7 +156,7 @@ function copyResult(text) {
 .page-subtitle {
   display: block;
   margin-top: 12rpx;
-  color: #706b63;
+  color: #606963;
   font-size: 24rpx;
   line-height: 1.5;
 }
@@ -165,8 +164,9 @@ function copyResult(text) {
 .input-card {
   margin: 0 24rpx;
   padding: 28rpx;
-  border: 1rpx solid #d8d1c5;
-  background: rgba(255, 253, 249, 0.92);
+  border: 1rpx solid rgba(201, 178, 151, 0.72);
+  border-radius: 22rpx;
+  background: rgba(255, 255, 255, 0.78);
 }
 
 .input-heading,
@@ -186,7 +186,7 @@ function copyResult(text) {
 }
 
 .input-count {
-  color: #999185;
+  color: #6f766f;
   font-size: 20rpx;
 }
 
@@ -196,14 +196,14 @@ function copyResult(text) {
   min-height: 104rpx;
   max-height: 260rpx;
   margin-top: 20rpx;
-  color: #171512;
+  color: #3f4d50;
   font-family: Georgia, 'Times New Roman', serif;
   font-size: 36rpx;
   line-height: 1.5;
 }
 
 :deep(.font-input-placeholder) {
-  color: #b8b1a6;
+  color: #91a3a5;
   font-size: 28rpx;
 }
 
@@ -211,11 +211,11 @@ function copyResult(text) {
   min-height: 48rpx;
   margin-top: 16rpx;
   padding-top: 16rpx;
-  border-top: 1rpx solid #ece6dc;
+  border-top: 1rpx solid #dce9e5;
 }
 
 .input-tip {
-  color: #9a9388;
+  color: #6f766f;
   font-size: 20rpx;
 }
 
@@ -224,7 +224,7 @@ function copyResult(text) {
 }
 
 .clear-text {
-  color: #4f4a43;
+  color: #486b6d;
   font-size: 22rpx;
   text-decoration: underline;
 }
@@ -242,7 +242,7 @@ function copyResult(text) {
 .results-subtitle {
   display: block;
   margin-top: 6rpx;
-  color: #8d867c;
+  color: #6f766f;
   font-size: 21rpx;
 }
 
@@ -260,19 +260,20 @@ function copyResult(text) {
   margin-bottom: 18rpx;
   padding: 24rpx 26rpx 20rpx;
   overflow: hidden;
-  border: 1rpx solid #d8d1c5;
-  background: rgba(255, 253, 249, 0.92);
+  border: 1rpx solid rgba(201, 178, 151, 0.72);
+  border-radius: 22rpx;
+  background: rgba(255, 255, 255, 0.8);
   transition: background-color 120ms ease, transform 120ms ease;
 }
 
 .font-result-card--active {
-  background: #ebe3d7;
+  background: #fcebbf;
   transform: scale(0.992);
 }
 
 .result-number,
 .result-name {
-  color: #8f887e;
+  color: #6f766f;
   font-size: 18rpx;
   letter-spacing: 2rpx;
 }
@@ -289,7 +290,7 @@ function copyResult(text) {
   display: block;
   margin: 30rpx 0 28rpx;
   overflow-wrap: anywhere;
-  color: #111;
+  color: #334346;
   font-size: 36rpx;
   line-height: 1.55;
 }
@@ -298,11 +299,11 @@ function copyResult(text) {
   flex: 1;
   height: 1rpx;
   margin-right: 22rpx;
-  background: #ded7cc;
+  background: #c9dfdc;
 }
 
 .copy-label {
-  color: #292621;
+  color: #4f7356;
   font-size: 19rpx;
   font-weight: 700;
   letter-spacing: 4rpx;
@@ -314,8 +315,9 @@ function copyResult(text) {
   align-items: center;
   margin: 0 24rpx;
   padding: 90rpx 24rpx;
-  border: 1rpx solid #d8d1c5;
-  background: rgba(255, 253, 249, 0.72);
+  border: 1rpx solid rgba(201, 178, 151, 0.72);
+  border-radius: 22rpx;
+  background: rgba(255, 255, 255, 0.66);
 }
 
 .empty-symbol {
@@ -332,13 +334,13 @@ function copyResult(text) {
 
 .empty-desc {
   margin-top: 8rpx;
-  color: #918a80;
+  color: #6f766f;
   font-size: 22rpx;
 }
 
 .page-footnote {
   padding: 44rpx 24rpx 72rpx;
-  color: #aaa297;
+  color: #789092;
   font-size: 17rpx;
   letter-spacing: 3rpx;
   text-align: center;

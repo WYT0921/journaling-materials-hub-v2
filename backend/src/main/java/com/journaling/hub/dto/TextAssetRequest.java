@@ -13,6 +13,9 @@ public class TextAssetRequest {
     private String source;
     private String sourceUrl;
     private String riskLevel;
+    private String aiModel;
+    private java.math.BigDecimal aiConfidence;
+    private String reviewNote;
     private Integer sortOrder;
     private Integer status;
 }

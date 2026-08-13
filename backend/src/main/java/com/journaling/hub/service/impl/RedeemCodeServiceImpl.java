@@ -101,10 +101,17 @@ public class RedeemCodeServiceImpl implements RedeemCodeService {
 
         User user = userService.activatePremium(userId, type, durationDays);
 
-        redeemCode.setStatus(1);
-        redeemCode.setUserId(userId);
-        redeemCode.setUsedTime(LocalDateTime.now());
-        redeemCodeMapper.updateById(redeemCode);
+        // 使用乐观锁防止并发重复使用：仅当 status=0 时才更新
+        int updated = redeemCodeMapper.update(null,
+                new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<RedeemCode>()
+                        .eq(RedeemCode::getId, redeemCode.getId())
+                        .eq(RedeemCode::getStatus, 0)
+                        .set(RedeemCode::getStatus, 1)
+                        .set(RedeemCode::getUserId, userId)
+                        .set(RedeemCode::getUsedTime, LocalDateTime.now()));
+        if (updated == 0) {
+            throw new BusinessException(ErrorCode.REDEEM_CODE_USED);
+        }
 
         String token = jwtUtil.generateToken(user.getId(), user.getOpenid(), user.isPremium());
 

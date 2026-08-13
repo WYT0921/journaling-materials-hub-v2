@@ -9,6 +9,8 @@ import com.journaling.hub.common.ErrorCode;
 import com.journaling.hub.common.PageResult;
 import com.journaling.hub.common.Result;
 import com.journaling.hub.dto.RedeemCodeGenerateRequest;
+import com.journaling.hub.dto.MaterialRequest;
+import com.journaling.hub.service.FileService;
 import com.journaling.hub.entity.Feedback;
 import com.journaling.hub.entity.Material;
 import com.journaling.hub.entity.RedeemCode;
@@ -49,6 +51,9 @@ public class AdminController {
     @Autowired
     private RedeemCodeMapper redeemCodeMapper;
 
+    @Autowired
+    private FileService fileService;
+
     private static final SecureRandom REDEEM_RANDOM = new SecureRandom();
     private static final String REDEEM_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -63,6 +68,7 @@ public class AdminController {
             @RequestParam(defaultValue = "20") int limit,
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) String materialType,
+            @RequestParam(required = false) String mediaType,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer issueYear,
@@ -77,6 +83,10 @@ public class AdminController {
         if (StringUtils.hasText(materialType)) {
             validateMaterialType(materialType);
             wrapper.eq(Material::getMaterialType, materialType);
+        }
+        if (StringUtils.hasText(mediaType)) {
+            validateMediaType(mediaType);
+            wrapper.eq(Material::getMediaType, mediaType);
         }
         if (StringUtils.hasText(category)) {
             wrapper.eq(Material::getCategory, category);
@@ -98,8 +108,9 @@ public class AdminController {
      * 新增素材
      */
     @PostMapping("/materials")
-    public Result<?> createMaterial(@RequestBody Material material) {
-        validateIssue(material.getIssueYear(), material.getIssueNumber());
+    public Result<?> createMaterial(@RequestBody MaterialRequest request) {
+        validateIssue(request.getIssueYear(), request.getIssueNumber());
+        Material material = applyRequest(new Material(), request, true);
         if (!StringUtils.hasText(material.getMaterialType())) {
             material.setMaterialType("single");
         } else {
@@ -126,7 +137,7 @@ public class AdminController {
      * 编辑素材
      */
     @PutMapping("/materials/{id}")
-    public Result<?> updateMaterial(@PathVariable Long id, @RequestBody Material material) {
+    public Result<?> updateMaterial(@PathVariable Long id, @RequestBody MaterialRequest material) {
         Material existing = materialMapper.selectById(id);
         if (existing == null) {
             throw new BusinessException(ErrorCode.MATERIAL_NOT_FOUND);
@@ -152,6 +163,10 @@ public class AdminController {
         if (material.getIsPremium() != null) existing.setIsPremium(material.getIsPremium());
         if (material.getTags() != null) existing.setTags(material.getTags());
         if (material.getSortOrder() != null) existing.setSortOrder(material.getSortOrder());
+        if (material.getMediaType() != null) {
+            validateMediaType(material.getMediaType());
+            existing.setMediaType(material.getMediaType());
+        }
 
         materialMapper.updateById(existing);
         if (material.isIssueYearSpecified() && material.getIssueYear() == null) {
@@ -186,8 +201,42 @@ public class AdminController {
         if (existing == null) {
             throw new BusinessException(ErrorCode.MATERIAL_NOT_FOUND);
         }
+        if ("animated_gif".equals(existing.getMediaType())) {
+            deleteStoredUrl(existing.getImageUrl(), true);
+            deleteStoredUrl(existing.getThumbnailUrl(), true);
+        }
         materialMapper.deleteById(id);
         return Result.ok(null);
+    }
+
+    private Material applyRequest(Material material, MaterialRequest request, boolean creating) {
+        material.setTitle(request.getTitle()); material.setDescription(request.getDescription());
+        material.setImageUrl(request.getImageUrl()); material.setThumbnailUrl(request.getThumbnailUrl()); material.setCategory(request.getCategory());
+        material.setMaterialType(request.getMaterialType()); material.setMediaType(request.getMediaType()); material.setIssueYear(request.getIssueYear()); material.setIssueNumber(request.getIssueNumber());
+        material.setContentHash(request.getContentHash()); material.setMimeType(request.getMimeType()); material.setFileSize(request.getFileSize()); material.setWidth(request.getWidth()); material.setHeight(request.getHeight()); material.setDurationMs(request.getDurationMs()); material.setFrameCount(request.getFrameCount());
+        material.setTags(request.getTags()); material.setIsPremium(request.getIsPremium()); material.setStatus(request.getStatus()); material.setSortOrder(request.getSortOrder());
+        if (creating && !StringUtils.hasText(material.getMediaType())) material.setMediaType("static_image");
+        validateMediaType(material.getMediaType());
+        if ("animated_gif".equals(material.getMediaType()) && (!StringUtils.hasText(material.getContentHash()) || !"image/gif".equals(material.getMimeType()) || material.getFrameCount() == null || material.getFrameCount() <= 1)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "动态 GIF 必须通过 GIF 上传接口生成完整元数据");
+        }
+        return material;
+    }
+
+    private void validateMediaType(String mediaType) {
+        if (!"static_image".equals(mediaType) && !"animated_gif".equals(mediaType)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "媒体类型必须为 static_image 或 animated_gif");
+        }
+    }
+
+    private void deleteStoredUrl(String url, boolean strict) {
+        if (!StringUtils.hasText(url)) return;
+        int marker = url.indexOf("/materials/");
+        if (marker >= 0) {
+            String object = url.substring(marker + "/materials/".length());
+            if (strict) fileService.deleteStrict(object); else fileService.delete(object);
+        }
+        else log.warn("无法从素材 URL 解析 MinIO 对象，需人工清理: {}", url);
     }
 
     private void validateMaterialType(String materialType) {

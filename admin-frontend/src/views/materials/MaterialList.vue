@@ -16,6 +16,11 @@
             <option value="">全部类型</option>
             <option v-for="t in materialTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
           </select>
+          <select v-model="filterMediaType" @change="search">
+            <option value="">全部媒体</option>
+            <option value="static_image">静态图片</option>
+            <option value="animated_gif">GIF 动图</option>
+          </select>
           <input v-model.number="filterIssueYear" type="number" min="1000" max="9999" placeholder="年份" style="width:90px" @keyup.enter="search" />
           <input v-model.number="filterIssueNumber" type="number" min="1" placeholder="期号" style="width:80px" @keyup.enter="search" />
           <select v-model="filterStatus" @change="search">
@@ -30,7 +35,7 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>ID</th><th>缩略图</th><th>标题</th><th>类型</th><th>分类</th><th>上传期数</th><th>VIP</th><th>下载</th><th>状态</th><th>操作</th>
+              <th>ID</th><th>缩略图</th><th>标题</th><th>类型</th><th>媒体</th><th>分类</th><th>动态信息</th><th>来源</th><th>上传期数</th><th>VIP</th><th>下载</th><th>状态</th><th>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -39,7 +44,10 @@
               <td><img v-if="m.thumbnailUrl" :src="m.thumbnailUrl" style="width:48px;height:48px;object-fit:cover;border-radius:4px" /></td>
               <td class="truncate" style="max-width:160px">{{ m.title }}</td>
               <td>{{ getMaterialTypeLabel(m.materialType) }}</td>
+              <td><span :class="['tag', m.mediaType === 'animated_gif' ? 'tag-warning' : 'tag-default']">{{ m.mediaType === 'animated_gif' ? 'GIF' : '静态' }}</span></td>
               <td>{{ m.category }}</td>
+              <td>{{ formatDynamicMeta(m) }}</td>
+              <td><a v-if="m.sourceUrl" :href="m.sourceUrl" target="_blank" rel="noopener">{{ m.source || '来源' }}</a><span v-else>—</span></td>
               <td>{{ formatIssue(m.issueYear, m.issueNumber) }}</td>
               <td><span :class="['tag', m.isPremium ? 'tag-warning' : 'tag-default']">{{ m.isPremium ? 'VIP' : '免费' }}</span></td>
               <td>{{ m.downloadCount }}</td>
@@ -96,6 +104,10 @@
               <option v-for="t in materialTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
             </select>
           </div>
+          <div class="form-group">
+            <label class="form-label">媒体类型</label>
+            <input class="form-input" :value="form.mediaType === 'animated_gif' ? 'GIF 动图' : '静态图片'" disabled />
+          </div>
           <div class="flex gap-3">
             <div class="form-group" style="flex:1">
               <label class="form-label">上传年份</label>
@@ -109,7 +121,10 @@
           <div class="form-group">
             <label class="form-label">图片上传</label>
             <input type="file" accept="image/*" @change="handleUpload" />
-            <div class="form-hint">上传后自动填充原图和缩略图 URL</div>
+            <div class="form-hint">支持静态图片和 GIF；GIF 自动生成 PNG 封面并校验 10 秒 / 10MB 上限</div>
+          </div>
+          <div v-if="form.mediaType === 'animated_gif'" class="form-hint">
+            {{ form.width }}×{{ form.height }} · {{ form.frameCount }} 帧 · {{ Math.round((form.durationMs || 0) / 100) / 10 }} 秒 · {{ formatBytes(form.fileSize) }}
           </div>
           <div class="form-group">
             <label class="form-label">原图 URL</label>
@@ -165,6 +180,7 @@ const limit = 20
 const searchKeyword = ref('')
 const filterCategory = ref('')
 const filterMaterialType = ref('')
+const filterMediaType = ref('')
 const filterIssueYear = ref('')
 const filterIssueNumber = ref('')
 const filterStatus = ref(null)
@@ -172,7 +188,8 @@ const dialogVisible = ref(false)
 const editingId = ref(null)
 
 const form = reactive({
-  title: '', description: '', category: '', materialType: 'single', issueYear: '', issueNumber: '', imageUrl: '', thumbnailUrl: '',
+  title: '', description: '', category: '', materialType: 'single', mediaType: 'static_image', issueYear: '', issueNumber: '', imageUrl: '', thumbnailUrl: '',
+  contentHash: '', mimeType: '', fileSize: null, width: null, height: null, durationMs: null, frameCount: null,
   isPremium: false, status: 1, sortOrder: 0, tags: ''
 })
 
@@ -199,6 +216,7 @@ async function loadData() {
     if (searchKeyword.value) params.keyword = searchKeyword.value
     if (filterCategory.value) params.category = filterCategory.value
     if (filterMaterialType.value) params.materialType = filterMaterialType.value
+    if (filterMediaType.value) params.mediaType = filterMediaType.value
     if (filterIssueYear.value !== '' && filterIssueNumber.value !== '') {
       params.issueYear = filterIssueYear.value
       params.issueNumber = filterIssueNumber.value
@@ -223,6 +241,9 @@ function getMaterialTypeLabel(type) {
   return type === 'bundle' ? '合并素材' : '单个素材'
 }
 
+function formatBytes(value) { return value ? `${(value / 1024 / 1024).toFixed(2)} MB` : '—' }
+function formatDynamicMeta(m) { return m.mediaType === 'animated_gif' ? `${m.width || '?'}×${m.height || '?'} / ${m.frameCount || '?'}帧 / ${Math.round((m.durationMs || 0) / 100) / 10}秒` : '—' }
+
 function toChineseNumber(number) {
   const digits = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九']
   if (number < 10) return digits[number]
@@ -240,6 +261,7 @@ function openDialog(m) {
     editingId.value = m.id
     Object.assign(form, {
       title: m.title, description: m.description || '', category: m.category || '', materialType: m.materialType || 'single',
+      mediaType: m.mediaType || 'static_image', contentHash: m.contentHash || '', mimeType: m.mimeType || '', fileSize: m.fileSize, width: m.width, height: m.height, durationMs: m.durationMs, frameCount: m.frameCount,
       issueYear: m.issueYear ?? '', issueNumber: m.issueNumber ?? '',
       imageUrl: m.imageUrl, thumbnailUrl: m.thumbnailUrl || '',
       isPremium: m.isPremium, status: m.status, sortOrder: m.sortOrder || 0,
@@ -247,7 +269,7 @@ function openDialog(m) {
     })
   } else {
     editingId.value = null
-    Object.assign(form, { title: '', description: '', category: '', materialType: 'single', issueYear: '', issueNumber: '', imageUrl: '', thumbnailUrl: '', isPremium: false, status: 1, sortOrder: 0, tags: '' })
+    Object.assign(form, { title: '', description: '', category: '', materialType: 'single', mediaType: 'static_image', issueYear: '', issueNumber: '', imageUrl: '', thumbnailUrl: '', contentHash: '', mimeType: '', fileSize: null, width: null, height: null, durationMs: null, frameCount: null, isPremium: false, status: 1, sortOrder: 0, tags: '' })
   }
   dialogVisible.value = true
 }
@@ -259,6 +281,7 @@ async function handleUpload(e) {
     const res = await uploadImage(file)
     form.imageUrl = res.imageUrl
     form.thumbnailUrl = res.thumbnailUrl
+    for (const key of ['mediaType', 'contentHash', 'mimeType', 'fileSize', 'width', 'height', 'durationMs', 'frameCount']) form[key] = res[key] ?? null
   } catch (err) { alert('上传失败: ' + (err.message || '未知错误')) }
 }
 
@@ -288,14 +311,18 @@ async function handleSave() {
 }
 
 async function toggleStatus(m) {
-  const newStatus = m.status === 1 ? 0 : 1
-  await updateMaterialStatus(m.id, newStatus)
-  loadData()
+  try {
+    const newStatus = m.status === 1 ? 0 : 1
+    await updateMaterialStatus(m.id, newStatus)
+    loadData()
+  } catch (e) { alert(e.message || '操作失败') }
 }
 
 async function handleDelete(m) {
   if (!confirm(`确定删除素材「${m.title}」吗？`)) return
-  await deleteMaterial(m.id)
-  loadData()
+  try {
+    await deleteMaterial(m.id)
+    loadData()
+  } catch (e) { alert(e.message || '删除失败') }
 }
 </script>

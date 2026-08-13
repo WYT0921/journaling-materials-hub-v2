@@ -40,11 +40,6 @@ const tabs = [
     pagePath: '/pages/index/index'
   },
   {
-    text: '拼贴',
-    iconText: '✦',
-    pagePath: '/pages/collage/index'
-  },
-  {
     text: '工具',
     icon: '/static/icons/tools.png',
     activeIcon: '/static/icons/tools-active.png',
@@ -73,11 +68,11 @@ function handleTabTap(index) {
   height: 100rpx;
   box-sizing: content-box;
   /* 毛玻璃效果 + fallback */
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(238, 239, 232, 0.94);
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   /* 顶部细线 */
-  border-top: 0.5px solid rgba(0, 0, 0, 0.05);
+  border-top: 0.5px solid rgba(143, 188, 147, 0.32);
   position: fixed;
   bottom: 0;
   left: 0;
@@ -92,7 +87,7 @@ function handleTabTap(index) {
 
 @supports not ((-webkit-backdrop-filter: blur(20px)) or (backdrop-filter: blur(20px))) {
   .custom-tabbar {
-    background: rgba(255, 255, 255, 0.8);
+    background: #eeefe8;
   }
 }
 
@@ -112,28 +107,15 @@ function handleTabTap(index) {
   margin-bottom: 4rpx;
 }
 
-.tab-icon-text {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 38rpx;
-  line-height: 44rpx;
-  color: #999;
-}
-
-.tab-item.active .tab-icon-text {
-  color: #000;
-}
-
 .tab-label {
   font-size: 20rpx;
-  color: #999;
+  color: #777d79;
   line-height: 1.2;
   font-weight: 400;
 }
 
 .tab-item.active .tab-label {
-  color: #000;
+  color: #4f7356;
   font-weight: 700;
 }
 </style>

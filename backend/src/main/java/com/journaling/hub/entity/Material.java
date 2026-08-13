@@ -28,11 +28,40 @@ public class Material {
     @TableField("thumbnail_url")
     private String thumbnailUrl;
 
+    @TableField("content_hash")
+    private String contentHash;
+
+    @TableField("mime_type")
+    private String mimeType;
+
+    @TableField("file_size")
+    private Long fileSize;
+
+    private Integer width;
+    private Integer height;
+
+    @TableField("duration_ms")
+    private Integer durationMs;
+
+    @TableField("frame_count")
+    private Integer frameCount;
+
+    private String source;
+
+    @TableField("source_url")
+    private String sourceUrl;
+
+    @TableField("collected_at")
+    private LocalDateTime collectedAt;
+
     @TableField("category")
     private String category;
 
     @TableField("material_type")
     private String materialType;
+
+    @TableField("media_type")
+    private String mediaType;
 
     @TableField("issue_year")
     private Integer issueYear;

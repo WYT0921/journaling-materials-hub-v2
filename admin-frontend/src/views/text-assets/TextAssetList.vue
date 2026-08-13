@@ -88,11 +88,11 @@ function changePage(value) { page.value = value; loadData() }
 async function typeChanged() { filters.category = ''; categories.value = await loadCategories(filters.type); search() }
 async function loadFormCategories() { formCategories.value = await loadCategories(form.type); if (!formCategories.value.some(c => c.name === form.category)) form.category = formCategories.value[0]?.name || '' }
 async function openDialog(item) { editingId.value = item?.id || null; Object.assign(form, item ? { ...item } : { content: '', type: 'kaomoji', category: '', tags: [], source: 'manual', sourceUrl: '', riskLevel: 'safe', sortOrder: 0, status: 0 }); tagsInput.value = Array.isArray(item?.tags) ? item.tags.join(', ') : ''; await loadFormCategories(); dialogVisible.value = true }
-async function save() { if (!form.content || !form.category) return alert('请填写内容和分类'); const data = { ...form, tags: tagsInput.value.split(/[,，]/).map(v => v.trim()).filter(Boolean) }; if (editingId.value) await updateTextAsset(editingId.value, data); else await createTextAsset(data); dialogVisible.value = false; loadData() }
-async function setStatus(item, status) { await updateTextAssetStatus(item.id, status); loadData() }
-async function batchStatus(status) { await batchUpdateTextAssetStatus(selectedIds.value, status); loadData() }
+async function save() { if (!form.content || !form.category) return alert('请填写内容和分类'); try { const data = { ...form, tags: tagsInput.value.split(/[,，]/).map(v => v.trim()).filter(Boolean) }; if (editingId.value) await updateTextAsset(editingId.value, data); else await createTextAsset(data); dialogVisible.value = false; loadData() } catch (e) { alert(e.message || '保存失败') } }
+async function setStatus(item, status) { try { await updateTextAssetStatus(item.id, status); loadData() } catch (e) { alert(e.message || '操作失败') } }
+async function batchStatus(status) { try { await batchUpdateTextAssetStatus(selectedIds.value, status); loadData() } catch (e) { alert(e.message || '操作失败') } }
 function toggleAll(event) { selectedIds.value = event.target.checked ? list.value.map(item => item.id) : [] }
-async function remove(item) { if (!confirm('确定删除这条内容吗？')) return; await deleteTextAsset(item.id); loadData() }
+async function remove(item) { if (!confirm('确定删除这条内容吗？')) return; try { await deleteTextAsset(item.id); loadData() } catch (e) { alert(e.message || '删除失败') } }
 async function handleImport(event) { const file = event.target.files?.[0]; event.target.value = ''; if (!file) return; try { const parsed = JSON.parse(await file.text()); const items = Array.isArray(parsed) ? parsed : parsed.items || parsed.candidates; if (!Array.isArray(items)) throw new Error('JSON 中未找到素材数组'); let summary = { inserted: 0, duplicates: 0, filtered: 0, failed: 0 }; for (let index = 0; index < items.length; index += 500) { const result = await importTextAssets(items.slice(index, index + 500)); Object.keys(summary).forEach(key => { summary[key] += Number(result[key] || 0) }) } alert(`导入完成：新增 ${summary.inserted}，重复 ${summary.duplicates}，过滤 ${summary.filtered}，失败 ${summary.failed}`); loadData() } catch (error) { alert(error.message || '导入失败') } }
 </script>
 

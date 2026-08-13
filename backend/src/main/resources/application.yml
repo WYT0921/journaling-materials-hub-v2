@@ -4,6 +4,8 @@ server:
     context-path: /
 
 app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
   download:
     free-limit: ${FREE_DOWNLOAD_LIMIT:50}
 
@@ -13,7 +15,7 @@ spring:
       - optional:file:.env[.properties]
       - optional:file:../.env[.properties]
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+    active: ${SPRING_PROFILES_ACTIVE:prod}
   application:
     name: journaling-materials-hub
   datasource:
@@ -80,6 +82,9 @@ jwt:
 admin:
   username: ${ADMIN_USERNAME:admin}
   password-hash: ${ADMIN_PASSWORD_HASH:}  # BCrypt 哈希，通过 BCrypt.hashpw() 生成
+
+collector:
+  token: ${COLLECTOR_TOKEN:}
 
 # 微信小程序配置
 wechat:

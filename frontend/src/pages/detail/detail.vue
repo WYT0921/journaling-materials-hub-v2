@@ -22,6 +22,7 @@
           mode="widthFix"
           @tap="handleImagePreview"
         />
+        <view v-if="material.mediaType === 'animated_gif'" class="dynamic-corner-badge"><text>GIF</text></view>
 
         <!-- 权限角标 -->
         <view v-if="material.isPremium" class="vip-corner-badge">
@@ -34,6 +35,7 @@
         <!-- 分类标签 -->
         <view class="info-tags">
           <text class="info-category info-type">{{ getMaterialTypeLabel(material.materialType) }}</text>
+          <text v-if="material.mediaType === 'animated_gif'" class="info-category info-type">GIF</text>
           <text class="info-category">{{ material.category }}</text>
         </view>
 
@@ -64,9 +66,8 @@
         </button>
 
         <button
-          v-if="material.materialType === 'single'"
+          v-if="false"
           class="collage-action"
-          @tap="handleCollage"
         >
           <text class="collage-action-icon">✦</text>
           <text class="collage-action-text">自由拼贴</text>
@@ -143,7 +144,7 @@
         <view class="unlock-icon-wrapper">
           <text class="unlock-crown">✓</text>
         </view>
-        <text class="unlock-desc">免费 5 次保存额度已用完，输入通行码后即可继续保存高清素材</text>
+        <text class="unlock-desc">免费 {{ freeDownloadLimit }} 次保存额度已用完，输入通行码后即可继续保存高清素材</text>
       </view>
       <template #footer>
         <view class="unlock-footer">
@@ -185,9 +186,10 @@ const isLoading = ref(true)
 const showUnlockSheet = ref(false)
 const isFavorited = ref(false)
 const relatedMaterials = ref([])
+let detailRequestVersion = 0
 
 const TECHNICAL_TAG_PREFIXES = ['json:', 'seed:', 'canvas:', 'pos:', 'size:', 'rot:', 'output:']
-const FREE_DOWNLOAD_LIMIT = 5
+const freeDownloadLimit = ref(50) // 与后端 FREE_DOWNLOAD_LIMIT 默认值保持一致，下载后从响应更新
 
 const getMaterialTypeLabel = (materialType) => {
   return materialType === 'bundle' ? '合并素材' : '单个素材'
@@ -230,16 +232,16 @@ const displayTags = computed(() => {
 
 const freeDownloadUsed = computed(() => {
   const count = Number(userStore.userInfo?.downloadCount || 0)
-  return Math.min(Math.max(count, 0), FREE_DOWNLOAD_LIMIT)
+  return Math.min(Math.max(count, 0), freeDownloadLimit.value)
 })
 
 const freeDownloadRemaining = computed(() => {
-  return Math.max(0, FREE_DOWNLOAD_LIMIT - freeDownloadUsed.value)
+  return Math.max(0, freeDownloadLimit.value - freeDownloadUsed.value)
 })
 
 const quotaText = computed(() => {
   if (!userStore.isLoggedIn) {
-    return `登录后可免费保存 ${FREE_DOWNLOAD_LIMIT} 次`
+    return `登录后可免费保存 ${freeDownloadLimit.value} 次`
   }
   if (freeDownloadRemaining.value > 0) {
     return `免费素材保存次数：剩余 ${freeDownloadRemaining.value} 次`
@@ -255,27 +257,33 @@ onLoad((options) => {
   }
 })
 
-// 加载素材详情
+// 加载素材详情（带版本号防止快速切换时旧响应覆盖新数据）
 const loadMaterialDetail = async () => {
+  const version = ++detailRequestVersion
   try {
     isLoading.value = true
     const result = await getMaterialDetail(materialId.value)
+    if (version !== detailRequestVersion) return
     material.value = result
     // 加载相关推荐
-    loadRelatedMaterials()
+    loadRelatedMaterials(version)
     // 检查收藏状态
-    checkFavoriteStatus()
+    checkFavoriteStatus(version)
   } catch (error) {
+    if (version !== detailRequestVersion) return
     console.error('加载素材详情失败:', error)
   } finally {
-    isLoading.value = false
+    if (version === detailRequestVersion) {
+      isLoading.value = false
+    }
   }
 }
 
 // 检查收藏状态
-const checkFavoriteStatus = async () => {
+const checkFavoriteStatus = async (version = 0) => {
   try {
     const result = await checkFavorite(materialId.value)
+    if (version && version !== detailRequestVersion) return
     isFavorited.value = result.isFavorited
   } catch {
     // 未登录或请求失败，忽略
@@ -302,6 +310,7 @@ const handleToggleFavorite = async () => {
 // 图片预览 — 所有用户均可查看大图
 const handleImagePreview = () => {
   if (!material.value) return
+  if (material.value.mediaType === 'animated_gif') return
   uni.previewImage({
     urls: [material.value.imageUrl],
     current: material.value.imageUrl
@@ -310,12 +319,14 @@ const handleImagePreview = () => {
 
 // 预览按钮
 const handlePreview = () => {
-  handleImagePreview()
+  if (material.value?.mediaType === 'animated_gif') {
+    uni.showToast({ title: '动图已在详情页播放', icon: 'none' })
+  } else handleImagePreview()
 }
 
 const openCollage = () => {
   collageStore.setPendingMaterialId(materialId.value)
-  uni.switchTab({ url: '/pages/collage/index' })
+  uni.navigateTo({ url: '/pages/collage/index' })
 }
 
 const handleCollage = () => {
@@ -331,7 +342,7 @@ const handleUnlock = () => {
 }
 
 // 加载相关推荐
-const loadRelatedMaterials = async () => {
+const loadRelatedMaterials = async (version = 0) => {
   if (!material.value?.category) return
   try {
     const params = { category: material.value.category, limit: 10, page: 1 }
@@ -339,6 +350,7 @@ const loadRelatedMaterials = async () => {
       params.materialType = material.value.materialType
     }
     const result = await getMaterials(params)
+    if (version && version !== detailRequestVersion) return
     const items = (result.list || []).filter(item => String(item.id) !== String(materialId.value))
     relatedMaterials.value = items.slice(0, 6)
   } catch (error) {
@@ -379,13 +391,21 @@ const handleDownload = async () => {
     })
 
     if (downloadRes.statusCode === 200) {
-      await new Promise((resolve, reject) => {
-        uni.saveImageToPhotosAlbum({
-          filePath: downloadRes.tempFilePath,
-          success: () => resolve(),
-          fail: (err) => reject(err)
+      try {
+        await new Promise((resolve, reject) => {
+          uni.saveImageToPhotosAlbum({ filePath: downloadRes.tempFilePath, success: resolve, fail: reject })
         })
-      })
+      } catch (saveError) {
+        if (material.value?.mediaType !== 'animated_gif') throw saveError
+        const choice = await new Promise(resolve => uni.showModal({
+          title: '当前微信无法保存动图',
+          content: '可以复制原始 GIF 下载链接，在浏览器中保存。',
+          confirmText: '复制链接',
+          success: res => resolve(res.confirm)
+        }))
+        if (choice) uni.setClipboardData({ data: result.url })
+        return
+      }
       // 黑底白字 Toast
       uni.showToast({
         title: '已保存至相册',
@@ -394,6 +414,9 @@ const handleDownload = async () => {
       })
       if (!userStore.isPremium && typeof result.freeDownloadUsed === 'number' && userStore.userInfo) {
         userStore.userInfo.downloadCount = result.freeDownloadUsed
+      }
+      if (typeof result.freeDownloadLimit === 'number') {
+        freeDownloadLimit.value = result.freeDownloadLimit
       }
       if (!userStore.isPremium) {
         await userStore.refreshProfile()
@@ -457,6 +480,8 @@ const handleShare = () => {
   color: #fff;
   font-weight: 600;
 }
+
+.dynamic-corner-badge { position:absolute; right:24rpx; top:24rpx; z-index:2; padding:6rpx 18rpx; border-radius:999rpx; background:rgba(0,0,0,.78); color:#fff; font-size:22rpx; }
 
 /* ===== 信息区域 ===== */
 .info-section {

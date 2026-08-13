@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.journaling.hub.common.PageResult;
 import com.journaling.hub.common.Result;
 import com.journaling.hub.entity.Material;
+import com.journaling.hub.dto.MaterialPublicResponse;
 import com.journaling.hub.service.MaterialService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -37,10 +38,11 @@ public class MaterialController {
             @RequestParam(defaultValue = "default") String sortBy,
             @RequestParam(required = false) Integer issueYear,
             @RequestParam(required = false) Integer issueNumber,
+            @RequestParam(required = false) String mediaType,
             HttpServletRequest request) {
 
         IPage<Material> materials = materialService.listMaterials(
-                page, limit, materialType, category, keyword, sortBy, issueYear, issueNumber);
+                page, limit, materialType, category, keyword, sortBy, issueYear, issueNumber, mediaType);
 
         // 处理付费内容模糊化
         Boolean isPremium = (Boolean) request.getAttribute("isPremium");
@@ -53,7 +55,7 @@ public class MaterialController {
             }
         });
 
-        return Result.ok(PageResult.from(materials));
+        return Result.ok(PageResult.from(materials.convert(MaterialPublicResponse::from)));
     }
 
     /**
@@ -66,7 +68,7 @@ public class MaterialController {
             @RequestParam(defaultValue = "20") int limit) {
 
         IPage<Material> materials = materialService.searchMaterials(keyword, page, limit);
-        return Result.ok(PageResult.from(materials));
+        return Result.ok(PageResult.from(materials.convert(MaterialPublicResponse::from)));
     }
 
     /**
@@ -105,6 +107,7 @@ public class MaterialController {
         result.put("thumbnailUrl", material.getThumbnailUrl());
         result.put("category", material.getCategory());
         result.put("materialType", material.getMaterialType());
+        result.put("mediaType", material.getMediaType());
         result.put("issueYear", material.getIssueYear());
         result.put("issueNumber", material.getIssueNumber());
         result.put("tags", material.getTags());

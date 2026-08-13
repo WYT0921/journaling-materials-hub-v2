@@ -44,9 +44,11 @@ const navItems = [
   { path: '/categories', icon: '📂', label: '分类管理' },
   { path: '/materials', icon: '🖼️', label: '素材管理' },
   { path: '/text-assets', icon: '☺', label: '颜文字 / Emoji' },
+  { path: '/collector-runs', icon: '↻', label: '采集记录' },
   { path: '/users', icon: '👥', label: '用户管理' },
   { path: '/redeem-codes', icon: '🎟️', label: '兑换码管理' },
-  { path: '/feedbacks', icon: '💬', label: '反馈管理' }
+  { path: '/feedbacks', icon: '💬', label: '反馈管理' },
+  { path: '/music-card', icon: '♪', label: '音乐卡片' }
 ]
 
 function handleLogout() {

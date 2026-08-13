@@ -101,6 +101,7 @@ const loadAllMaterials = async state => {
   const normalizedKeyword = keyword.value.trim()
   const params = {
     materialType: 'single',
+    mediaType: 'static_image',
     page: currentPage,
     limit: PAGE_SIZE
   }
@@ -118,7 +119,7 @@ const loadFavoriteMaterials = async state => {
     const currentPage = state.page
     const result = await getFavorites({ page: currentPage, limit: PAGE_SIZE })
     const records = result.list || []
-    added = favoriteRecordsToMaterials(records)
+    added = favoriteRecordsToMaterials(records).filter(item => (item.mediaType || 'static_image') === 'static_image')
     state.items.push(...added)
     state.hasMore = resolveHasMore(result, currentPage, records.length)
     state.page = currentPage + 1

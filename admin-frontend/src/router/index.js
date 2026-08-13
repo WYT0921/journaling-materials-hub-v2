@@ -30,6 +30,11 @@ const routes = [
         component: () => import('../views/text-assets/TextAssetList.vue')
       },
       {
+        path: 'collector-runs',
+        name: 'CollectorRuns',
+        component: () => import('../views/collector/CollectorRunList.vue')
+      },
+      {
         path: 'users',
         name: 'Users',
         component: () => import('../views/users/UserList.vue')
@@ -43,8 +48,17 @@ const routes = [
         path: 'feedbacks',
         name: 'Feedbacks',
         component: () => import('../views/feedbacks/FeedbackList.vue')
+      },
+      {
+        path: 'music-card',
+        name: 'MusicCard',
+        component: () => import('../views/music-card/MusicCardManage.vue')
       }
     ]
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/'
   }
 ]
 

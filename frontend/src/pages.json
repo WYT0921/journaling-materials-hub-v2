@@ -39,6 +39,12 @@
       }
     },
     {
+      "path": "pages/tools/dot-art",
+      "style": {
+        "navigationBarTitleText": "图片转 Dot Art"
+      }
+    },
+    {
       "path": "pages/profile/profile",
       "style": {
         "navigationBarTitleText": "我的"
@@ -78,8 +84,8 @@
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "手账素材",
-    "navigationBarBackgroundColor": "#FFFFFF",
-    "backgroundColor": "#F5F5F5",
+    "navigationBarBackgroundColor": "#EEEFE8",
+    "backgroundColor": "#F2FBDD",
     "navigationStyle": "custom",
     "app-plus": {
       "background": "#efeff4"
@@ -87,22 +93,16 @@
   },
   "tabBar": {
     "custom": true,
-    "color": "#999999",
-    "selectedColor": "#333333",
+    "color": "#777D79",
+    "selectedColor": "#4F7356",
     "borderStyle": "black",
-    "backgroundColor": "#FFFFFF",
+    "backgroundColor": "#EEEFE8",
     "list": [
       {
         "pagePath": "pages/index/index",
         "text": "首页",
         "iconPath": "static/icons/home.png",
         "selectedIconPath": "static/icons/home-active.png"
-      },
-      {
-        "pagePath": "pages/collage/index",
-        "text": "拼贴",
-        "iconPath": "static/icons/tools.png",
-        "selectedIconPath": "static/icons/tools-active.png"
       },
       {
         "pagePath": "pages/tools/tools",

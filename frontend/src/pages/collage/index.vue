@@ -53,7 +53,6 @@
       @export="handleExport"
     />
 
-    <CustomTabBar :current="1" />
 
     <CanvasSizeSheet :visible="showSizeSheet" @confirm="handleCanvasConfirm" />
     <MaterialPicker
@@ -82,7 +81,6 @@ import { clearMaterialImageCache, loadMaterialImage } from '../../utils/collage/
 import { createViewport } from '../../utils/collage/renderer.mjs'
 import { exportCollage, saveCollageToAlbum } from '../../utils/collage/exporter.mjs'
 import GlassNavBar from '../../components/GlassNavBar.vue'
-import CustomTabBar from '../../components/CustomTabBar.vue'
 import CanvasSizeSheet from '../../components/collage/CanvasSizeSheet.vue'
 import MaterialPicker from '../../components/collage/MaterialPicker.vue'
 import EditorToolbar from '../../components/collage/EditorToolbar.vue'

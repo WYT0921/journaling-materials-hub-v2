@@ -12,6 +12,7 @@
       <view v-if="material.isPremium" class="vip-badge">
         <text class="vip-text">权限</text>
       </view>
+      <view v-if="material.mediaType === 'animated_gif'" class="dynamic-badge"><text>GIF</text></view>
     </view>
 
     <!-- 信息区域 -->
@@ -82,6 +83,8 @@ const handleTap = () => {
   background: #fff;
   overflow: hidden;
 }
+
+.dynamic-badge { position:absolute; right:12rpx; bottom:12rpx; padding:4rpx 12rpx; border-radius:999rpx; background:rgba(0,0,0,.78); color:#fff; font-size:20rpx; line-height:1.5; }
 
 .card-image {
   width: 100%;

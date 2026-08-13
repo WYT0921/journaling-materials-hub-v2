@@ -1,0 +1,7 @@
+{
+  "delayMs": 2000,
+  "retries": 2,
+  "targets": [
+    { "source": "emojidb", "url": "https://emojidb.org/esthetic-emojis" }
+  ]
+}

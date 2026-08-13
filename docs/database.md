@@ -46,6 +46,13 @@
 | thumbnail_url | VARCHAR(256) | NULL | 缩略图URL |
 | category | VARCHAR(32) | NULL | 分类 |
 | material_type | VARCHAR(16) | DEFAULT 'single' | 一级类型：single=单个素材，bundle=合并素材 |
+| media_type | VARCHAR(24) | DEFAULT 'static_image' | static_image / animated_gif |
+| content_hash | CHAR(64) | NULL, UNIQUE | 动态文件 SHA-256，全局去重 |
+| mime_type | VARCHAR(64) | NULL | 文件 MIME |
+| file_size | BIGINT | NULL | 原文件字节数 |
+| width / height | INT | NULL | 媒体尺寸 |
+| duration_ms / frame_count | INT | NULL | 动图时长与帧数 |
+| source / source_url / collected_at | VARCHAR/DATETIME | NULL | 仅管理端可见的采集审计信息 |
 | issue_year | INT | NULL | 上传年份，与 issue_number 同时为空或同时有值 |
 | issue_number | INT | NULL | 上传期号，必须大于 0 |
 | tags | JSON | NULL | 标签数组 |
@@ -59,6 +66,8 @@
 **索引:**
 - `idx_materials_category` - category
 - `idx_materials_material_type` - material_type
+- `idx_materials_media_type` - media_type
+- `idx_materials_source_url` - source_url
 - `idx_materials_issue` - issue_year, issue_number
 - `idx_materials_is_premium` - is_premium
 - `idx_materials_status` - status
@@ -352,6 +361,25 @@ pool: {
 ---
 
 ## 常见问题
+
+### 每日采集流水线（V11）
+
+`text_assets` 新增 `ai_model VARCHAR(128)`、`ai_confidence DECIMAL(5,4)`、`review_note VARCHAR(512)`。`source` 允许 `threads`；公开 DTO 不暴露来源与审计字段。
+
+新增 `collector_runs`：
+
+| 字段 | 用途 |
+|---|---|
+| `trigger_type` | `scheduled/manual/dry-run` |
+| `status` | `running/succeeded/partial/failed` |
+| `started_at/finished_at` | 起止时间 |
+| `collected_count/candidate_count` | 原始与候选数量 |
+| `filtered_count/duplicate_count/inserted_count` | 过滤、重复、入库数量 |
+| `ai_failed_count` | AI 未完成数量 |
+| `source_stats` | 各来源 JSON 统计 |
+| `error_summary` | 截断后的错误摘要 |
+
+内容级幂等由 `text_assets.content_hash` 的 SHA-256 唯一索引保证；调度级并发由 Redis `collector:daily:lock`（TTL 4 小时）保证。
 
 ### 1. 如何添加新字段？
 

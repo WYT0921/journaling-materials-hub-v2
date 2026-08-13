@@ -24,7 +24,7 @@ class MaterialServiceTest extends BaseTest {
     @Test
     @Order(1)
     void testListMaterials_All() {
-        IPage<Material> page = materialService.listMaterials(1, 10, null, null, null, null, null, null);
+        IPage<Material> page = materialService.listMaterials(1, 10, null, null, null, null, null, null, null);
         assertNotNull(page);
         assertTrue(page.getTotal() >= 3);
     }
@@ -32,7 +32,7 @@ class MaterialServiceTest extends BaseTest {
     @Test
     @Order(2)
     void testListMaterials_ByCategory() {
-        IPage<Material> page = materialService.listMaterials(1, 10, null, "sticker", null, null, null, null);
+        IPage<Material> page = materialService.listMaterials(1, 10, null, "sticker", null, null, null, null, null);
         assertNotNull(page);
         page.getRecords().forEach(m -> assertEquals("sticker", m.getCategory()));
     }
@@ -40,7 +40,7 @@ class MaterialServiceTest extends BaseTest {
     @Test
     @Order(3)
     void testListMaterials_ByKeyword() {
-        IPage<Material> page = materialService.listMaterials(1, 10, null, null, "star", null, null, null);
+        IPage<Material> page = materialService.listMaterials(1, 10, null, null, "star", null, null, null, null);
         assertNotNull(page);
         assertTrue(page.getTotal() >= 0);
     }
@@ -48,7 +48,7 @@ class MaterialServiceTest extends BaseTest {
     @Test
     @Order(4)
     void testListMaterials_MultiKeyword() {
-        IPage<Material> page = materialService.listMaterials(1, 10, null, null, "vintage note", null, null, null);
+        IPage<Material> page = materialService.listMaterials(1, 10, null, null, "vintage note", null, null, null, null);
         assertNotNull(page);
         assertTrue(page.getTotal() >= 0);
     }
@@ -56,15 +56,15 @@ class MaterialServiceTest extends BaseTest {
     @Test
     @Order(5)
     void testListMaterials_Pagination() {
-        IPage<Material> page1 = materialService.listMaterials(1, 2, null, null, null, null, null, null);
-        IPage<Material> page2 = materialService.listMaterials(2, 2, null, null, null, null, null, null);
+        IPage<Material> page1 = materialService.listMaterials(1, 2, null, null, null, null, null, null, null);
+        IPage<Material> page2 = materialService.listMaterials(2, 2, null, null, null, null, null, null, null);
         assertNotEquals(page1.getRecords().get(0).getId(), page2.getRecords().get(0).getId());
     }
 
     @Test
     @Order(6)
     void testListMaterials_ByMaterialType() {
-        IPage<Material> page = materialService.listMaterials(1, 10, "bundle", null, null, null, null, null);
+        IPage<Material> page = materialService.listMaterials(1, 10, "bundle", null, null, null, null, null, null);
         assertNotNull(page);
         assertFalse(page.getRecords().isEmpty());
         page.getRecords().forEach(m -> assertEquals("bundle", m.getMaterialType()));
@@ -73,7 +73,7 @@ class MaterialServiceTest extends BaseTest {
     @Test
     @Order(7)
     void testListMaterials_ByMaterialTypeAndCategory() {
-        IPage<Material> page = materialService.listMaterials(1, 10, "bundle", "sticker", null, null, null, null);
+        IPage<Material> page = materialService.listMaterials(1, 10, "bundle", "sticker", null, null, null, null, null);
         assertNotNull(page);
         assertFalse(page.getRecords().isEmpty());
         page.getRecords().forEach(m -> {
@@ -85,11 +85,11 @@ class MaterialServiceTest extends BaseTest {
     @Test
     @Order(8)
     void testListMaterials_PseudoEmptyKeywordReturnsAll() {
-        long expected = materialService.listMaterials(1, 10, "single", null, null, null, null, null).getTotal();
+        long expected = materialService.listMaterials(1, 10, "single", null, null, null, null, null, null).getTotal();
 
-        assertEquals(expected, materialService.listMaterials(1, 10, "single", null, "undefined", null, null, null).getTotal());
-        assertEquals(expected, materialService.listMaterials(1, 10, "single", null, "null", null, null, null).getTotal());
-        assertEquals(expected, materialService.listMaterials(1, 10, "single", null, "  ", null, null, null).getTotal());
+        assertEquals(expected, materialService.listMaterials(1, 10, "single", null, "undefined", null, null, null, null).getTotal());
+        assertEquals(expected, materialService.listMaterials(1, 10, "single", null, "null", null, null, null, null).getTotal());
+        assertEquals(expected, materialService.listMaterials(1, 10, "single", null, "  ", null, null, null, null).getTotal());
     }
 
     @Test
@@ -136,7 +136,7 @@ class MaterialServiceTest extends BaseTest {
     @Test
     @Order(13)
     void testListMaterials_ByIssue() {
-        IPage<Material> page = materialService.listMaterials(1, 10, "single", "sticker", null, null, 2026, 7);
+        IPage<Material> page = materialService.listMaterials(1, 10, "single", "sticker", null, null, 2026, 7, null);
 
         assertEquals(1, page.getTotal());
         assertEquals(2026, page.getRecords().get(0).getIssueYear());

@@ -161,7 +161,7 @@ Content-Type: multipart/form-data
 }
 ```
 
-上传成功后，再调用 `PUT /api/user/profile` 保存 `nickname` 和 `avatarUrl`。
+头像在写入对象存储前调用微信图片内容安全接口；未通过检测时不会上传或发布，仅返回“所发布内容含违规信息”。上传成功后头像已绑定当前用户，客户端再调用 `PUT /api/user/profile` 保存昵称即可。`PUT /api/user/profile` 的昵称会通过 `security.msgSecCheck`（version=2、scene=1）检测，且不允许提交未经头像上传接口生成的外部头像 URL。
 
 ### 5. 获取会员状态
 
@@ -266,6 +266,7 @@ GET /api/materials
 | sortBy | string | 否 | `default` 综合排序、`newest` 最新发布、`downloads` 最多下载 |
 | issueYear | number | 否 | 上传年份；必须与 `issueNumber` 同时提供 |
 | issueNumber | number | 否 | 上传期号；必须与 `issueYear` 同时提供且大于 0 |
+| mediaType | string | 否 | `static_image` 静态图片 / `animated_gif` GIF 动图 |
 
 **响应**
 
@@ -285,6 +286,7 @@ GET /api/materials
         "thumbnailUrl": "缩略图URL",
         "category": "治愈系",
         "materialType": "single",
+        "mediaType": "static_image",
         "issueYear": 2026,
         "issueNumber": 7,
         "tags": ["猫咪", "贴纸", "可爱"],
@@ -318,6 +320,7 @@ GET /api/materials/:id
     "thumbnailUrl": "缩略图URL",
     "category": "治愈系",
     "materialType": "single",
+    "mediaType": "animated_gif",
     "issueYear": 2026,
     "issueNumber": 7,
     "tags": ["猫咪", "贴纸", "可爱"],
@@ -607,6 +610,12 @@ POST /api/v2/admin/auth/login
 | DELETE | `/api/v2/admin/materials/:id` | 删除素材 |
 | POST | `/api/v2/admin/upload` | 上传图片（返回 imageUrl + thumbnailUrl） |
 
+上传接口支持静态图片和 GIF。GIF 必须为多帧、最长 10 秒且不超过 10MB，返回 PNG 静态封面及 `mediaType/contentHash/mimeType/fileSize/width/height/durationMs/frameCount`。素材列表支持 `mediaType` 筛选，管理响应额外包含来源审计字段。
+
+### 3.1 动态素材内部导入
+
+`POST /api/v2/internal/dynamic-materials/import` 仅供专用 GIF Skill 调用，需 `X-Collector-Token`，请求为 multipart：`gif`、`cover`、`metadata`。后端再次校验 GIF 并按 SHA-256 去重；成功项直接发布。
+
 ### 4. 颜文字 / Emoji 管理
 
 | 方法 | 路径 | 说明 |
@@ -671,6 +680,19 @@ GET /api/v2/categories?type=tool
 ```
 
 ## 颜文字 / Emoji 公共接口
+
+### 每日采集内部接口
+
+以下接口仅供 collector 容器使用，必须携带 `X-Collector-Token`。Token 使用常量时间比较，不经过管理员密码认证。
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| POST | `/api/v2/internal/collector/runs/start` | 创建运行记录并获取最长 4 小时 Redis 任务锁 |
+| PUT | `/api/v2/internal/collector/runs/{id}` | 完成运行、写入统计并释放匹配的任务锁 |
+| POST | `/api/v2/internal/collector/import` | 导入 1–500 条候选；后端强制写为待审核 |
+| GET | `/api/v2/admin/collector-runs?page=1&limit=20` | 管理员查看采集记录 |
+
+导入响应包含 `inserted/duplicates/filtered/failed/errors`。公共素材接口不会返回来源 URL、AI 模型、置信度或审核说明。
 
 无需登录。`type` 必须为 `kaomoji` 或 `emoji`。
 

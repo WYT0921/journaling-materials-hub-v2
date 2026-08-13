@@ -185,13 +185,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
+import { onShow, onPullDownRefresh, onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
 import { useMaterialStore } from '../../stores/material'
 import MaterialCard from '../../components/MaterialCard.vue'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
 import EmptyState from '../../components/EmptyState.vue'
 import GlassNavBar from '../../components/GlassNavBar.vue'
 import CustomTabBar from '../../components/CustomTabBar.vue'
+import { buildShareAppMessage, buildShareTimeline, showToolShareMenu } from '../../utils/tool-share'
 
 const materialStore = useMaterialStore()
 
@@ -212,8 +213,12 @@ const materialTypeOptions = [
 
 // 页面加载
 onMounted(() => {
+  showToolShareMenu()
   initData()
 })
+
+onShareAppMessage(() => buildShareAppMessage('materials'))
+onShareTimeline(() => buildShareTimeline('materials'))
 
 // 页面显示
 onShow(() => {

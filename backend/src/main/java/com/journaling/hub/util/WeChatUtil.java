@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
@@ -23,8 +24,15 @@ public class WeChatUtil {
     @Value("${wechat.secret}")
     private String secret;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public WeChatUtil() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000);
+        factory.setReadTimeout(10000);
+        this.restTemplate = new RestTemplate(factory);
+    }
 
     private static final String JSCODE2SESSION_URL =
             "https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code";
@@ -41,7 +49,7 @@ public class WeChatUtil {
     /**
      * 获取微信 access_token（带内存缓存）
      */
-    private String getAccessToken() {
+    public String getAccessToken() {
         if (cachedAccessToken != null && System.currentTimeMillis() < accessTokenExpireTime) {
             return cachedAccessToken;
         }

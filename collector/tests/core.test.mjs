@@ -7,6 +7,13 @@ test('normalizes NFC and line endings while preserving emoji joiners', () => {
   assert.equal(contentHash('é'), contentHash('e\u0301'))
 })
 
+test('removes copy-button feedback and rejects ASCII navigation labels', () => {
+  assert.equal(normalizeContent('Copied! ૮₍ ˶ᵔ ᵕ ᵔ˶ ₎ა'), '૮₍ ˶ᵔ ᵕ ᵔ˶ ₎ა')
+  assert.equal(rejectionReason('Visual Art & Design'), 'plain_text')
+  assert.equal(rejectionReason('📋 copy'), 'ui_artifact')
+  assert.equal(rejectionReason('🔎'), 'ui_artifact')
+})
+
 test('filters URLs, blocked topics, plain text, and long paragraphs', () => {
   assert.equal(rejectionReason('https://example.com ♡'), 'url')
   assert.equal(rejectionReason('suicide'), 'blocked_topic')
@@ -17,6 +24,8 @@ test('filters URLs, blocked topics, plain text, and long paragraphs', () => {
 test('allows mild content but marks it for review', () => {
   const result = buildCandidate('┌∩┐(◣_◢)┌∩┐', 'cuteinternet', 'https://cuteinternet.com/middleFinger')
   assert.equal(result.candidate.riskLevel, 'mild')
+  const sourceMarked = buildCandidate('凸 (►˛◄’!)', 'cuteinternet', 'https://cuteinternet.com/middleFinger')
+  assert.equal(sourceMarked.candidate.riskLevel, 'mild')
 })
 
 test('deduplicates equivalent content and classifies assets', () => {

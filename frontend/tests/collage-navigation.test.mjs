@@ -4,52 +4,67 @@ import test from 'node:test'
 
 const readSource = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8')
 
-test('collage is the second primary tab and existing tab indexes move with it', async () => {
+test('primary tab bar excludes collage and keeps three top-level destinations', async () => {
   const pages = JSON.parse(await readSource('src/pages.json'))
   assert.deepEqual(
     pages.tabBar.list.map(item => item.pagePath),
-    ['pages/index/index', 'pages/collage/index', 'pages/tools/tools', 'pages/profile/profile']
+    ['pages/index/index', 'pages/tools/tools', 'pages/profile/profile']
   )
 
   const tabBar = await readSource('src/components/CustomTabBar.vue')
-  assert.match(tabBar, /text:\s*'拼贴'[\s\S]*pagePath:\s*'\/pages\/collage\/index'/)
+  assert.doesNotMatch(tabBar, /text:\s*'拼贴'/)
 
   const tools = await readSource('src/pages/tools/tools.vue')
   const profile = await readSource('src/pages/profile/profile.vue')
-  assert.match(tools, /<CustomTabBar\s+:current="2"/)
-  assert.match(profile, /<CustomTabBar\s+:current="3"/)
+  assert.match(tools, /<CustomTabBar\s+:current="1"/)
+  assert.match(profile, /<CustomTabBar\s+:current="2"/)
 })
 
-test('toolbox lists three internal modules and does not load external tool recommendations', async () => {
+test('toolbox exposes current tools while music card remains hidden', async () => {
   const pages = JSON.parse(await readSource('src/pages.json'))
   const tools = await readSource('src/pages/tools/tools.vue')
 
   assert.ok(pages.pages.some(page => page.path === 'pages/tools/fonts'))
   assert.ok(pages.pages.some(page => page.path === 'pages/tools/text-assets'))
+  assert.ok(pages.pages.some(page => page.path === 'pages/tools/dot-art'))
+  assert.ok(!pages.pages.some(page => page.path === 'pages/tools/music-card'))
   assert.match(tools, /name:\s*'特殊字体'/)
   assert.match(tools, /route:\s*'\/pages\/tools\/fonts'/)
   assert.match(tools, /name:\s*'颜文字 \/ Emoji'/)
   assert.match(tools, /route:\s*'\/pages\/tools\/text-assets'/)
   assert.match(tools, /name:\s*'自由拼贴'/)
   assert.match(tools, /route:\s*'\/pages\/collage\/index'/)
-  assert.match(tools, /uni\.switchTab\(\{\s*url:\s*tool\.route/)
+  assert.match(tools, /name:\s*'图片转 Dot Art'/)
+  assert.match(tools, /route:\s*'\/pages\/tools\/dot-art'/)
+  assert.doesNotMatch(tools, /name:\s*'氛围音乐卡片'/)
+  assert.doesNotMatch(tools, /route:\s*'\/pages\/tools\/music-card'/)
+  assert.doesNotMatch(tools, /uni\.switchTab\(\{\s*url:\s*tool\.route/)
   assert.doesNotMatch(tools, /fetchTools|useToolsStore|api\/tools/)
 })
 
-test('detail page passes a material through the collage store before switching tabs', async () => {
-  const detail = await readSource('src/pages/detail/detail.vue')
-  assert.match(detail, /setPendingMaterialId\(materialId\.value\)/)
-  assert.match(detail, /uni\.switchTab\(\{\s*url:\s*'\/pages\/collage\/index'/)
+test('Dot Art page exposes local generation and copy without PNG saving', async () => {
+  const dotArt = await readSource('src/pages/tools/dot-art.vue')
+  assert.match(dotArt, /convertImageToDotArt/)
+  assert.match(dotArt, /uni\.chooseImage/)
+  assert.match(dotArt, /uni\.setClipboardData/)
+  assert.doesNotMatch(dotArt, /saveDotArtToAlbum|saveResult|保存 PNG/)
+  assert.match(dotArt, /图片仅在本机处理/)
 })
 
-test('collage uses DOM image layers for editing and renders its tab bar', async () => {
+test('detail page passes a material through the collage store before opening the toolbox page', async () => {
+  const detail = await readSource('src/pages/detail/detail.vue')
+  assert.match(detail, /setPendingMaterialId\(materialId\.value\)/)
+  assert.match(detail, /uni\.navigateTo\(\{\s*url:\s*'\/pages\/collage\/index'/)
+})
+
+test('collage uses DOM image layers for editing without a duplicated tab bar', async () => {
   const collage = await readSource('src/pages/collage/index.vue')
   assert.match(collage, /class="paper-stage"/)
   assert.match(collage, /v-for="layer in collageStore\.scene\.layers"/)
   assert.match(collage, /class="stage-layer-image"/)
   assert.match(collage, /class="selection-outline"/)
   assert.doesNotMatch(collage, /<canvas/)
-  assert.match(collage, /<CustomTabBar\s+:current="1"/)
+  assert.doesNotMatch(collage, /<CustomTabBar/)
 })
 
 test('material picker requests a compact bottom sheet', async () => {

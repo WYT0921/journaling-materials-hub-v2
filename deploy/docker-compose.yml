@@ -1,7 +1,7 @@
 services:
   # SpringBoot 后端
   backend:
-    image: journaling-materials-hub-backend:20260806-93bf6ed-wechatprobe
+    image: journaling-materials-hub-backend:20260812-6c90287-corsfix-2245
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -45,6 +45,8 @@ services:
       - ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH}
       - ADMIN_TOKEN_EXPIRATION=${ADMIN_TOKEN_EXPIRATION:-86400000}
       - FREE_DOWNLOAD_LIMIT=${FREE_DOWNLOAD_LIMIT:-50}
+      - APP_CORS_ALLOWED_ORIGINS=${APP_CORS_ALLOWED_ORIGINS:-https://shouzhangku.store,https://www.shouzhangku.store}
+      - COLLECTOR_TOKEN=${COLLECTOR_TOKEN}
     networks:
       - journaling-network
 
@@ -63,6 +65,32 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./nginx/ssl:/etc/nginx/ssl
       - ./admin-frontend/dist:/usr/share/nginx/html/admin
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - journaling-network
+
+  collector:
+    image: journaling-materials-hub-collector:20260812-6c90287-worktree-2225
+    build:
+      context: ./collector
+      dockerfile: Dockerfile
+    container_name: journaling-materials-hub-collector
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
+      - COLLECTOR_ENABLED=${COLLECTOR_ENABLED:-false}
+      - COLLECTOR_CRON=${COLLECTOR_CRON:-30 2 * * *}
+      - COLLECTOR_TOKEN=${COLLECTOR_TOKEN}
+      - BACKEND_URL=http://backend:8080
+      - APIFY_TOKEN=${APIFY_TOKEN:-}
+      - APIFY_ACTOR_ID=${APIFY_ACTOR_ID:-magicfingers/threads-scraper}
+      - AI_BASE_URL=${AI_BASE_URL:-}
+      - AI_API_KEY=${AI_API_KEY:-}
+      - AI_MODEL=${AI_MODEL:-}
+    volumes:
+      - ./collector-data:/data
     depends_on:
       - backend
     networks:

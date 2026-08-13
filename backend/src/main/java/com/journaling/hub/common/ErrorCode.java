@@ -25,6 +25,8 @@ public enum ErrorCode {
     TOKEN_INVALID(1006, "Token 无效"),
     PHONE_ALREADY_BOUND(1007, "手机号已绑定"),
     PHONE_BIND_FAILED(1008, "手机号绑定失败"),
+    CONTENT_SECURITY_RISK(1009, "所发布内容含违规信息"),
+    CONTENT_SECURITY_UNAVAILABLE(1010, "内容安全检测失败，请稍后重试"),
 
     // 素材相关错误 (2xxx)
     MATERIAL_NOT_FOUND(2001, "素材不存在"),

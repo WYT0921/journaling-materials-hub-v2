@@ -140,10 +140,9 @@
           <text class="editor-close" @tap="closeProfileEditor">×</text>
         </view>
 
-        <button
+        <view
           class="avatar-picker"
-          open-type="chooseAvatar"
-          @chooseavatar="handleChooseAvatar"
+          @tap="handleChooseAvatar"
         >
           <image
             v-if="profileForm.avatarUrl && profileForm.avatarUrl.indexOf('default') === -1"
@@ -153,14 +152,13 @@
           />
           <text v-else class="editor-avatar-icon">👤</text>
           <text class="avatar-picker-label">更换头像</text>
-        </button>
+        </view>
 
         <view class="editor-field">
           <text class="editor-label">昵称</text>
           <input
             v-model="profileForm.nickname"
             class="nickname-input"
-            type="nickname"
             maxlength="20"
             placeholder="请输入昵称"
           />
@@ -213,7 +211,7 @@
     <CustomToast ref="toastRef" />
 
     <!-- 底部 TabBar -->
-    <CustomTabBar :current="3" />
+    <CustomTabBar :current="2" />
   </view>
 </template>
 
@@ -299,15 +297,27 @@ const closeProfileEditor = () => {
   selectedAvatarPath.value = ''
 }
 
-const handleChooseAvatar = (event) => {
-  const avatarUrl = event.detail?.avatarUrl
-  if (!avatarUrl) {
-    uni.showToast({ title: '获取头像失败', icon: 'none' })
-    return
-  }
-
-  profileForm.value.avatarUrl = avatarUrl
-  selectedAvatarPath.value = avatarUrl
+const handleChooseAvatar = () => {
+  // 使用 chooseMedia 替代 chooseAvatar，无需隐私协议声明
+  uni.chooseMedia({
+    count: 1,
+    mediaType: ['image'],
+    sizeType: ['compressed'],
+    sourceType: ['album', 'camera'],
+    success: (res) => {
+      const tempFilePath = res.tempFiles?.[0]?.tempFilePath
+      if (!tempFilePath) {
+        uni.showToast({ title: '获取头像失败', icon: 'none' })
+        return
+      }
+      selectedAvatarPath.value = tempFilePath
+      profileForm.value.avatarUrl = tempFilePath
+    },
+    fail: (err) => {
+      if (err.errMsg?.includes('cancel')) return
+      uni.showToast({ title: '获取头像失败', icon: 'none' })
+    }
+  })
 }
 
 const handleSaveProfile = async () => {
@@ -333,6 +343,10 @@ const handleSaveProfile = async () => {
     selectedAvatarPath.value = ''
   } catch (error) {
     console.error('保存资料失败:', error)
+    uni.showToast({
+      title: error?.code === 1009 ? '所发布内容含违规信息' : (error?.message || '保存失败，请稍后重试'),
+      icon: 'none'
+    })
   } finally {
     isSavingProfile.value = false
   }

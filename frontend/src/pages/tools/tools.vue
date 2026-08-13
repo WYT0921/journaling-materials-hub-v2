@@ -47,13 +47,20 @@
       </view>
     </scroll-view>
 
-    <CustomTabBar :current="2" />
+    <CustomTabBar :current="1" />
   </view>
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
+import { onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
 import GlassNavBar from '../../components/GlassNavBar.vue'
 import CustomTabBar from '../../components/CustomTabBar.vue'
+import { buildShareAppMessage, buildShareTimeline, showToolShareMenu } from '../../utils/tool-share'
+
+onMounted(showToolShareMenu)
+onShareAppMessage(() => buildShareAppMessage('toolbox'))
+onShareTimeline(() => buildShareTimeline('toolbox'))
 
 const tools = [
   {
@@ -74,6 +81,7 @@ const tools = [
     theme: 'emoji',
     route: '/pages/tools/text-assets'
   },
+  /*
   {
     id: 'collage',
     name: '自由拼贴',
@@ -81,16 +89,21 @@ const tools = [
     tag: '图片创作',
     icon: '✦',
     theme: 'collage',
-    route: '/pages/collage/index',
-    tab: true
+    route: '/pages/collage/index'
+  },
+  */
+  {
+    id: 'dot-art',
+    name: '图片转 Dot Art',
+    description: '把照片转换为可复制的 Braille 点阵或 ASCII 字符画',
+    tag: '图像实验',
+    icon: '⠿',
+    theme: 'dot',
+    route: '/pages/tools/dot-art'
   }
 ]
 
 function openTool(tool) {
-  if (tool.tab) {
-    uni.switchTab({ url: tool.route })
-    return
-  }
   uni.navigateTo({ url: tool.route })
 }
 </script>
@@ -100,8 +113,8 @@ function openTool(tool) {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  color: #171512;
-  background: #f4efe6;
+  color: #3f4d50;
+  background: linear-gradient(180deg, #f7fde9 0%, #f2fbdd 58%, #eaf7d2 100%);
 }
 
 .tools-scroll {
@@ -115,7 +128,7 @@ function openTool(tool) {
 
 .eyebrow {
   display: block;
-  color: #8f887c;
+  color: #6f766f;
   font-size: 19rpx;
   font-weight: 600;
   letter-spacing: 5rpx;
@@ -134,7 +147,7 @@ function openTool(tool) {
   display: block;
   max-width: 580rpx;
   margin-top: 14rpx;
-  color: #706b63;
+  color: #606963;
   font-size: 24rpx;
   line-height: 1.6;
 }
@@ -152,7 +165,7 @@ function openTool(tool) {
 }
 
 .section-count {
-  color: #918a80;
+  color: #6f766f;
   font-size: 21rpx;
 }
 
@@ -171,20 +184,30 @@ function openTool(tool) {
   min-height: 390rpx;
   padding: 24rpx;
   overflow: hidden;
-  border: 1rpx solid rgba(80, 70, 56, 0.16);
+  border: 1rpx solid rgba(201, 178, 151, 0.34);
+  border-radius: 24rpx;
+  box-shadow: 0 8rpx 20rpx rgba(111, 139, 104, 0.05);
   transition: transform 120ms ease, opacity 120ms ease;
 }
 
 .tool-card--type {
-  background: #eadfce;
-}
-
-.tool-card--collage {
-  background: #dce4d5;
+  border-color: rgba(201, 178, 151, 0.38);
+  background: #fff9e9;
 }
 
 .tool-card--emoji {
-  background: #e6ddea;
+  border-color: rgba(233, 172, 187, 0.46);
+  background: #fbecef;
+}
+
+.tool-card--collage {
+  border-color: rgba(143, 188, 147, 0.48);
+  background: #eaf5eb;
+}
+
+.tool-card--dot {
+  border-color: rgba(201, 178, 151, 0.42);
+  background: #f1f5e8;
 }
 
 .tool-card--active {
@@ -204,9 +227,9 @@ function openTool(tool) {
   justify-content: center;
   width: 82rpx;
   height: 82rpx;
-  border: 1rpx solid rgba(23, 21, 18, 0.14);
+  border: 1rpx solid rgba(143, 188, 147, 0.3);
   border-radius: 50%;
-  background: rgba(255, 253, 249, 0.48);
+  background: rgba(238, 239, 232, 0.78);
 }
 
 .tool-icon-text {
@@ -216,7 +239,7 @@ function openTool(tool) {
 }
 
 .tool-arrow {
-  color: rgba(23, 21, 18, 0.62);
+  color: rgba(63, 77, 80, 0.72);
   font-size: 30rpx;
 }
 
@@ -235,7 +258,7 @@ function openTool(tool) {
 .tool-description {
   display: block;
   margin-top: 16rpx;
-  color: #625d55;
+  color: #59696b;
   font-size: 21rpx;
   line-height: 1.55;
 }
@@ -243,10 +266,26 @@ function openTool(tool) {
 .tool-tag {
   align-self: flex-start;
   padding-top: 18rpx;
-  border-top: 1rpx solid rgba(23, 21, 18, 0.12);
-  color: #746d63;
+  border-top: 1rpx solid rgba(63, 77, 80, 0.13);
+  color: #607477;
   font-size: 18rpx;
   letter-spacing: 2rpx;
+}
+
+.tool-card--type .tool-tag {
+  color: #8f7659;
+}
+
+.tool-card--emoji .tool-tag {
+  color: #a66f7d;
+}
+
+.tool-card--collage .tool-tag {
+  color: #5f8564;
+}
+
+.tool-card--dot .tool-tag {
+  color: #70805d;
 }
 
 .coming-soon {
@@ -255,12 +294,13 @@ function openTool(tool) {
   gap: 22rpx;
   margin: 26rpx 24rpx 52rpx;
   padding: 26rpx 28rpx;
-  border: 1rpx dashed #c9c1b5;
-  background: rgba(255, 253, 249, 0.4);
+  border: 1rpx dashed #a9c9c9;
+  border-radius: 20rpx;
+  background: rgba(238, 239, 232, 0.72);
 }
 
 .coming-symbol {
-  color: #9c9488;
+  color: #6f9293;
   font-family: Georgia, 'Times New Roman', serif;
   font-size: 48rpx;
   font-weight: 300;
@@ -278,7 +318,7 @@ function openTool(tool) {
 
 .coming-description {
   margin-top: 6rpx;
-  color: #918a80;
+  color: #6f766f;
   font-size: 20rpx;
 }
 </style>

@@ -32,13 +32,17 @@ public class MaterialServiceImpl implements MaterialService {
 
     @Override
     public IPage<Material> listMaterials(int page, int limit, String materialType, String category,
-                                         String keyword, String sortBy, Integer issueYear, Integer issueNumber) {
+                                         String keyword, String sortBy, Integer issueYear, Integer issueNumber, String mediaType) {
         Page<Material> pageParam = new Page<>(page, limit);
         String normalizedKeyword = normalizeOptionalKeyword(keyword);
         validateIssue(issueYear, issueNumber);
 
         LambdaQueryWrapper<Material> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Material::getStatus, 1);
+        if (mediaType != null && !mediaType.isEmpty()) {
+            validateMediaType(mediaType);
+            wrapper.eq(Material::getMediaType, mediaType);
+        }
 
         if (materialType != null && !materialType.isEmpty()) {
             validateMaterialType(materialType);
@@ -194,6 +198,12 @@ public class MaterialServiceImpl implements MaterialService {
     private void validateMaterialType(String materialType) {
         if (!"single".equals(materialType) && !"bundle".equals(materialType)) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "素材类型必须为 single 或 bundle");
+        }
+    }
+
+    private void validateMediaType(String mediaType) {
+        if (!"static_image".equals(mediaType) && !"animated_gif".equals(mediaType)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "媒体类型必须为 static_image 或 animated_gif");
         }
     }
 
