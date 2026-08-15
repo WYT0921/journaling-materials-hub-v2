@@ -8,15 +8,16 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type Konva from 'konva'
-import { renderAuraStage } from '../editor/konvaRenderer'
+import { animateAuraStage, renderAuraStage } from '../editor/konvaRenderer'
 import type { AuraProject, AuraTemplate } from '../types/aura'
 
-const props = defineProps<{ project: AuraProject; template: AuraTemplate; photoUrl?: string }>()
+const props = withDefaults(defineProps<{ project: AuraProject; template: AuraTemplate; photoUrl?: string; playing?: boolean }>(), { playing: false })
 const container = ref<HTMLDivElement>()
 const busy = ref(false)
 let stage: Konva.Stage | undefined
+let stopAnimation: (() => void) | undefined
 let revision = 0
-const aspectRatio = computed(() => props.project.ratio === '1:1' ? '1 / 1' : props.project.ratio === '9:16' ? '9 / 16' : '4 / 3')
+const aspectRatio = computed(() => props.project.ratio === '1:1' ? '1 / 1' : props.project.ratio === '9:16' ? '9 / 16' : '3 / 4')
 
 async function draw() {
   if (!container.value) return
@@ -26,10 +27,13 @@ async function draw() {
   const width = container.value.clientWidth
   const next = await renderAuraStage({ container: container.value, project: props.project, template: props.template, photoUrl: props.photoUrl, width })
   if (current !== revision) next.destroy()
-  else { stage?.destroy(); stage = next; busy.value = false }
+  else { stopAnimation?.(); stage?.destroy(); stage = next; busy.value = false; syncAnimation() }
 }
+
+function syncAnimation() { stopAnimation?.(); stopAnimation = props.playing && stage ? animateAuraStage(stage, props.project.adjustments.motion) : undefined }
 
 onMounted(draw)
 watch(() => [props.project, props.template, props.photoUrl], draw, { deep: true })
-onBeforeUnmount(() => { revision++; stage?.destroy() })
+watch(() => props.playing, syncAnimation)
+onBeforeUnmount(() => { revision++; stopAnimation?.(); stage?.destroy() })
 </script>

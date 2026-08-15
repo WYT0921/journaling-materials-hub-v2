@@ -1,4 +1,4 @@
-import type { AuraProject } from '../types/aura'
+import { migrateProject, type AuraProject, type LegacyAuraProject } from '../types/aura'
 
 const DB_NAME = 'aura-music-web'
 const DB_VERSION = 1
@@ -28,9 +28,9 @@ function requestResult<T>(request: IDBRequest<T>): Promise<T> {
 export class ProjectRepository {
   async list(): Promise<AuraProject[]> {
     const db = await openAuraDb()
-    const rows = await requestResult(db.transaction(PROJECTS).objectStore(PROJECTS).getAll()) as AuraProject[]
+    const rows = await requestResult(db.transaction(PROJECTS).objectStore(PROJECTS).getAll()) as (AuraProject | LegacyAuraProject)[]
     db.close()
-    return rows.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    return rows.map(migrateProject).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
   }
 
   async save(project: AuraProject): Promise<void> {
@@ -57,6 +57,13 @@ export class ProjectRepository {
     const result = await requestResult(db.transaction(FILES).objectStore(FILES).get(key)) as Blob | undefined
     db.close()
     return result
+  }
+
+  async find(id: string): Promise<AuraProject | undefined> {
+    const db = await openAuraDb()
+    const row = await requestResult(db.transaction(PROJECTS).objectStore(PROJECTS).get(id)) as AuraProject | LegacyAuraProject | undefined
+    db.close()
+    return row ? migrateProject(row) : undefined
   }
 
   async delete(project: AuraProject): Promise<void> {

@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { loadCatalog } from '../repositories/catalogRepository'
 import { ProjectRepository } from '../repositories/projectRepository'
-import { newProject, type AuraCatalog, type AuraProject, type AuraTemplate } from '../types/aura'
+import { migrateProject, newProject, templatePresentation, type AuraCatalog, type AuraProject, type AuraTemplate } from '../types/aura'
 
 const repository = new ProjectRepository()
 
@@ -29,9 +29,25 @@ export const useAuraStore = defineStore('aura', () => {
 
   async function open(project: AuraProject) {
     clearPhotoUrl()
-    active.value = structuredClone(project)
+    active.value = migrateProject(JSON.parse(JSON.stringify(project)))
     const photo = await repository.getPhoto(project.photoKey)
     activePhotoUrl.value = photo ? URL.createObjectURL(photo) : undefined
+  }
+
+  async function openById(id: string) {
+    await initialize()
+    const project = projects.value.find(item => item.id === id) || await repository.find(id)
+    if (!project) return false
+    await open(project)
+    return true
+  }
+
+  function applyTemplate(key: string) {
+    if (!active.value) return
+    const presentation = templatePresentation[key] || templatePresentation['fresh-rounded']
+    active.value.templateKey = key
+    active.value.adjustments.playerStyle = presentation.playerStyle
+    active.value.adjustments.notePath = presentation.notePath
   }
 
   async function setPhoto(file: File, palette: string[]) {
@@ -70,5 +86,5 @@ export const useAuraStore = defineStore('aura', () => {
     activePhotoUrl.value = undefined
   }
 
-  return { catalog, projects, active, activePhotoUrl, activeTemplate, ready, initialize, create, open, setPhoto, save, remove }
+  return { catalog, projects, active, activePhotoUrl, activeTemplate, ready, initialize, create, open, openById, applyTemplate, setPhoto, save, remove }
 })

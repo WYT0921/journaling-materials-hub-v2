@@ -23,6 +23,6 @@ import { useAuraStore } from '../stores/aura'
 import type { AuraProject } from '../types/aura'
 const router = useRouter(), store = useAuraStore()
 async function start() { await store.create(); router.push('/create') }
-async function open(project: AuraProject) { await store.open(project); router.push('/create') }
+async function open(project: AuraProject) { await store.open(project); router.push(`/editor/${project.id}`) }
 const formatDate = (value: string) => new Intl.DateTimeFormat('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value))
 </script>
