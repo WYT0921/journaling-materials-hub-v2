@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { EditHistory } from '../src/editor/history'
 import { clusterPixels } from '../src/services/paletteService'
+import { videoSampleTimes } from '../src/services/paletteService'
 import { migrateProject, newProject, ratioSize, templatePresentation, type LegacyAuraProject } from '../src/types/aura'
 import { selectMp4MimeType, videoExportSize } from '../src/services/videoExportService'
 
@@ -17,6 +18,7 @@ describe('AURA web domain', () => {
     expect(project.templateKey).toBe('cute-pink')
     expect(project.adjustments.playerStyle).toBe('bubble')
     expect(project.adjustments.notePath).toBe('arc')
+    expect(project.mediaType).toBe('image')
     expect(project).not.toHaveProperty('userId')
   })
 
@@ -36,6 +38,13 @@ describe('AURA web domain', () => {
     const project = newProject()
     const styles = ['capsule', 'vinyl', 'console', 'bubble', 'waveform', 'heartbeat'] as const
     for (const style of styles) { project.adjustments.playerStyle = style; expect(project.adjustments.playerStyle).toBe(style) }
+  })
+
+  it('keeps decoration color independently editable from the background', () => {
+    const project = newProject()
+    project.adjustments.paletteIndex = 0
+    project.adjustments.noteColorIndex = 3
+    expect(project.adjustments.noteColorIndex).not.toBe(project.adjustments.paletteIndex)
   })
 
   it('selects a real MP4 recorder type and exact full-size video dimensions', () => {
@@ -93,5 +102,10 @@ describe('AURA web domain', () => {
     expect(first).toHaveLength(5)
     expect(clusterPixels(pixels)).toEqual(first)
     expect(first.every(color => /^#[0-9a-f]{6}$/.test(color))).toBe(true)
+  })
+
+  it('samples five representative video frames instead of only the opening frame', () => {
+    expect(videoSampleTimes(10)).toEqual([.5, 2.5, 5, 7.5, 9.5])
+    expect(videoSampleTimes(0)).toEqual([.1])
   })
 })

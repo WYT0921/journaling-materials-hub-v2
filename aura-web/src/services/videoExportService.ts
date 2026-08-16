@@ -19,6 +19,7 @@ export function videoExportSize(ratio: AuraProject['ratio']): [number, number] {
 export interface Mp4ExportOptions {
   durationMs?: number
   fps?: number
+  audioUrl?: string
   signal?: AbortSignal
   onProgress?: (value: number) => void
 }
@@ -37,9 +38,18 @@ export async function exportAuraMp4(project: AuraProject, template: AuraTemplate
   if (!context) { container.remove(); throw new Error('无法创建视频画布') }
   let stage: Awaited<ReturnType<typeof renderAuraStage>> | undefined
   let stream: MediaStream | undefined
+  let exportAudio: HTMLAudioElement | undefined
+  let audioContext: AudioContext | undefined = options.audioUrl ? new AudioContext() : undefined
+  const audioReady = audioContext?.resume()
   try {
     stage = await renderAuraStage({ container, project, template, photoUrl, width })
-    const motion = createAuraMotionController(stage, project.adjustments.motion)
+    if (options.audioUrl) {
+      await audioReady
+      exportAudio = new Audio(options.audioUrl); exportAudio.loop = true; exportAudio.preload = 'auto'
+      await new Promise<void>((resolve, reject) => { exportAudio!.onloadedmetadata = () => resolve(); exportAudio!.onerror = () => reject(new Error('音频无法加入 MP4，请尝试 MP3 或 M4A 格式')) })
+      if (exportAudio.duration) exportAudio.currentTime = project.adjustments.progress * exportAudio.duration
+    }
+    const motion = createAuraMotionController(stage, project.adjustments.motion, () => exportAudio?.duration ? exportAudio.currentTime / exportAudio.duration : undefined)
     const sourceCanvas = stage.container().querySelector('canvas')
     if (!sourceCanvas) throw new Error('无法读取视频画布')
     const drawFrame = (time: number) => {
@@ -49,6 +59,13 @@ export async function exportAuraMp4(project: AuraProject, template: AuraTemplate
     }
     drawFrame(0)
     stream = output.captureStream(fps)
+    if (exportAudio && audioContext) {
+      const source = audioContext.createMediaElementSource(exportAudio)
+      const destination = audioContext.createMediaStreamDestination()
+      source.connect(destination)
+      destination.stream.getAudioTracks().forEach(track => stream!.addTrack(track))
+      try { await exportAudio.play() } catch { throw new Error('浏览器阻止了音频导出，请重新点击导出后再试') }
+    }
     const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 10_000_000 })
     const chunks: Blob[] = []
     const completed = new Promise<Blob>((resolve, reject) => {
@@ -77,6 +94,8 @@ export async function exportAuraMp4(project: AuraProject, template: AuraTemplate
     options.onProgress?.(1)
     return blob
   } finally {
+    exportAudio?.pause()
+    await audioContext?.close().catch(() => undefined)
     stream?.getTracks().forEach(track => track.stop())
     stage?.destroy(); container.remove()
   }

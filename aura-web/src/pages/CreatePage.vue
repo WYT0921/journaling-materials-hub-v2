@@ -1,15 +1,17 @@
 <template>
   <section v-if="store.active" class="page prepare-page">
-    <div class="create-heading"><div><p class="eyebrow">NEW MEMORY</p><h1>{{ step === 0 ? '选择今天的照片' : '写下音乐信息' }}</h1></div><span>{{ step + 1 }} / 2</span></div>
+    <div class="create-heading"><div><p class="eyebrow">NEW MEMORY</p><h1>{{ step === 0 ? '选择照片或视频' : '写下音乐信息' }}</h1></div><span>{{ step + 1 }} / 2</span></div>
     <div class="step-dots two"><i :class="{ active: true }"></i><i :class="{ active: step === 1 }"></i></div>
 
     <div v-if="step === 0" class="step-panel photo-step">
       <label class="photo-picker" :class="{ filled: store.activePhotoUrl }">
-        <img v-if="store.activePhotoUrl" :src="store.activePhotoUrl" alt="已选择照片" />
-        <div v-else><span>＋</span><b>选择一张照片</b><small>JPEG · PNG · WebP</small></div>
-        <input type="file" accept="image/jpeg,image/png,image/webp" @change="pickPhoto" />
+        <video v-if="store.activePhotoUrl && store.active.mediaType === 'video'" :src="store.activePhotoUrl" muted loop autoplay playsinline aria-label="已选择视频"></video>
+        <img v-else-if="store.activePhotoUrl" :src="store.activePhotoUrl" alt="已选择照片" />
+        <div v-else><span>＋</span><b>选择照片或 Live 视频</b><small>JPEG · PNG · WebP · MP4 · MOV</small></div>
+        <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm" @change="pickPhoto" />
       </label>
-      <p class="privacy-note">◉ 图片在设备本地取色和保存，不会上传。</p>
+      <p class="privacy-note">◉ 照片和视频仅在设备本地处理，不会上传。</p>
+      <p v-if="mediaError" class="media-error">{{ mediaError }}</p>
       <div v-if="store.activePhotoUrl" class="palette-row"><button v-for="(color, index) in store.active.palette" :key="color" :class="{ selected: index === store.active.adjustments.paletteIndex }" :style="{ background: color }" @click="store.active.adjustments.paletteIndex = index"></button></div>
     </div>
 
@@ -32,7 +34,7 @@ import { useRouter } from 'vue-router'
 import { useAuraStore } from '../stores/aura'
 import { extractPalette } from '../services/paletteService'
 
-const store = useAuraStore(), router = useRouter(), step = ref(0)
+const store = useAuraStore(), router = useRouter(), step = ref(0), mediaError = ref('')
 let saveTimer = 0
 onMounted(async () => { await store.initialize(); if (!store.active) await store.create() })
 onUnmounted(() => { window.clearTimeout(saveTimer); store.save() })
@@ -40,8 +42,10 @@ watch(() => store.active, () => { window.clearTimeout(saveTimer); saveTimer = wi
 
 async function pickPhoto(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
-  if (!file || !file.type.startsWith('image/')) return
-  await store.setPhoto(file, await extractPalette(file))
+  if (!file || (!file.type.startsWith('image/') && !file.type.startsWith('video/'))) return
+  mediaError.value = ''
+  try { await store.setMedia(file, await extractPalette(file)) }
+  catch (error) { mediaError.value = error instanceof Error ? error.message : '媒体取色失败，请更换文件后重试' }
 }
 async function continueFlow() {
   if (!store.active) return
@@ -51,3 +55,8 @@ async function continueFlow() {
   router.push(`/editor/${store.active.id}`)
 }
 </script>
+
+<style scoped>
+.photo-picker video { width: 100%; height: 100%; object-fit: cover; }
+.media-error { margin: 10px 0 0; color: #a14f4f; text-align: center; font-size: 12px; }
+</style>

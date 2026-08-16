@@ -4,7 +4,10 @@ export type AuraPlayerStyle = 'capsule' | 'bubble' | 'console' | 'vinyl' | 'wave
 export type AuraNotePath = 'vertical' | 'arc' | 'sparse' | 'spiral' | 'scatter'
 export type AuraTextFont = 'serif' | 'sans' | 'rounded'
 export type AuraTextAlign = 'left' | 'center' | 'right'
+export type AuraLyricsStyle = 'center-poetry' | 'editorial' | 'handwritten-note' | 'minimal-serif'
 export type AuraMotion = 'fall' | 'breathe' | 'together' | 'sequence' | 'rotate'
+export type AuraDecorationStyle = 'music-notes' | 'bows' | 'stars' | 'flowers' | 'sparkles' | 'hearts'
+export type AuraDecorationDistribution = 'trail' | 'scatter' | 'uniform'
 
 export interface AuraMusicInfo {
   songName: string
@@ -22,6 +25,10 @@ export interface AuraAdjustments {
   photoOffsetY: number
   photoSplit: number
   decorationDensity: number
+  decorationVisible: boolean
+  decorationStyle: AuraDecorationStyle
+  decorationDistribution: AuraDecorationDistribution
+  decorationOpacity: number
   paletteIndex: number
   secondaryPaletteIndex: number
   stripeAngle: number
@@ -36,6 +43,11 @@ export interface AuraAdjustments {
   textFont: AuraTextFont
   textAlign: AuraTextAlign
   textColorIndex: number
+  lyricsStyle: AuraLyricsStyle
+  lyricsFontSize: number
+  lyricsLineHeight: number
+  lyricsOpacity: number
+  lyricsOffsetY: number
   motion: AuraMotion
 }
 
@@ -45,6 +57,9 @@ export interface AuraProject {
   title: string
   ratio: AuraRatio
   photoKey?: string
+  audioKey?: string
+  audioName?: string
+  mediaType: 'image' | 'video'
   music: AuraMusicInfo
   palette: string[]
   templateKey: string
@@ -106,10 +121,11 @@ export const templatePresentation: Record<string, { playerStyle: AuraPlayerStyle
 
 export const defaultAdjustments = (): AuraAdjustments => ({
   background: 'gradient', photoScale: 1, photoOffsetX: 0, photoOffsetY: 0,
-  photoSplit: .5, decorationDensity: 12, paletteIndex: 0, secondaryPaletteIndex: 1,
+  photoSplit: .5, decorationDensity: 7, decorationVisible: true, decorationStyle: 'music-notes', decorationDistribution: 'trail', decorationOpacity: .62, paletteIndex: 0, secondaryPaletteIndex: 1,
   stripeAngle: 90, stripeDensity: 10, playerStyle: 'capsule', playerScale: 1,
   progress: .42, notePath: 'vertical', noteStyle: 'mixed', noteColorIndex: 3,
   quoteVisible: true, textFont: 'serif', textAlign: 'center', textColorIndex: 4,
+  lyricsStyle: 'minimal-serif', lyricsFontSize: 1, lyricsLineHeight: 1.45, lyricsOpacity: .78, lyricsOffsetY: 0,
   motion: 'fall'
 })
 
@@ -122,6 +138,7 @@ export function migrateProject(input: AuraProject | LegacyAuraProject): AuraProj
     ...input,
     schemaVersion: 2,
     ratio: String(input.ratio) === '4:3' ? '3:4' : input.ratio,
+    mediaType: input.mediaType || 'image',
     adjustments: {
       ...defaultAdjustments(),
       ...input.adjustments,
@@ -145,7 +162,8 @@ export const newProject = (templateKey = 'fresh-rounded'): AuraProject => {
     id: crypto.randomUUID(),
     title: '未命名音乐卡片',
     ratio: '3:4',
-    music: { songName: '', artist: '', album: '', quote: '', currentTime: '0:00', totalTime: '3:30' },
+    mediaType: 'image',
+    music: { songName: '', artist: '', album: '', quote: 'enjoy the little things\nin a slow way', currentTime: '0:00', totalTime: '3:30' },
     palette: ['#fff8ed', '#f7d9df', '#b8cfb0', '#9f7f65', '#302c2a'],
     templateKey,
     adjustments: { ...defaultAdjustments(), ...presentation },

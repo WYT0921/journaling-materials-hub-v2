@@ -59,6 +59,20 @@ export class ProjectRepository {
     return result
   }
 
+  async putAudio(projectId: string, blob: Blob): Promise<string> {
+    const key = `${projectId}:audio`
+    const db = await openAuraDb()
+    const transaction = db.transaction(FILES, 'readwrite')
+    transaction.objectStore(FILES).put(blob, key)
+    await transactionDone(transaction)
+    db.close()
+    return key
+  }
+
+  async getAudio(key?: string): Promise<Blob | undefined> {
+    return this.getPhoto(key)
+  }
+
   async find(id: string): Promise<AuraProject | undefined> {
     const db = await openAuraDb()
     const row = await requestResult(db.transaction(PROJECTS).objectStore(PROJECTS).get(id)) as AuraProject | LegacyAuraProject | undefined
@@ -71,6 +85,7 @@ export class ProjectRepository {
     const transaction = db.transaction([PROJECTS, FILES], 'readwrite')
     transaction.objectStore(PROJECTS).delete(project.id)
     if (project.photoKey) transaction.objectStore(FILES).delete(project.photoKey)
+    if (project.audioKey) transaction.objectStore(FILES).delete(project.audioKey)
     await transactionDone(transaction)
     db.close()
   }
