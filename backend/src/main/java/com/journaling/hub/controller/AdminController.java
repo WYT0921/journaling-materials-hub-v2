@@ -12,6 +12,7 @@ import com.journaling.hub.dto.RedeemCodeGenerateRequest;
 import com.journaling.hub.dto.MaterialRequest;
 import com.journaling.hub.service.FileService;
 import com.journaling.hub.entity.Feedback;
+import com.journaling.hub.dto.FeedbackReplyRequest;
 import com.journaling.hub.entity.Material;
 import com.journaling.hub.entity.RedeemCode;
 import com.journaling.hub.entity.User;
@@ -20,6 +21,7 @@ import com.journaling.hub.mapper.MaterialMapper;
 import com.journaling.hub.mapper.RedeemCodeMapper;
 import com.journaling.hub.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -491,6 +493,21 @@ public class AdminController {
             throw new BusinessException(ErrorCode.NOT_FOUND);
         }
         existing.setStatus(status);
+        feedbackMapper.updateById(existing);
+        return Result.ok(existing);
+    }
+
+    /** 回复反馈；回复后自动标记为已处理。 */
+    @PutMapping("/feedbacks/{id}/reply")
+    public Result<?> replyFeedback(@PathVariable Long id,
+                                   @Valid @RequestBody FeedbackReplyRequest request) {
+        Feedback existing = feedbackMapper.selectById(id);
+        if (existing == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND);
+        }
+        existing.setReply(request.getReply().trim());
+        existing.setRepliedAt(LocalDateTime.now());
+        existing.setStatus(1);
         feedbackMapper.updateById(existing);
         return Result.ok(existing);
     }

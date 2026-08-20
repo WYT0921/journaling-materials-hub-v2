@@ -52,7 +52,7 @@
 | file_size | BIGINT | NULL | 原文件字节数 |
 | width / height | INT | NULL | 媒体尺寸 |
 | duration_ms / frame_count | INT | NULL | 动图时长与帧数 |
-| source / source_url / collected_at | VARCHAR/DATETIME | NULL | 仅管理端可见的采集审计信息 |
+| source / source_url / collected_at | VARCHAR/DATETIME | NULL | 仅管理端可见的来源审计信息 |
 | issue_year | INT | NULL | 上传年份，与 issue_number 同时为空或同时有值 |
 | issue_number | INT | NULL | 上传期号，必须大于 0 |
 | tags | JSON | NULL | 标签数组 |
@@ -129,6 +129,8 @@
 | id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | 反馈ID |
 | user_id | BIGINT | NULL, FOREIGN KEY | 用户ID，匿名反馈为空 |
 | content | TEXT | NOT NULL | 反馈内容 |
+| reply | TEXT | NULL | 管理员回复，用户可见 |
+| replied_at | DATETIME | NULL | 管理员回复时间 |
 | status | TINYINT | DEFAULT 0 | 处理状态：0-未处理，1-已处理 |
 | created_at | DATETIME | NOT NULL | 创建时间 |
 | updated_at | DATETIME | NOT NULL | 更新时间 |
@@ -162,7 +164,7 @@
 
 ### 7. 文本素材表 (text_assets)
 
-存储经过审核的颜文字和 Emoji 组合。采集器只生成候选 JSON，导入后默认处于待审核状态。
+存储经过审核的颜文字和 Emoji 组合；管理后台导入后默认处于待审核状态。
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
@@ -182,9 +184,9 @@
 
 **索引:** `uk_text_assets_content_hash` 保证内容全局唯一；`idx_text_assets_public` 支持类型、状态、分类和排序查询。
 
-### 8. AURA 模板表 (aura_templates)
+### 8. 已移除的数据结构
 
-存储 AURA Music Card 的声明式模板配置，与现有 `materials` 表完全独立。
+Collector 与 AURA 已于 2026-08-18 移除。V14 删除 `collector_runs` 及自动采集专用字段；AURA 表从未进入生产迁移历史。
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|

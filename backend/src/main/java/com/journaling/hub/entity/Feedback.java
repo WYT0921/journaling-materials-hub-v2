@@ -28,6 +28,12 @@ public class Feedback {
     @TableField("status")
     private Integer status;
 
+    @TableField("reply")
+    private String reply;
+
+    @TableField("replied_at")
+    private LocalDateTime repliedAt;
+
     @TableField(value = "created_at", fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 

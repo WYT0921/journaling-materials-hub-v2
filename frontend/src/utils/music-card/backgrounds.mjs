@@ -53,7 +53,7 @@ export const drawBlurGlassBackground = async (ctx, imagePath, w, h, blurRadius =
   ctx.fillRect(0, 0, w, h)
 }
 
-// ---- 纸质纹理（程序化噪点） ----
+// ---- 条纹布纹与揉皱纸纹（程序化、可跟随色块换色） ----
 
 const seededRandom = (seed) => {
   let s = seed
@@ -63,15 +63,34 @@ const seededRandom = (seed) => {
   }
 }
 
-export const drawPaperTexture = (ctx, w, h, type = 'grain', seed = 42) => {
+export const drawStripeTexture = (ctx, palette, w, h, density = 18) => {
+  const base = palette?.[0]?.hex || '#fbfaf4', stripe = palette?.[1]?.hex || '#d9d5e8'
+  ctx.fillStyle = base; ctx.fillRect(0, 0, w, h)
+  const pitch = Math.max(12, w / Math.max(8, density))
+  ctx.save(); ctx.globalAlpha = .28; ctx.fillStyle = stripe
+  for (let x = -pitch; x < w + pitch; x += pitch) ctx.fillRect(x, 0, pitch * .44, h)
+  ctx.restore()
+  const threadGap = Math.max(2.2, w / 300)
+  for (let x = 0; x <= w; x += threadGap) { ctx.strokeStyle = x % (threadGap * 3) < threadGap ? 'rgba(255,255,255,.14)' : 'rgba(55,48,66,.035)'; ctx.lineWidth = .55; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + Math.sin(x * .09), h); ctx.stroke() }
+  for (let y = 0; y <= h; y += Math.max(2.5, h / 330)) { ctx.strokeStyle = 'rgba(60,52,68,.025)'; ctx.lineWidth = .45; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y + Math.sin(y * .13)); ctx.stroke() }
+}
+
+export const drawPaperTexture = (ctx, palette, w, h, type = 'crumpled', seed = 42) => {
   const rng = seededRandom(seed)
-  ctx.fillStyle = '#eeefe8'; ctx.fillRect(0, 0, w, h)
-  const density = type === 'rough' ? 2600 : type === 'smooth' ? 700 : 1500
+  ctx.fillStyle = palette?.[0]?.hex || '#f2d7df'; ctx.fillRect(0, 0, w, h)
+  ctx.fillStyle = 'rgba(255,250,247,.1)'; ctx.fillRect(0, 0, w, h)
+  const density = type === 'rough' ? 1800 : type === 'smooth' ? 480 : 950
   for (let i = 0; i < density; i++) {
-    const alpha = type === 'rough' ? 0.08 : 0.045
+    const alpha = type === 'rough' ? 0.055 : 0.03
     ctx.fillStyle = `rgba(90,75,55,${alpha * rng()})`
     const size = 0.4 + rng() * (type === 'rough' ? 2.2 : 1.2)
     ctx.fillRect(rng() * w, rng() * h, size, size)
+  }
+  for (let index = 0; index < 42; index++) {
+    const x = rng() * w, y = rng() * h, span = w * (.08 + rng() * .16), rise = h * (rng() - .5) * .045
+    const points = [[x - span * .5, y + rise], [x - span * .14, y - rise * .5], [x + span * .2, y + rise * .35], [x + span * .52, y - rise * .7]]
+    ctx.strokeStyle = 'rgba(70,48,55,.055)'; ctx.lineWidth = .8; ctx.beginPath(); points.forEach(([px, py], i) => i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)); ctx.stroke()
+    ctx.save(); ctx.translate(-.8, -1.1); ctx.strokeStyle = 'rgba(255,255,255,.2)'; ctx.lineWidth = 1; ctx.beginPath(); points.forEach(([px, py], i) => i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)); ctx.stroke(); ctx.restore()
   }
 }
 
@@ -116,6 +135,7 @@ export const drawFilmGrain = (ctx, w, h, intensity = 12) => {
 const BG_TYPES = {
   solid: drawSolidBackground,
   gradient: drawGradientBackground,
+  stripes: drawStripeTexture,
   blur: drawBlurGlassBackground,
   paper: drawPaperTexture,
   watercolor: drawWatercolorBackground,
@@ -136,7 +156,10 @@ export const drawBackground = async (ctx, bgConfig, w, h) => {
     await drawBlurGlassBackground(ctx, imagePath, w, h, bgConfig.blurRadius, bgConfig.opacity)
   } else {
     const drawFn = BG_TYPES[type] || drawGradientBackground
-    drawFn(ctx, type === 'solid' ? (bgConfig.color || (palette?.[0]?.hex) || '#f7fde9') : palette, w, h)
+    if (type === 'solid') drawFn(ctx, bgConfig.color || palette?.[0]?.hex || '#f7fde9', w, h)
+    else if (type === 'paper') drawFn(ctx, palette, w, h, bgConfig.paperType, bgConfig.seed)
+    else if (type === 'stripes') drawFn(ctx, palette, w, h, bgConfig.stripeDensity)
+    else drawFn(ctx, palette, w, h)
   }
 
   // 写入到 context 后可叠加胶片颗粒

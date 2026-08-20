@@ -212,12 +212,6 @@ public class TextAssetService {
         asset.setSource(source);
         asset.setSourceUrl(request.getSourceUrl() != null ? request.getSourceUrl() : creating ? null : asset.getSourceUrl());
         asset.setRiskLevel(riskLevel);
-        if (request.getAiConfidence() != null && (request.getAiConfidence().signum() < 0 || request.getAiConfidence().compareTo(java.math.BigDecimal.ONE) > 0)) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "AI 置信度必须在 0 到 1 之间");
-        }
-        asset.setAiModel(request.getAiModel() != null ? trim(request.getAiModel(), 128) : creating ? null : asset.getAiModel());
-        asset.setAiConfidence(request.getAiConfidence() != null ? request.getAiConfidence() : creating ? null : asset.getAiConfidence());
-        asset.setReviewNote(request.getReviewNote() != null ? trim(request.getReviewNote(), 512) : creating ? null : asset.getReviewNote());
         asset.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : creating ? 0 : asset.getSortOrder());
         Integer status = request.getStatus() != null ? request.getStatus() : creating ? 0 : asset.getStatus();
         validateStatus(status);

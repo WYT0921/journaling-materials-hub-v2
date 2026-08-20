@@ -1,262 +1,149 @@
-/**
- * 播放器模板绘制 — 纯 Canvas 2D
- * 视觉组件，非实际播放功能
- */
-
+/** 六款 Music Widget — 纯微信 Canvas 2D 绘制，不读取或播放音频。 */
 import templates from './templates/player-templates.json' with { type: 'json' }
 import { textColorForBackground } from './color-extraction.mjs'
 import { songProgress } from './editor.mjs'
 
 export { templates as playerTemplates }
 
+const LEGACY_TEMPLATE_IDS = { minimal: 'capsule', vintage: 'console', 'korean-pink': 'bubble', glass: 'waveform' }
+export const normalizePlayerTemplateId = id => LEGACY_TEMPLATE_IDS[id] || id || 'capsule'
+
 const loadCanvasImage = (canvas, path) => new Promise((resolve, reject) => {
-  const image = canvas.createImage()
-  image.onload = () => resolve(image)
-  image.onerror = () => reject(new Error('封面加载失败'))
-  image.src = path
+  const image = canvas.createImage(); image.onload = () => resolve(image); image.onerror = () => reject(new Error('封面加载失败')); image.src = path
 })
 
-const layerSeed = songInfo => Array.from(`${songInfo?.songName || ''}|${songInfo?.artist || ''}`)
-  .reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) >>> 0, 37)
-
-// ---- 辅助绘制函数 ----
-
 const roundRect = (ctx, x, y, w, h, r) => {
-  ctx.beginPath()
-  ctx.moveTo(x + r, y)
-  ctx.lineTo(x + w - r, y)
-  ctx.arcTo(x + w, y, x + w, y + r, r)
-  ctx.lineTo(x + w, y + h - r)
-  ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
-  ctx.lineTo(x + r, y + h)
-  ctx.arcTo(x, y + h, x, y + h - r, r)
-  ctx.lineTo(x, y + r)
-  ctx.arcTo(x, y, x + r, y, r)
-  ctx.closePath()
+  const radius = Math.max(0, Math.min(r, w / 2, h / 2))
+  ctx.beginPath(); ctx.moveTo(x + radius, y); ctx.lineTo(x + w - radius, y); ctx.arcTo(x + w, y, x + w, y + radius, radius)
+  ctx.lineTo(x + w, y + h - radius); ctx.arcTo(x + w, y + h, x + w - radius, y + h, radius)
+  ctx.lineTo(x + radius, y + h); ctx.arcTo(x, y + h, x, y + h - radius, radius)
+  ctx.lineTo(x, y + radius); ctx.arcTo(x, y, x + radius, y, radius); ctx.closePath()
 }
 
-const drawPlayButton = (ctx, cx, cy, size, color) => {
-  ctx.fillStyle = color
-  ctx.beginPath()
-  ctx.moveTo(cx - size * 0.3, cy - size * 0.4)
-  ctx.lineTo(cx - size * 0.3, cy + size * 0.4)
-  ctx.lineTo(cx + size * 0.4, cy)
-  ctx.closePath()
-  ctx.fill()
+const strokeLine = (ctx, points, color, width, alpha = .78) => {
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = width; ctx.globalAlpha = alpha; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath()
+  points.forEach(([x, y], index) => index ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke(); ctx.restore()
 }
 
-const drawPauseButton = (ctx, cx, cy, size, color) => {
-  ctx.fillStyle = color
-  const barW = size * 0.15, barH = size * 0.7
-  ctx.fillRect(cx - size * 0.3, cy - barH / 2, barW, barH)
-  ctx.fillRect(cx + size * 0.3 - barW, cy - barH / 2, barW, barH)
+const wrapTitle = (ctx, text, maxWidth, maxLines) => {
+  const characters = Array.from(String(text || 'slow living')); const lines = []; let line = ''; let index = 0
+  for (; index < characters.length; index++) {
+    const candidate = line + characters[index]
+    if (line && ctx.measureText(candidate).width > maxWidth) { lines.push(line); line = characters[index]; if (lines.length === maxLines - 1) { index++; break } } else line = candidate
+  }
+  if (line) lines.push(line)
+  if (index < characters.length) {
+    let last = lines[maxLines - 1] || ''
+    while (last && ctx.measureText(`${last}…`).width > maxWidth) last = last.slice(0, -1)
+    lines[maxLines - 1] = `${last}…`
+  }
+  return lines.slice(0, maxLines)
 }
 
-const drawSkipButton = (ctx, cx, cy, size, color, dir = 1) => {
-  ctx.fillStyle = color
-  ctx.beginPath()
-  const hw = size * 0.25
-  const barW = size * 0.08, barH = size * 0.55
-  if (dir === 1) {
-    ctx.moveTo(cx - hw, cy - hw); ctx.lineTo(cx - hw, cy + hw); ctx.lineTo(cx + hw * 0.3, cy); ctx.closePath()
-    ctx.fill()
-    ctx.fillRect(cx + hw * 0.5, cy - barH / 2, barW, barH)
+export const fitSongTitle = (ctx, text, maxWidth, baseSize, minSize, maxLines = 2, family = 'sans-serif') => {
+  let fontSize = baseSize
+  while (fontSize > minSize) { ctx.font = `600 ${fontSize}px ${family}`; if (ctx.measureText(text || 'slow living').width <= maxWidth * maxLines) break; fontSize-- }
+  ctx.font = `600 ${fontSize}px ${family}`
+  const lines = wrapTitle(ctx, text || 'slow living', maxWidth, maxLines)
+  return { fontSize, lines, height: lines.length * fontSize * 1.14 }
+}
+
+const drawTitleBlock = (ctx, songInfo, x, y, maxWidth, color, baseSize, artistSize, family = 'sans-serif', align = 'left') => {
+  const layout = fitSongTitle(ctx, songInfo?.songName || 'slow living', maxWidth, baseSize, Math.max(13, baseSize * .62), 2, family)
+  ctx.save(); ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = 'top'; ctx.font = `600 ${layout.fontSize}px ${family}`
+  layout.lines.forEach((line, index) => ctx.fillText(line, x, y + index * layout.fontSize * 1.14, maxWidth))
+  const artistY = y + layout.height + 6; ctx.globalAlpha = .66; ctx.font = `${artistSize}px ${family}`; ctx.fillText(songInfo?.artist || 'just be', x, artistY, maxWidth); ctx.restore()
+  return artistY + artistSize
+}
+
+const drawCover = (ctx, image, x, y, size, radius, fallback, ink) => {
+  ctx.save(); roundRect(ctx, x, y, size, size, radius); ctx.clip()
+  if (image) ctx.drawImage(image, x, y, size, size)
+  else { ctx.fillStyle = fallback; ctx.fillRect(x, y, size, size); ctx.fillStyle = ink; ctx.globalAlpha = .55; ctx.font = `${size * .34}px serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('♪', x + size / 2, y + size / 2) }
+  ctx.restore()
+}
+
+const drawProgress = (ctx, x, y, width, progress, ink, accent, lineWidth) => {
+  strokeLine(ctx, [[x, y], [x + width, y]], ink, lineWidth, .25); strokeLine(ctx, [[x, y], [x + width * progress, y]], accent, lineWidth * 1.25, .9)
+  ctx.save(); ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(x + width * progress, y, lineWidth * 1.6, 0, Math.PI * 2); ctx.fill(); ctx.restore()
+}
+
+const drawPlay = (ctx, cx, cy, size, ink, lineWidth) => {
+  ctx.save(); ctx.strokeStyle = ink; ctx.lineWidth = lineWidth; ctx.globalAlpha = .7; ctx.beginPath(); ctx.arc(cx, cy, size, 0, Math.PI * 2); ctx.stroke()
+  strokeLine(ctx, [[cx - size * .2, cy - size * .36], [cx + size * .36, cy], [cx - size * .2, cy + size * .36], [cx - size * .2, cy - size * .36]], ink, lineWidth, .76); ctx.restore()
+}
+
+const drawControls = (ctx, cx, cy, gap, ink, lineWidth) => {
+  drawPlay(ctx, cx, cy, gap * .24, ink, lineWidth)
+  strokeLine(ctx, [[cx - gap + 5, cy - 8], [cx - gap - 5, cy], [cx - gap + 5, cy + 8]], ink, lineWidth, .62)
+  strokeLine(ctx, [[cx + gap - 5, cy - 8], [cx + gap + 5, cy], [cx + gap - 5, cy + 8]], ink, lineWidth, .62)
+}
+
+const drawWaveform = (ctx, x, y, width, height, color, seed = 0) => {
+  const bars = 34
+  for (let index = 0; index < bars; index++) { const amplitude = (.2 + Math.abs(Math.sin(index * 1.73 + seed)) * .8) * height; strokeLine(ctx, [[x + index * width / (bars - 1), y - amplitude / 2], [x + index * width / (bars - 1), y + amplitude / 2]], color, Math.max(1.4, width * .005), .58) }
+}
+
+const drawLyrics = (ctx, songInfo, x, y, width, color, family, renderState = {}) => {
+  if (!songInfo?.lyrics) return
+  const style = renderState.lyricsStyle || 'minimal-serif'; const size = Math.max(11, 14 * (renderState.lyricsFontSize || 1))
+  const styles = { 'center-poetry': { family: 'serif', weight: '400', prefix: '“ ', suffix: ' ”' }, editorial: { family: 'sans-serif', weight: '600', prefix: '— ', suffix: '' }, 'handwritten-note': { family: 'cursive', weight: '400', prefix: '♡ ', suffix: '' }, 'minimal-serif': { family: family || 'serif', weight: '400', prefix: '', suffix: '' } }
+  const selected = styles[style] || styles['minimal-serif']
+  ctx.save(); ctx.fillStyle = color; ctx.globalAlpha = Number.isFinite(renderState.lyricsOpacity) ? renderState.lyricsOpacity : .56; ctx.font = `${selected.weight} ${size}px ${selected.family}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(`${selected.prefix}${String(songInfo.lyrics)}${selected.suffix}`, x + width / 2, y, width * .86); ctx.restore()
+}
+
+const colorsFor = (template, palette, colorMode) => {
+  const selected = colorMode && !['auto', 'template'].includes(colorMode) ? colorMode : palette?.[0]?.hex
+  const background = selected || '#e8eadf'
+  const ink = template.colors.text === 'auto' ? textColorForBackground(background) : template.colors.text
+  return { ink, accent: selected || palette?.[2]?.hex || '#8f9b79', background }
+}
+
+export const drawPlayerTemplate = async (ctx, templateId, songInfo, palette = [], bounds, coverPath, colorMode = 'auto', renderState = {}) => {
+  const id = normalizePlayerTemplateId(templateId); const template = templates.find(item => item.id === id) || templates[0]
+  const { x, y, width: W, height: H } = bounds; const { ink, accent, background } = colorsFor(template, palette, colorMode)
+  const lineWidth = Math.max(2, W * .0032); const animationTime = renderState.animationTime || 0
+  const baseProgress = Number.isFinite(renderState.progress) ? renderState.progress : songProgress(songInfo?.currentTime, songInfo?.totalTime)
+  const progress = animationTime ? (baseProgress + animationTime * .018) % 1 : baseProgress
+  let cover
+  if (coverPath) { try { cover = await loadCanvasImage(ctx.canvas, coverPath) } catch { throw new Error('播放器封面加载失败') } }
+
+  if (id === 'capsule') {
+    drawTitleBlock(ctx, songInfo, x + W / 2, y + H * .06, W * .82, ink, W * .038, W * .022, 'sans-serif', 'center')
+    strokeLine(ctx, [[x + W * .18, y + H * .43], [x + W * .82, y + H * .43]], ink, lineWidth, .36)
+    drawProgress(ctx, x + W * .2, y + H * .66, W * .6, progress, ink, accent, lineWidth)
+    drawControls(ctx, x + W / 2, y + H * .84, W * .13, ink, lineWidth)
+  } else if (id === 'vinyl') {
+    const cx = x + W * .31, cy = y + H * .47, radius = Math.min(H * .36, W * .22)
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(animationTime * .72); drawCover(ctx, cover, -radius, -radius, radius * 2, radius, background, ink); ctx.restore()
+    ;[radius, radius * .76, radius * .2].forEach((r, index) => { ctx.save(); ctx.strokeStyle = index === 2 ? accent : ink; ctx.globalAlpha = index === 2 ? .78 : .5; ctx.lineWidth = lineWidth; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke(); ctx.restore() })
+    strokeLine(ctx, [[cx + radius * .58, cy - radius * .68], [cx + radius * 1.08, cy - radius * 1.05], [cx + radius * 1.12, cy + radius * .38]], ink, lineWidth, .52)
+    drawTitleBlock(ctx, songInfo, x + W * .57, y + H * .22, W * .36, ink, W * .034, W * .021, 'serif')
+    drawProgress(ctx, x + W * .57, y + H * .7, W * .34, progress, ink, accent, lineWidth)
+  } else if (id === 'console') {
+    ctx.save(); ctx.strokeStyle = ink; ctx.lineWidth = lineWidth * 1.2; ctx.globalAlpha = .75; roundRect(ctx, x + W * .07, y + H * .08, W * .86, H * .72, W * .015); ctx.stroke(); ctx.restore()
+    drawTitleBlock(ctx, songInfo, x + W * .13, y + H * .13, W * .54, ink, W * .03, W * .019)
+    drawWaveform(ctx, x + W * .15, y + H * .53, W * .7, H * .16, accent, animationTime * 2.2)
+    drawProgress(ctx, x + W * .15, y + H * .72, W * .7, progress, ink, accent, lineWidth)
+  } else if (id === 'bubble') {
+    const size = H * .62, sx = x + W * .1, sy = y + H * .15
+    drawCover(ctx, cover, sx, sy, size, W * .01, background, ink); ctx.save(); ctx.strokeStyle = ink; ctx.globalAlpha = .75; ctx.lineWidth = lineWidth; roundRect(ctx, sx, sy, size, size, W * .01); ctx.stroke(); ctx.restore()
+    drawTitleBlock(ctx, songInfo, x + W * .48, y + H * .2, W * .43, ink, W * .032, W * .02)
+    drawProgress(ctx, x + W * .48, y + H * .64, W * .4, progress, ink, accent, lineWidth)
+    drawControls(ctx, x + W * .68, y + H * .81, W * .1, ink, lineWidth)
+  } else if (id === 'waveform') {
+    const cx = x + W / 2, cy = y + H * .4
+    ctx.save(); ctx.strokeStyle = ink; ctx.lineWidth = lineWidth * 1.25; ctx.globalAlpha = .64; ctx.beginPath(); ctx.arc(cx, cy, H * .3, Math.PI, Math.PI * 2); ctx.stroke(); ctx.restore()
+    ;[-1, 1].forEach(direction => { ctx.save(); ctx.strokeStyle = ink; ctx.lineWidth = lineWidth; ctx.globalAlpha = .72; roundRect(ctx, cx + direction * H * .34 - H * .055, cy - H * .03, H * .11, H * .28, H * .055); ctx.stroke(); ctx.restore() })
+    drawWaveform(ctx, cx - W * .2, cy + H * .09, W * .4, H * .13, accent, .6 + animationTime * 2.2)
+    drawTitleBlock(ctx, songInfo, cx, y + H * .72, W * .58, ink, W * .031, W * .019, 'sans-serif', 'center')
   } else {
-    ctx.moveTo(cx + hw, cy - hw); ctx.lineTo(cx + hw, cy + hw); ctx.lineTo(cx - hw * 0.3, cy); ctx.closePath()
-    ctx.fill()
-    ctx.fillRect(cx - hw * 0.5 - barW, cy - barH / 2, barW, barH)
+    const size = H * .43, sx = x + W * .03, sy = y + H * .06
+    drawCover(ctx, cover, sx, sy, size, W * .008, background, ink)
+    strokeLine(ctx, [[sx + 2, sy], [sx + size - 3, sy - 2], [sx + size + 2, sy + size - 2], [sx - 2, sy + size + 3], [sx + 2, sy]], ink, lineWidth, .72)
+    drawTitleBlock(ctx, songInfo, x + W * .4, y + H * .08, W * .55, ink, W * .032, W * .02, 'serif')
+    drawProgress(ctx, x + W * .03, y + H * .61, W * .92, progress, ink, accent, lineWidth)
+    drawControls(ctx, x + W / 2, y + H * .82, W * .14, ink, lineWidth)
   }
-}
-
-const drawProgressBar = (ctx, x, y, w, h, progress = 0.35, color = '#999', bgColor = 'rgba(0,0,0,0.1)') => {
-  ctx.fillStyle = bgColor
-  roundRect(ctx, x, y, w, h, h / 2)
-  ctx.fill()
-  ctx.fillStyle = color
-  roundRect(ctx, x, y, w * progress, h, h / 2)
-  ctx.fill()
-}
-
-const drawWaveform = (ctx, x, y, w, h, color, bars = 40, seed = 37) => {
-  const barW = (w / bars) * 0.6
-  const gap = (w / bars) * 0.4
-  ctx.fillStyle = color
-  for (let i = 0; i < bars; i++) {
-    const amp = 0.2 + Math.abs(Math.sin(i * 0.5 + seed * 0.013)) * 0.6
-    const barH = h * amp
-    ctx.fillRect(x + i * (barW + gap), y + (h - barH) / 2, barW, barH)
-  }
-}
-
-const drawVinylDisc = (ctx, cx, cy, radius) => {
-  // 唱片主体
-  ctx.fillStyle = '#1a1a1a'
-  ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill()
-
-  // 环形纹路
-  for (let r = radius * 0.25; r < radius * 0.95; r += radius * 0.06) {
-    ctx.strokeStyle = `rgba(255, 255, 255, ${0.03 + ((r * 17) % 7) / 100})`
-    ctx.lineWidth = 0.5
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke()
-  }
-
-  // 中心标签
-  ctx.fillStyle = '#c4a265'
-  ctx.beginPath(); ctx.arc(cx, cy, radius * 0.22, 0, Math.PI * 2); ctx.fill()
-  ctx.fillStyle = '#1a1a1a'
-  ctx.beginPath(); ctx.arc(cx, cy, radius * 0.05, 0, Math.PI * 2); ctx.fill()
-}
-
-// ---- 主绘制函数 ----
-
-/**
- * 在给定区域绘制播放器模板
- * @param {CanvasRenderingContext2D} ctx
- * @param {string} templateId - 模板 ID
- * @param {object} songInfo - { songName, artist, album? }
- * @param {Array} palette - 主色调调色板
- * @param {object} bounds - { x, y, width, height }
- * @param {string} [coverPath] - 可选专辑封面图片路径
- */
-export const drawPlayerTemplate = async (ctx, templateId, songInfo, palette, bounds, coverPath, colorMode = 'auto') => {
-  const template = templates.find(t => t.id === templateId) || templates[0]
-  const { x, y, width: W, height: H } = bounds
-  const pad = W * (template.padding || 0.06)
-  const coverSize = W * template.coverSize
-
-  const effectivePalette = colorMode && colorMode !== 'auto' && colorMode !== 'template'
-    ? [{ hex: colorMode }, ...(palette || [])]
-    : palette
-  const textColor = template.colors.text === 'auto'
-    ? textColorForBackground(effectivePalette?.[0]?.hex || '#eeefe8')
-    : template.colors.text
-  const progressColor = template.colors.progress === 'auto'
-    ? effectivePalette?.[0]?.hex || '#8fbc93'
-    : template.colors.progress
-  const controlColor = template.colors.control === 'auto'
-    ? textColor
-    : template.colors.control
-
-  // 模板背景
-  if (template.colors.background !== 'transparent') {
-    ctx.fillStyle = template.colors.background
-    roundRect(ctx, x, y, W, H, 16)
-    ctx.fill()
-  }
-
-  // Glass 效果：半透明叠加
-  if (template.colors.glass) {
-    ctx.fillStyle = template.colors.glass
-    roundRect(ctx, x, y, W, H, 16)
-    ctx.fill()
-    ctx.strokeStyle = 'rgba(255,255,255,0.2)'
-    ctx.lineWidth = 1
-    roundRect(ctx, x, y, W, H, 16)
-    ctx.stroke()
-  }
-
-  // Vintage 叠加纸质纹理
-  if (template.id === 'vintage') {
-    ctx.save()
-    ctx.beginPath()
-    roundRect(ctx, x, y, W, H, 4)
-    ctx.clip()
-    ctx.fillStyle = 'rgba(110,85,50,0.05)'
-    for (let i = 0; i < 90; i++) {
-      const px = x + ((i * 47) % 97) / 97 * W
-      const py = y + ((i * 71) % 89) / 89 * H
-      ctx.fillRect(px, py, 1.2, 1.2)
-    }
-    ctx.restore()
-  }
-
-  const innerX = x + pad
-  const innerY = y + pad
-  const coverX = innerX
-  const coverY = innerY
-  const infoX = coverX + coverSize + pad
-  const infoW = W - coverSize - pad * 3
-
-  // 专辑封面
-  if (coverPath) {
-    try {
-      const coverImage = await loadCanvasImage(ctx.canvas, coverPath)
-      ctx.save()
-      roundRect(ctx, coverX, coverY, coverSize, coverSize, template.albumArtBorderRadius)
-      ctx.clip()
-      ctx.drawImage(coverImage, coverX, coverY, coverSize, coverSize)
-      ctx.restore()
-    } catch { throw new Error('播放器封面加载失败') }
-  } else {
-    // 无封面时绘制调色板颜色占位
-    ctx.fillStyle = palette[0]?.hex || '#ddd'
-    roundRect(ctx, coverX, coverY, coverSize, coverSize, template.albumArtBorderRadius)
-    ctx.fill()
-    // 音符图标
-    ctx.fillStyle = textColor
-    ctx.font = `${coverSize * 0.4}px sans-serif`
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText('♪', coverX + coverSize / 2, coverY + coverSize / 2)
-  }
-
-  // 歌曲名
-  const titleY = coverY + coverSize * 0.15
-  ctx.fillStyle = textColor
-  ctx.font = `600 ${template.titleSize}px ${template.fontFamily}`
-  ctx.textAlign = 'left'
-  ctx.textBaseline = 'top'
-  const title = songInfo?.songName || '歌曲名称'
-  const maxTitleW = infoW - pad
-  ctx.fillText(title.length > 12 ? title.slice(0, 11) + '…' : title, infoX, titleY, maxTitleW)
-
-  // 艺术家
-  const artistY = titleY + template.titleSize + 8
-  ctx.fillStyle = textColor + '99'
-  ctx.font = `${template.artistSize}px ${template.fontFamily}`
-  ctx.fillText((songInfo?.artist || '艺术家'), infoX, artistY, maxTitleW)
-
-  // 专辑（如果有）
-  if (songInfo?.album) {
-    const albumY = artistY + template.artistSize + 4
-    ctx.fillStyle = textColor + '66'
-    ctx.font = `${template.artistSize - 2}px ${template.fontFamily}`
-    ctx.fillText(songInfo.album, infoX, albumY, maxTitleW)
-  }
-
-  // 进度条
-  const controlsY = Math.max(coverY + coverSize, artistY + template.artistSize * 3) - 30
-  const progressY = controlsY - 30
-
-  if (template.showProgress) {
-    drawProgressBar(ctx, infoX, progressY, infoW, 4, songProgress(songInfo?.currentTime, songInfo?.totalTime), progressColor)
-    // 时间标签
-    ctx.fillStyle = textColor + '66'
-    ctx.font = `10px ${template.fontFamily}`
-    ctx.fillText(songInfo?.currentTime || '1:24', infoX, progressY - 16)
-    ctx.textAlign = 'right'
-    ctx.fillText(songInfo?.totalTime || '3:32', infoX + infoW, progressY - 16)
-    ctx.textAlign = 'left'
-  }
-
-  // 波形图
-  if (template.showWaveform) {
-    const waveColor = template.colors.waveform === 'auto' ? palette[0]?.hex || '#e9acbb' : template.colors.waveform
-    drawWaveform(ctx, infoX, progressY - 40, infoW, 30, waveColor, 40, layerSeed(songInfo))
-  }
-
-  // 播放控件
-  if (template.showControls) {
-    const btnSize = template.artistSize + 4
-    const ctrlCenterY = template.showProgress ? controlsY + btnSize / 2 + 10 : controlsY
-    const ctrlCenterX = infoX + infoW / 2
-    drawSkipButton(ctx, ctrlCenterX - btnSize * 1.5, ctrlCenterY, btnSize, controlColor, -1)
-    drawPauseButton(ctx, ctrlCenterX, ctrlCenterY, btnSize * 1.1, controlColor)
-    drawSkipButton(ctx, ctrlCenterX + btnSize * 1.5, ctrlCenterY, btnSize, controlColor, 1)
-  }
-
-  // Vinyl 黑胶唱片
-  if (template.showVinyl) {
-    drawVinylDisc(ctx, x + W / 2, y + H * 0.6, W * 0.35)
-  }
+  drawLyrics(ctx, songInfo, x, y + H * .98, W, ink, template.fontFamily, renderState)
 }

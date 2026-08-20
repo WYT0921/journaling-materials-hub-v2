@@ -71,6 +71,9 @@ function buildTextAssetResponse(url, requestParams = {}) {
  * @returns {object|null} mock 响应对象
  */
 export function getMockData(url, requestParams = {}) {
+  if (url.includes('/feedback/my')) {
+    return { success: true, data: [{ id: 1, content: '希望增加更多便签素材', status: 1, reply: '收到，我们会在下一期补充。', createdAt: '2026-08-18T10:00:00' }], error: null }
+  }
   if (url.includes('/text-assets')) {
     return buildTextAssetResponse(url, requestParams)
   }

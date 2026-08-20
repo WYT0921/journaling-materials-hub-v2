@@ -21,12 +21,6 @@ public class TextAsset {
     private String sourceUrl;
     @TableField("risk_level")
     private String riskLevel;
-    @TableField("ai_model")
-    private String aiModel;
-    @TableField("ai_confidence")
-    private java.math.BigDecimal aiConfidence;
-    @TableField("review_note")
-    private String reviewNote;
     private Integer status;
     @TableField("sort_order")
     private Integer sortOrder;

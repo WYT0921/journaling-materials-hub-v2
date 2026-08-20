@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -72,5 +73,23 @@ class FeedbackControllerTest extends ControllerTestBase {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("GET /api/feedback/my returns only current user's feedback")
+    void listMine_withToken_shouldReturnOwnFeedback() throws Exception {
+        mockMvc.perform(get("/api/feedback/my")
+                        .header("Authorization", normalUserToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[0].userId").value(1));
+    }
+
+    @Test
+    @DisplayName("GET /api/feedback/my requires login")
+    void listMine_anonymous_shouldFail() throws Exception {
+        mockMvc.perform(get("/api/feedback/my"))
+                .andExpect(status().isUnauthorized());
     }
 }

@@ -6,15 +6,15 @@
       <view class="hero-section">
         <text class="eyebrow">MUSIC CARD GENERATOR</text>
         <text class="page-title">把照片和音乐变成一张卡片</text>
-        <text class="page-subtitle">照片仅在本地处理，卡片可导出保存</text>
+        <text class="page-subtitle">图片和视频仅在本地处理，不会上传服务器</text>
       </view>
 
       <!-- 上传照片 -->
       <view v-if="!hasPhoto" class="panel upload-panel" @tap="handleChoosePhoto">
         <view v-if="!photoChoosing" class="upload-zone">
           <text class="upload-mark">＋</text>
-          <text class="upload-title">选择一张照片</text>
-          <text class="upload-hint">照片将作为卡片主体</text>
+          <text class="upload-title">{{ store.needsMediaRepair ? '本地素材已失效，请重新选择' : '选择图片或视频' }}</text>
+          <text class="upload-hint">素材只保存在当前设备</text>
         </view>
         <view v-else class="upload-zone">
           <text class="upload-mark">⟳</text>
@@ -31,6 +31,7 @@
           @touchstart="handleTouchStart" @touchmove.stop.prevent="handleTouchMove"
           @touchend="handleTouchEnd" @touchcancel="handleTouchEnd">
           <image v-if="previewPath" class="stage-preview" :src="previewPath" mode="aspectFit" />
+          <video v-if="localVideoPath" class="stage-video" :style="videoPreviewStyle" :src="localVideoPath" :controls="false" :show-center-play-btn="false" :show-play-btn="false" :show-fullscreen-btn="false" :enable-progress-gesture="false" :muted="true" :loop="true" :autoplay="true" object-fit="cover" />
           <view v-else class="preview-loading"><text>{{ previewError || '正在生成预览…' }}</text></view>
           <view v-if="selectionStyle" class="selection-box" :style="selectionStyle"><view class="selection-handle" /></view>
         </view>
@@ -76,6 +77,7 @@
 
       <!-- 工具栏 -->
       <view v-if="hasPhoto" class="toolbar">
+        <view class="tool-btn" @tap="showLayoutSheet = true"><text class="tool-icon">▦</text><text>排版</text></view>
         <view class="tool-btn" @tap="showBgSheet = true"><text class="tool-icon">🎨</text><text>背景</text></view>
         <view class="tool-btn" @tap="showPlayerSheet = true"><text class="tool-icon">🎵</text><text>模板</text></view>
         <view class="tool-btn" @tap="showDecorSheet = true"><text class="tool-icon">✨</text><text>装饰</text></view>
@@ -94,8 +96,24 @@
         </view>
       </view>
 
+      <view v-if="store.localReady" class="local-draft-row">
+        <text>草稿仅保存在本机{{ localMediaSize }}</text>
+        <text class="clear-draft" @tap="handleDeleteDraft">清除本地草稿</text>
+      </view>
+
       <view class="spacer" />
     </scroll-view>
+
+    <!-- 基础排版 -->
+    <BottomSheet v-model:visible="showLayoutSheet" title="画布与构图">
+      <text class="form-label">画布比例</text>
+      <view class="ratio-row wrap">
+        <view v-for="r in ratioOptions" :key="r.value" class="ratio-chip" :class="{ active: store.canvasSize === r.value }" @tap="store.setCanvasSize(r.value)"><text>{{ r.label }}</text></view>
+      </view>
+      <view class="slider-field"><view class="panel-row"><text class="form-label">照片起始位置</text><text>{{ Math.round(store.appearance.photoSplit * 100) }}%</text></view><slider :value="store.appearance.photoSplit * 100" min="38" max="62" @changing="e => previewAppearance({ photoSplit: e.detail.value / 100 })" @change="e => commitAppearance({ photoSplit: e.detail.value / 100 })" /></view>
+      <view class="slider-field"><view class="panel-row"><text class="form-label">播放器尺寸</text><text>{{ Math.round(store.appearance.playerScale * 100) }}%</text></view><slider :value="store.appearance.playerScale * 100" min="85" max="115" @changing="e => previewAppearance({ playerScale: e.detail.value / 100 })" @change="e => commitAppearance({ playerScale: e.detail.value / 100 })" /></view>
+      <text class="sheet-note">播放器保持在上半区域居中，照片仍是整张作品最大的视觉主体。</text>
+    </BottomSheet>
 
     <!-- 背景选择 -->
     <BottomSheet v-model:visible="showBgSheet" title="选择背景">
@@ -148,6 +166,11 @@
         <view class="form-group"><text class="form-label">当前时间</text><input v-model="songForm.currentTime" class="form-input" placeholder="1:24" /></view>
         <view class="form-group"><text class="form-label">总时长</text><input v-model="songForm.totalTime" class="form-input" placeholder="3:32" /></view>
       </view>
+      <view class="panel-row"><text class="form-label">显示歌词</text><switch :checked="store.appearance.lyricsVisible" color="#8fbc93" @change="e => commitAppearance({ lyricsVisible: e.detail.value })" /></view>
+      <text class="form-label">歌词样式</text>
+      <view class="choice-row"><view v-for="style in lyricsStyles" :key="style.value" class="choice-chip" :class="{ active: store.appearance.lyricsStyle === style.value }" @tap="commitAppearance({ lyricsStyle: style.value })">{{ style.label }}</view></view>
+      <view class="slider-field"><view class="panel-row"><text class="form-label">歌词字号</text><text>{{ Math.round(store.appearance.lyricsFontSize * 100) }}%</text></view><slider :value="store.appearance.lyricsFontSize * 100" min="80" max="140" @changing="e => previewAppearance({ lyricsFontSize: e.detail.value / 100 })" @change="e => commitAppearance({ lyricsFontSize: e.detail.value / 100 })" /></view>
+      <view class="slider-field"><view class="panel-row"><text class="form-label">歌词透明度</text><text>{{ Math.round(store.appearance.lyricsOpacity * 100) }}%</text></view><slider :value="store.appearance.lyricsOpacity * 100" min="30" max="100" @changing="e => previewAppearance({ lyricsOpacity: e.detail.value / 100 })" @change="e => commitAppearance({ lyricsOpacity: e.detail.value / 100 })" /></view>
       <button class="form-submit" @tap="handleSaveSong">保存</button>
     </BottomSheet>
 
@@ -171,6 +194,10 @@
           <text class="decor-remove" @tap="store.removeDecoration(i)">×</text>
         </view>
         <view v-if="activeDecoration" class="decor-controls">
+          <text class="form-label">分布方式</text>
+          <view class="choice-row"><view v-for="item in decorationDistributions" :key="item.value" class="choice-chip" :class="{ active: activeDecoration.options.distribution === item.value }" @tap="setDecorationOption('distribution', item.value)">{{ item.label }}</view></view>
+          <text class="form-label">动画方式</text>
+          <view class="choice-row"><view v-for="item in decorationMotions" :key="item.value" class="choice-chip" :class="{ active: activeDecoration.options.motion === item.value }" @tap="setDecorationOption('motion', item.value)">{{ item.label }}</view></view>
           <text>数量 {{ activeDecoration.options.count }}</text>
           <slider :value="activeDecoration.options.count" min="1" max="100" @changing="e => updateDecoration('count', e.detail.value)" @change="store.commit()" />
           <text>大小 {{ activeDecoration.options.size }}</text>
@@ -191,6 +218,7 @@
         </view>
       </view>
       <button class="form-submit" :loading="exporting" @tap="handleExportConfirm">导出 PNG</button>
+      <button class="secondary-submit" @tap="handleDynamicExport">动态视频能力检测</button>
     </BottomSheet>
 
     <CustomToast ref="toastRef" />
@@ -209,6 +237,7 @@ import { extractPalette } from '../../utils/music-card/color-extraction.mjs'
 import { playerTemplates } from '../../utils/music-card/player-templates.mjs'
 import { decorationCategories, getDecorationDefs } from '../../utils/music-card/decorations.mjs'
 import { exportMusicCard, renderMusicCardPreview } from '../../utils/music-card/renderer.mjs'
+import { assessDynamicExportCapability } from '../../utils/music-card/dynamic-export.mjs'
 import { angle, distance, normalizeAngleDelta } from '../../utils/collage/geometry.mjs'
 import { findTopLayerAtPoint, layerBounds } from '../../utils/music-card/editor.mjs'
 
@@ -218,6 +247,7 @@ const instance = getCurrentInstance()
 
 // UI 状态
 const photoChoosing = ref(false)
+const showLayoutSheet = ref(false)
 const showBgSheet = ref(false)
 const showPlayerSheet = ref(false)
 const showSongSheet = ref(false)
@@ -226,22 +256,36 @@ const showExportSheet = ref(false)
 const exporting = ref(false)
 const previewPath = ref('')
 const previewError = ref('')
+const animationTime = ref(0)
 const stageSize = ref({ width: 0, height: 0, left: 0, top: 0 })
 const activeDecorIndex = ref(0)
 let previewTimer = null
+let animationTimer = null
 let previewVersion = 0
 let gesture = null
-const exportRatio = ref('4:3')
+const exportRatio = ref('3:4')
 const activeDecorCat = ref('shape')
 const songForm = ref({ songName: '', artist: '', album: '', lyrics: '', date: '', currentTime: '1:24', totalTime: '3:32' })
+const lyricsStyles = [
+  { value: 'minimal-serif', label: '极简' }, { value: 'center-poetry', label: '诗句' },
+  { value: 'editorial', label: '杂志' }, { value: 'handwritten-note', label: '手写' }
+]
+const decorationDistributions = [{ value: 'trail', label: '轨迹' }, { value: 'scatter', label: '散落' }, { value: 'uniform', label: '均匀' }]
+const decorationMotions = [
+  { value: 'fall', label: '飘落' }, { value: 'breathe', label: '呼吸' }, { value: 'together', label: '一起' },
+  { value: 'sequence', label: '依次' }, { value: 'rotate', label: '旋转' }
+]
 
 const palette = computed(() => store.palette)
-const hasPhoto = computed(() => store.layers.some(l => l.type === 'photo'))
+const hasPhoto = computed(() => !store.needsMediaRepair && store.layers.some(l => l.type === 'photo'))
+const localMediaSize = computed(() => store.media?.size ? ` · ${Math.max(.1, store.media.size / 1024 / 1024).toFixed(1)}MB` : '')
 const layerCount = computed(() => store.layers.length)
 const playerLayer = computed(() => store.layers.find(layer => layer.type === 'player'))
 const selectedText = computed(() => store.selectedLayer?.type === 'text' ? store.selectedLayer : null)
 const activeDecoration = computed(() => store.decorations[activeDecorIndex.value] || null)
 const stageAspectStyle = computed(() => ({ aspectRatio: `${store.canvas.width} / ${store.canvas.height}` }))
+const localVideoPath = computed(() => store.media?.type === 'video' ? store.media.localPath : '')
+const videoPreviewStyle = computed(() => ({ top: `${store.appearance.photoSplit * 100}%`, height: `${(1 - store.appearance.photoSplit) * 100}%` }))
 const selectionStyle = computed(() => {
   const layer = store.selectedLayer
   if (!layer || layer.type === 'background' || !stageSize.value.width) return null
@@ -254,6 +298,7 @@ const selectionStyle = computed(() => {
 const bgOptions = [
   { type: 'gradient', name: '渐变', icon: '◐' },
   { type: 'solid', name: '纯色', icon: '■' },
+  { type: 'stripes', name: '条纹', icon: '▥' },
   { type: 'watercolor', name: '水彩', icon: '🎨' },
   { type: 'paper', name: '纸纹', icon: '📄' },
   { type: 'blur', name: '毛玻璃', icon: '▧' },
@@ -279,8 +324,10 @@ const scene = () => {
   const photo = store.layers.find(layer => layer.type === 'photo')
   return { schemaVersion: 1, canvas: { width: store.canvas.width, height: store.canvas.height },
     palette: store.palette, songInfo: store.songInfo, backgroundStyle: store.backgroundStyle,
-    photoPath: photo?.imagePath, layers: store.layers }
+    appearance: store.appearance, animationTime: animationTime.value, photoPath: photo?.imagePath, layers: store.layers }
 }
+const previewAppearance = changes => { Object.assign(store.appearance, changes); store.applyAutomaticLayout(); schedulePreview() }
+const commitAppearance = changes => store.setAppearance(changes)
 const queryStage = () => new Promise(resolve => nextTick(() => {
   uni.createSelectorQuery().in(instance.proxy).select('#musicCardStage').fields({ size: true, rect: true })
     .exec(result => resolve(result?.[0] || null))
@@ -303,21 +350,29 @@ const renderPreview = async () => {
 }
 const schedulePreview = () => { clearTimeout(previewTimer); previewTimer = setTimeout(renderPreview, 100) }
 
-onMounted(() => { store.reset(); store.initDefaults() })
-onUnload(() => { clearTimeout(previewTimer); previewVersion++; previewPath.value = ''; store.reset() })
+onMounted(async () => {
+  try { await store.initializeLocal(); if (!store.layers.length) store.initDefaults() }
+  catch { store.reset(); store.initDefaults(); toastRef.value?.showToast('本地草稿恢复失败', 'error') }
+  animationTimer = setInterval(() => { animationTime.value = (animationTime.value + .18) % 60; schedulePreview() }, 180)
+})
+onUnload(() => { clearTimeout(previewTimer); clearInterval(animationTimer); previewVersion++; previewPath.value = ''; store.persistLocal().catch(() => undefined) })
 watch(() => store.snapshot(), schedulePreview, { deep: true })
 
-// 选择照片 + 提取色彩
+// 选择本地图片/视频 + 提取封面色彩
 const handleChoosePhoto = () => {
   uni.chooseMedia({
-    count: 1, mediaType: ['image'], sizeType: ['compressed'], sourceType: ['album', 'camera'],
+    count: 1, mediaType: ['image', 'video'], sizeType: ['compressed'], sourceType: ['album', 'camera'], maxDuration: 30,
     success: async (res) => {
-      const path = res.tempFiles[0].tempFilePath
+      const file = res.tempFiles[0]
+      const path = file.tempFilePath
+      const type = file.fileType === 'video' || /\.(mp4|mov|m4v)(?:\?|$)/i.test(path) ? 'video' : 'image'
+      const previewSource = type === 'video' ? file.thumbTempFilePath : path
       photoChoosing.value = true
       try {
-        const info = await new Promise((resolve, reject) => uni.getImageInfo({ src: path, success: resolve, fail: reject }))
-        store.addPhoto(path, info)
-        const pixelData = await readImagePixels(path, 400)
+        if (!previewSource) throw new Error('当前微信版本无法生成视频封面')
+        const info = await new Promise((resolve, reject) => uni.getImageInfo({ src: previewSource, success: resolve, fail: reject }))
+        await store.importLocalMedia(path, type, { posterTempPath: type === 'video' ? previewSource : undefined, width: file.width || info.width, height: file.height || info.height, duration: file.duration || 0, size: file.size || 0 })
+        const pixelData = await readImagePixels(previewSource, 400)
         const colors = extractPalette(pixelData, 5)
         if (!colors.length) colors.push(
           { hex: '#EEEFE8', name: '雪花米', ratio: 45 },
@@ -325,7 +380,7 @@ const handleChoosePhoto = () => {
           { hex: '#FCEBBF', name: '柔桃黄', ratio: 20 }
         )
         store.setPalette(colors)
-        toastRef.value?.showToast('色彩提取完成', 'check')
+        toastRef.value?.showToast(type === 'video' ? '视频已保存在本地' : '图片已保存在本地', 'check')
       } catch (e) {
         toastRef.value?.showToast('处理照片失败', 'error')
       } finally {
@@ -341,6 +396,11 @@ const handleChoosePhoto = () => {
     }
   })
 }
+
+const handleDeleteDraft = () => uni.showModal({
+  title: '清除本地草稿？', content: '会同时删除这张卡片使用的本地图片或视频，且无法恢复。', confirmText: '清除', confirmColor: '#a45f5f',
+  success: async result => { if (!result.confirm) return; try { await store.deleteLocalProject(); previewPath.value = ''; toastRef.value?.showToast('本地草稿已清除', 'check') } catch { toastRef.value?.showToast('清除失败，请稍后重试', 'error') } }
+})
 
 // 背景
 const handleSelectBg = (type) => {
@@ -381,7 +441,8 @@ const handleAddDecor = (type) => {
   const color = store.palette[0]?.hex || '#6f8b8d'
   store.addDecorationLayer({ id: `decor_${Date.now()}`, type, bounds: { x: 0, y: 0, width: store.canvas.width, height: store.canvas.height },
     options: { count: def.defaultCount, size: def.defaultSize, sizeRandom: 0.8,
-      opacity: 0.7, color, randomness: 1, seed: Date.now() % 100000 } })
+      opacity: 0.7, color, randomness: 1, seed: Date.now() % 100000,
+      distribution: store.appearance.decorationDistribution, motion: store.appearance.decorationMotion } })
   activeDecorIndex.value = store.decorations.length - 1
   toastRef.value?.showToast(`已添加${def.name}`)
 }
@@ -394,6 +455,10 @@ const updateDecoration = (key, value) => {
   schedulePreview()
 }
 const rerollDecoration = () => { updateDecoration('seed', Date.now() % 100000); store.commit() }
+const setDecorationOption = (key, value) => {
+  updateDecoration(key, value)
+  store.setAppearance(key === 'motion' ? { decorationMotion: value } : { decorationDistribution: value })
+}
 const removeSelected = () => { if (store.selectedLayer) store.removeLayer(store.selectedLayer.id) }
 const updateSelectedText = (changes, shouldCommit = false) => {
   if (!selectedText.value) return
@@ -464,12 +529,13 @@ const handleExportConfirm = async () => {
   exporting.value = true
   try {
     store.setCanvasSize(exportRatio.value)
-    const result = await exportMusicCard(scene(), 2)
+    const exportScene = scene(); exportScene.animationTime = 0
+    const result = await exportMusicCard(exportScene, 2)
     await new Promise((resolve, reject) => {
       uni.saveImageToPhotosAlbum({ filePath: result.filePath, success: resolve, fail: reject })
     })
     showExportSheet.value = false
-    toastRef.value?.showToast('已保存至相册', 'check')
+    toastRef.value?.showToast(result.degraded ? '已降级清晰度并保存至相册' : '已保存至相册', 'check')
   } catch (e) {
     if (e.message?.includes('auth deny') || e.errMsg?.includes('auth deny')) {
       uni.showModal({
@@ -477,9 +543,20 @@ const handleExportConfirm = async () => {
         confirmText: '去设置', success: (m) => m.confirm && uni.openSetting({})
       })
     } else {
-      toastRef.value?.showToast('导出失败', 'error')
+      uni.showModal({ title: '导出失败', content: e.message || '当前设备无法生成图片，请稍后重试', showCancel: false })
     }
   } finally { exporting.value = false }
+}
+
+const handleDynamicExport = () => {
+  const capability = assessDynamicExportCapability(typeof wx === 'undefined' ? null : wx)
+  if (capability.supported) return
+  uni.showModal({
+    title: '暂以静态图导出',
+    content: `${capability.reason}。动态预览和本地视频不会上传；当前可继续导出带完整播放器与装饰的 PNG。`,
+    confirmText: '导出 PNG',
+    success: result => { if (result.confirm) handleExportConfirm() }
+  })
 }
 </script>
 
@@ -490,13 +567,17 @@ const handleExportConfirm = async () => {
 .eyebrow { display: block; color: #657668; font-size: 19rpx; font-weight: 600; letter-spacing: 4rpx; }
 .page-title { display: block; margin-top: 10rpx; font-size: 36rpx; font-weight: 700; color: #3f4d50; }
 .page-subtitle { display: block; margin-top: 8rpx; color: #6f766f; font-size: 23rpx; }
+.local-draft-row { margin: 10rpx 32rpx 24rpx; padding: 20rpx 4rpx; display: flex; justify-content: space-between; gap: 20rpx; color: #7d827b; font-size: 21rpx; }
+.clear-draft { color: #9a6464; text-decoration: underline; }
 .panel { margin: 0 24rpx 22rpx; padding: 26rpx; border: 1rpx solid rgba(143,188,147,.38); border-radius: 24rpx; box-shadow: 0 8rpx 22rpx rgba(95,133,100,.05); background: rgba(238,239,232,.94); }
 .editor-panel { margin: 0 24rpx 22rpx; padding: 18rpx; border-radius: 24rpx; background: rgba(238,239,232,.96); border: 1rpx solid rgba(143,188,147,.38); }
 .editor-head { display: flex; justify-content: space-between; margin-bottom: 12rpx; font-size: 22rpx; color: #657668; }
 .replace-photo { color: #5f8564; font-weight: 600; }
 .stage-shell { position: relative; width: 100%; max-height: 58vh; overflow: hidden; border-radius: 18rpx; background: #fff; touch-action: none; }
 .stage-preview { position: absolute; inset: 0; width: 100%; height: 100%; }
+.stage-video { position: absolute; z-index: 1; left: 0; width: 100%; pointer-events: none; }
 .preview-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #7b887c; font-size: 22rpx; }
+.selection-box { z-index: 2; }
 .selection-box { position: absolute; box-sizing: border-box; border: 2rpx solid #5f8564; transform-origin: center; pointer-events: none; }
 .selection-handle { position: absolute; right: -9rpx; bottom: -9rpx; width: 18rpx; height: 18rpx; border-radius: 50%; background: #5f8564; }
 .selection-actions { display: flex; justify-content: space-around; padding-top: 16rpx; font-size: 22rpx; color: #5f8564; }
@@ -525,7 +606,7 @@ const handleExportConfirm = async () => {
 .song-name-display { display: block; font-size: 30rpx; font-weight: 700; color: #3f4d50; }
 .song-artist-display { display: block; font-size: 22rpx; color: #6f766f; margin-top: 4rpx; }
 
-.toolbar { display: flex; gap: 12rpx; margin: 0 24rpx 22rpx; }
+.toolbar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12rpx; margin: 0 24rpx 22rpx; }
 .tool-btn { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 18rpx 0; border-radius: 16rpx; background: rgba(238,239,232,.94); border: 1rpx solid rgba(143,188,147,.38); font-size: 20rpx; color: #3f4d50; }
 .tool-btn.primary { background: #5f8564; border-color: #5f8564; color: #fff; }
 .tool-icon { font-size: 30rpx; margin-bottom: 4rpx; }
@@ -554,6 +635,8 @@ const handleExportConfirm = async () => {
 .form-input { width: 100%; height: 80rpx; padding: 0 20rpx; border: 1rpx solid #dde8d1; border-radius: 12rpx; font-size: 24rpx; background: #f9faf5; }
 .form-submit { width: 100%; height: 88rpx; margin-top: 20rpx; border-radius: 16rpx; background: #5f8564; color: #fff; font-size: 28rpx; font-weight: 600; border: none; }
 .form-submit::after { border: none; }
+.secondary-submit { width: 100%; min-height: 88rpx; margin-top: 16rpx; border-radius: 16rpx; background: #f8fbf3; color: #5f8564; font-size: 24rpx; border: 1rpx solid #8fbc93; }
+.secondary-submit::after { border: none; }
 
 .decor-categories { display: flex; gap: 10rpx; margin-bottom: 14rpx; flex-wrap: wrap; padding: 0 12rpx; }
 .decor-cat-chip { padding: 10rpx 20rpx; border-radius: 999rpx; border: 1rpx solid #dde8d1; font-size: 21rpx; color: #6f766f; }
@@ -566,6 +649,14 @@ const handleExportConfirm = async () => {
 .time-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 12rpx; }
 
 .ratio-row { display: flex; gap: 12rpx; margin: 12rpx 0 20rpx; }
+.ratio-row.wrap { flex-wrap: wrap; }
 .ratio-chip { flex: 1; padding: 24rpx 0; border-radius: 14rpx; border: 1rpx solid #dde8d1; text-align: center; font-size: 24rpx; color: #3f4d50; }
 .ratio-chip.active { border-color: #5f8564; background: #e4f2e5; }
+.slider-field { margin: 24rpx 0; }
+.slider-field .panel-row { margin-bottom: 0; color: #6f766f; font-size: 21rpx; }
+.slider-field .form-label { margin-bottom: 0; }
+.sheet-note { display: block; padding: 18rpx; border-radius: 14rpx; background: #f8fbf3; color: #6f766f; font-size: 21rpx; line-height: 1.6; }
+.choice-row { display: flex; flex-wrap: wrap; gap: 12rpx; margin: 10rpx 0 22rpx; }
+.choice-chip { min-height: 64rpx; padding: 0 22rpx; display: flex; align-items: center; justify-content: center; border: 1rpx solid #dde8d1; border-radius: 999rpx; color: #58665a; font-size: 22rpx; box-sizing: border-box; }
+.choice-chip.active { color: #fff; background: #5f8564; border-color: #5f8564; }
 </style>

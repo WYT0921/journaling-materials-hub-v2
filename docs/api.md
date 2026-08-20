@@ -228,6 +228,17 @@ POST /api/feedback
 }
 ```
 
+### 2. 查询我的反馈与回复
+
+需要用户 JWT，仅返回当前用户提交的反馈，按提交时间倒序排列。
+
+```http
+GET /api/feedback/my
+Authorization: Bearer <token>
+```
+
+返回字段中的 `reply`、`repliedAt` 分别为管理员回复和回复时间；尚未回复时为 `null`。
+
 **响应**
 
 ```json
@@ -612,10 +623,6 @@ POST /api/v2/admin/auth/login
 
 上传接口支持静态图片和 GIF。GIF 必须为多帧、最长 10 秒且不超过 10MB，返回 PNG 静态封面及 `mediaType/contentHash/mimeType/fileSize/width/height/durationMs/frameCount`。素材列表支持 `mediaType` 筛选，管理响应额外包含来源审计字段。
 
-### 3.1 动态素材内部导入
-
-`POST /api/v2/internal/dynamic-materials/import` 仅供专用 GIF Skill 调用，需 `X-Collector-Token`，请求为 multipart：`gif`、`cover`、`metadata`。后端再次校验 GIF 并按 SHA-256 去重；成功项直接发布。
-
 ### 4. 颜文字 / Emoji 管理
 
 | 方法 | 路径 | 说明 |
@@ -644,6 +651,7 @@ POST /api/v2/admin/auth/login
 |------|------|------|
 | GET | `/api/v2/admin/feedbacks` | 反馈列表（支持 status 筛选，返回 userNicknames） |
 | PUT | `/api/v2/admin/feedbacks/:id/status?status=1` | 标记已处理/未处理 |
+| PUT | `/api/v2/admin/feedbacks/:id/reply` | 回复反馈（JSON：`{ "reply": "..." }`），并自动标记已处理 |
 | DELETE | `/api/v2/admin/feedbacks/:id` | 删除反馈 |
 
 ### 7. 兑换码管理
@@ -656,71 +664,9 @@ POST /api/v2/admin/auth/login
 
 兑换码状态：`0` 未使用，`1` 已使用，`2` 已作废。每个兑换码只能成功激活一次。
 
-### 8. AURA 模板与资源管理
+### 8. 已停用功能
 
-需要管理员 JWT。模板稳定键和资源稳定键全局唯一；状态 `0` 为下架、`1` 为上架。
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/v2/admin/aura/templates` | 查看全部模板（含下架） |
-| POST | `/api/v2/admin/aura/templates` | 新增模板并校验比例、图层和归一化坐标 |
-| PUT | `/api/v2/admin/aura/templates/:id` | 编辑模板 |
-| PUT | `/api/v2/admin/aura/templates/:id/status?status=1` | 上下架模板 |
-| DELETE | `/api/v2/admin/aura/templates/:id` | 删除模板 |
-| GET | `/api/v2/admin/aura/assets?type=font` | 查看全部资源，可按类型筛选 |
-| POST | `/api/v2/admin/aura/assets/upload` | 上传不超过 10MB 的 PNG/JPG/WebP/TTF/OTF，返回 URL 与 SHA-256 |
-| POST | `/api/v2/admin/aura/assets` | 新增资源记录 |
-| PUT | `/api/v2/admin/aura/assets/:id` | 编辑资源记录 |
-| PUT | `/api/v2/admin/aura/assets/:id/status?status=1` | 上下架资源 |
-| DELETE | `/api/v2/admin/aura/assets/:id` | 删除资源记录 |
-
-模板 `config` 顶层只接受 `layers`，图层类型只接受 `background/photo/player/text/decoration/texture`，不允许远程可执行代码。资源类型只接受 `decoration/texture/font`；上传端同时校验扩展 MIME 与文件魔数。
-
----
-
-## AURA Music Card 公共目录
-
-无需登录，仅返回已上架模板与资源，不包含数据库 ID、管理状态或内部存储凭证。客户端应保存响应中的 `ETag`，再次请求时通过 `If-None-Match` 发送；目录未变化时返回 `304 Not Modified`。
-
-```http
-GET /api/v2/aura/catalog
-```
-
-```json
-{
-  "success": true,
-  "data": {
-    "schemaVersion": 1,
-    "catalogVersion": "8d9c...",
-    "generatedAt": "2026-08-11T00:00:00",
-    "templates": [
-      {
-        "key": "fresh-rounded",
-        "name": "清新圆角",
-        "style": "fresh",
-        "previewUrl": null,
-        "supportedRatios": ["1:1", "4:3", "9:16"],
-        "configVersion": 1,
-        "config": { "layers": [] }
-      }
-    ],
-    "assets": [
-      {
-        "key": "font-example",
-        "name": "示例字体",
-        "type": "font",
-        "fileUrl": "https://cdn.example.com/aura/font.ttf",
-        "previewUrl": null,
-        "resourceVersion": 1,
-        "sha256": "64位小写十六进制摘要",
-        "metadata": { "family": "AuraExample", "styleKey": "serif" }
-      }
-    ]
-  }
-}
-```
-
-客户端网络失败时使用最后一次有效目录；首次离线时使用 App 内置的 5 个基础模板。
+Collector 与 AURA 已于 2026-08-18 移除，相关内部接口、管理接口和公共目录均不再提供。
 
 ---
 
@@ -746,19 +692,6 @@ GET /api/v2/categories?type=tool
 ```
 
 ## 颜文字 / Emoji 公共接口
-
-### 每日采集内部接口
-
-以下接口仅供 collector 容器使用，必须携带 `X-Collector-Token`。Token 使用常量时间比较，不经过管理员密码认证。
-
-| 方法 | 路径 | 说明 |
-|---|---|---|
-| POST | `/api/v2/internal/collector/runs/start` | 创建运行记录并获取最长 4 小时 Redis 任务锁 |
-| PUT | `/api/v2/internal/collector/runs/{id}` | 完成运行、写入统计并释放匹配的任务锁 |
-| POST | `/api/v2/internal/collector/import` | 导入 1–500 条候选；后端强制写为待审核 |
-| GET | `/api/v2/admin/collector-runs?page=1&limit=20` | 管理员查看采集记录 |
-
-导入响应包含 `inserted/duplicates/filtered/failed/errors`。公共素材接口不会返回来源 URL、AI 模型、置信度或审核说明。
 
 无需登录。`type` 必须为 `kaomoji` 或 `emoji`。
 

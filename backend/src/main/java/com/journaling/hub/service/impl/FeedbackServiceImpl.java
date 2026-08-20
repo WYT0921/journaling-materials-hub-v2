@@ -3,6 +3,8 @@ package com.journaling.hub.service.impl;
 import com.journaling.hub.entity.Feedback;
 import com.journaling.hub.mapper.FeedbackMapper;
 import com.journaling.hub.service.FeedbackService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -27,5 +29,12 @@ public class FeedbackServiceImpl implements FeedbackService {
 
         log.info("反馈提交成功: id={}, userId={}", feedback.getId(), userId);
         return feedback;
+    }
+
+    @Override
+    public List<Feedback> listByUserId(Long userId) {
+        return feedbackMapper.selectList(new LambdaQueryWrapper<Feedback>()
+                .eq(Feedback::getUserId, userId)
+                .orderByDesc(Feedback::getCreatedAt));
     }
 }

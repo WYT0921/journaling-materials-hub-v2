@@ -74,3 +74,7 @@ tools/threads-gif-collector-extension/download/
 
 # 微信开发者工具私有配置
 project.private.config.json
+
+# 生成内容与发布产物（含本地路径 / 生产 API 信息，不入库）
+output/
+release/

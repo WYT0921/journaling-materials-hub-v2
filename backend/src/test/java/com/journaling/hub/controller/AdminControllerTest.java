@@ -265,6 +265,20 @@ class AdminControllerTest extends ControllerTestBase {
     }
 
     @Test
+    @DisplayName("管理员 — PUT /api/v2/admin/feedbacks/{id}/reply 回复并标记已处理")
+    void replyFeedback_admin_shouldSucceed() throws Exception {
+        mockMvc.perform(put("/api/v2/admin/feedbacks/1/reply")
+                        .header("Authorization", adminJwtToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reply\":\"感谢反馈，我们已经安排优化。\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.reply").value("感谢反馈，我们已经安排优化。"))
+                .andExpect(jsonPath("$.data.status").value(1))
+                .andExpect(jsonPath("$.data.repliedAt").exists());
+    }
+
+    @Test
     @DisplayName("管理员 — DELETE /api/v2/admin/feedbacks/{id} 删除反馈")
     void deleteFeedback_admin_shouldSucceed() throws Exception {
         mockMvc.perform(delete("/api/v2/admin/feedbacks/3")

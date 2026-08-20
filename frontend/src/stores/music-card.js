@@ -6,14 +6,21 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { createHistory } from '../utils/collage/history.mjs'
 import { CANVAS_SIZES, resizeLayers } from '../utils/music-card/editor.mjs'
+import { createMusicCardLocalRepository, normalizeMusicCardProject } from '../repositories/music-card-local.mjs'
 
 let nextId = 1
 const createLayerId = () => `mc_${nextId++}_${Date.now()}`
 
 export const useMusicCardStore = defineStore('musicCard', () => {
+  const projectId = ref('')
+  const media = ref(null)
+  const needsMediaRepair = ref(false)
+  const localReady = ref(false)
+  let repository = null
+  let persistTimer = null
   // 画布
-  const canvasSize = ref('4:3')
-  const canvas = computed(() => CANVAS_SIZES[canvasSize.value] || CANVAS_SIZES['4:3'])
+  const canvasSize = ref('3:4')
+  const canvas = computed(() => CANVAS_SIZES[canvasSize.value] || CANVAS_SIZES['3:4'])
 
   // 调色板
   const palette = ref([])
@@ -28,9 +35,10 @@ export const useMusicCardStore = defineStore('musicCard', () => {
 
   // 背景配置
   const backgroundStyle = ref({ type: 'gradient', filmGrain: 0 })
+  const appearance = ref({ photoSplit: .5, playerScale: 1, lyricsVisible: true, lyricsStyle: 'minimal-serif', lyricsFontSize: 1, lyricsOpacity: .72, decorationMotion: 'fall', decorationDistribution: 'trail' })
 
   // 播放器配置
-  const playerTemplateId = ref('minimal')
+  const playerTemplateId = ref('capsule')
 
   // 装饰配置
   const decorations = ref([])
@@ -46,23 +54,53 @@ export const useMusicCardStore = defineStore('musicCard', () => {
   const selectedLayer = computed(() => layers.value.find(l => l.id === selectedLayerId.value) || null)
 
   // 场景快照
-  const snapshot = () => JSON.parse(JSON.stringify({ canvasSize: canvasSize.value, palette: palette.value, layers: layers.value, songInfo: songInfo.value, backgroundStyle: backgroundStyle.value, playerTemplateId: playerTemplateId.value, decorations: decorations.value }))
+  const snapshot = () => JSON.parse(JSON.stringify({ canvasSize: canvasSize.value, palette: palette.value, layers: layers.value, songInfo: songInfo.value, backgroundStyle: backgroundStyle.value, appearance: appearance.value, playerTemplateId: playerTemplateId.value, decorations: decorations.value }))
+  const projectSnapshot = () => normalizeMusicCardProject({ id: projectId.value, ...snapshot(), media: media.value, title: songInfo.value.songName || '未命名音乐卡片' })
 
   const restore = (data) => {
     if (!data) return
-    canvasSize.value = data.canvasSize || '4:3'
+    canvasSize.value = data.canvasSize || '3:4'
     palette.value = data.palette || []
     layers.value = data.layers || []
     songInfo.value = data.songInfo || { songName: '', artist: '', album: '', lyrics: '', date: '' }
     backgroundStyle.value = data.backgroundStyle || { type: 'gradient' }
-    playerTemplateId.value = data.playerTemplateId || 'minimal'
+    appearance.value = { photoSplit: .5, playerScale: 1, lyricsVisible: true, lyricsStyle: 'minimal-serif', lyricsFontSize: 1, lyricsOpacity: .72, decorationMotion: 'fall', decorationDistribution: 'trail', ...(data.appearance || {}) }
+    playerTemplateId.value = data.playerTemplateId || 'capsule'
     decorations.value = data.decorations || []
+    if (data.id) projectId.value = data.id
+    if (Object.prototype.hasOwnProperty.call(data, 'media')) media.value = data.media || null
+    if (Object.prototype.hasOwnProperty.call(data, 'needsMediaRepair')) needsMediaRepair.value = Boolean(data.needsMediaRepair)
+  }
+
+  const createProjectId = () => `card_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+  const persistLocal = async () => {
+    if (!repository || !projectId.value) return
+    await repository.saveProject(projectSnapshot())
+  }
+  const schedulePersist = () => {
+    if (!repository || !localReady.value) return
+    clearTimeout(persistTimer)
+    persistTimer = setTimeout(() => persistLocal().catch(() => undefined), 350)
+  }
+  const initializeLocal = async runtime => {
+    repository = createMusicCardLocalRepository(runtime)
+    const projects = await repository.listProjects()
+    if (projects[0]) restore(await repository.repairProject(projects[0]))
+    else {
+      projectId.value = createProjectId()
+      reset(); initDefaults()
+      await persistLocal()
+    }
+    history = createHistory(snapshot())
+    historyVersion.value++
+    localReady.value = true
+    return projects[0] || projectSnapshot()
   }
 
   // Actions
-  const commit = () => { history.commit(snapshot()); historyVersion.value++ }
-  const undo = () => { if (!history.canUndo()) return; const s = history.undo(); if (s) restore(s); historyVersion.value++ }
-  const redo = () => { if (!history.canRedo()) return; const s = history.redo(); if (s) restore(s); historyVersion.value++ }
+  const commit = () => { history.commit(snapshot()); historyVersion.value++; schedulePersist() }
+  const undo = () => { if (!history.canUndo()) return; const s = history.undo(); if (s) restore(s); historyVersion.value++; schedulePersist() }
+  const redo = () => { if (!history.canRedo()) return; const s = history.redo(); if (s) restore(s); historyVersion.value++; schedulePersist() }
 
   const setCanvasSize = (size) => {
     if (!CANVAS_SIZES[size] || size === canvasSize.value) return
@@ -70,8 +108,22 @@ export const useMusicCardStore = defineStore('musicCard', () => {
     const nextCanvas = CANVAS_SIZES[size]
     layers.value = resizeLayers(layers.value, oldCanvas, nextCanvas)
     canvasSize.value = size
+    applyAutomaticLayout()
     commit()
   }
+
+  const applyAutomaticLayout = () => {
+    const c = canvas.value, splitY = Math.round(c.height * appearance.value.photoSplit)
+    const photo = layers.value.find(layer => layer.type === 'photo')
+    if (photo) Object.assign(photo, { x: 0, y: splitY, width: c.width, height: c.height - splitY, fit: 'cover' })
+    const player = layers.value.find(layer => layer.type === 'player')
+    if (player) {
+      const width = c.width * .63 * appearance.value.playerScale, height = width * .46
+      Object.assign(player, { x: (c.width - width) / 2, y: Math.max(12, (splitY - height) / 2), width, height, scale: 1 })
+    }
+  }
+
+  const setAppearance = changes => { appearance.value = { ...appearance.value, ...changes }; applyAutomaticLayout(); commit() }
 
   const setPalette = (colors) => {
     palette.value = colors
@@ -92,11 +144,11 @@ export const useMusicCardStore = defineStore('musicCard', () => {
       playerLayer.templateId = templateId
     } else {
       const c = canvas.value
-      const pw = c.width * 0.75
-      const ph = pw * 0.45
+      const pw = c.width * 0.63
+      const ph = pw * 0.46
       layers.value.push({
         id: createLayerId(), type: 'player', templateId,
-        x: (c.width - pw) / 2, y: c.height - ph - 40,
+        x: (c.width - pw) / 2, y: (c.height * appearance.value.photoSplit - ph) / 2,
         width: pw, height: ph, visible: true
       })
     }
@@ -130,15 +182,14 @@ export const useMusicCardStore = defineStore('musicCard', () => {
 
   const addPhoto = (imagePath, info) => {
     const c = canvas.value
-    const maxW = c.width * 0.85
-    const maxH = c.height * 0.55
-    const scale = Math.min(1, maxW / info.width, maxH / info.height)
-    const w = Math.round(info.width * scale)
-    const h = Math.round(info.height * scale)
+    const splitY = Math.round(c.height * appearance.value.photoSplit)
+    const w = c.width
+    const h = c.height - splitY
     const photo = {
       id: createLayerId(), type: 'photo', imagePath,
-      x: (c.width - w) / 2, y: 40, width: w, height: h,
-      scale: 1, rotation: 0, visible: true
+      x: 0, y: splitY, width: w, height: h,
+      sourceWidth: Number(info.width) || w, sourceHeight: Number(info.height) || h,
+      fit: 'cover', scale: 1, rotation: 0, visible: true
     }
     const existingIndex = layers.value.findIndex(layer => layer.type === 'photo')
     if (existingIndex >= 0) layers.value.splice(existingIndex, 1, photo)
@@ -148,6 +199,20 @@ export const useMusicCardStore = defineStore('musicCard', () => {
     backgroundStyle.value.imagePath = imagePath
     selectedLayerId.value = photo.id
     commit()
+  }
+
+  const importLocalMedia = async (tempFilePath, type, metadata = {}) => {
+    if (!repository) throw new Error('本地项目尚未初始化')
+    const imported = await repository.importMedia(tempFilePath, type, projectId.value, metadata)
+    if (type === 'video' && metadata.posterTempPath) imported.posterPath = await repository.savePoster(metadata.posterTempPath, projectId.value)
+    media.value = imported
+    needsMediaRepair.value = false
+    const displayPath = imported.posterPath || imported.localPath
+    addPhoto(displayPath, { width: imported.width, height: imported.height })
+    const photo = layers.value.find(layer => layer.type === 'photo')
+    if (photo) { photo.mediaType = type; photo.sourcePath = imported.localPath; photo.imagePath = displayPath }
+    await persistLocal()
+    return imported
   }
 
   const addTextLayer = (textConfig = {}) => {
@@ -205,15 +270,18 @@ export const useMusicCardStore = defineStore('musicCard', () => {
   }
 
   const reset = () => {
-    canvasSize.value = '4:3'
+    canvasSize.value = '3:4'
     palette.value = []
     paletteLoading.value = false
     layers.value = []
     selectedLayerId.value = null
     songInfo.value = { songName: '', artist: '', album: '', lyrics: '', date: '', currentTime: '1:24', totalTime: '3:32' }
     backgroundStyle.value = { type: 'gradient', filmGrain: 0 }
-    playerTemplateId.value = 'minimal'
+    appearance.value = { photoSplit: .5, playerScale: 1, lyricsVisible: true, lyricsStyle: 'minimal-serif', lyricsFontSize: 1, lyricsOpacity: .72, decorationMotion: 'fall', decorationDistribution: 'trail' }
+    playerTemplateId.value = 'capsule'
     decorations.value = []
+    media.value = null
+    needsMediaRepair.value = false
     history = createHistory(snapshot())
     historyVersion.value++
     nextId = 1
@@ -226,24 +294,36 @@ export const useMusicCardStore = defineStore('musicCard', () => {
     layers.value.push({ id: createLayerId(), type: 'background', config: backgroundStyle.value, visible: true })
     // 播放器层
     const c = canvas.value
-    const pw = c.width * 0.75
-    const ph = pw * 0.45
+    const pw = c.width * 0.63
+    const ph = pw * 0.46
     layers.value.push({
       id: createLayerId(), type: 'player', templateId: playerTemplateId.value,
-      x: (c.width - pw) / 2, y: c.height - ph - 40,
+      x: (c.width - pw) / 2, y: (c.height * appearance.value.photoSplit - ph) / 2,
       width: pw, height: ph, visible: true
     })
     commit()
   }
 
+  const deleteLocalProject = async () => {
+    if (!repository || !projectId.value) return
+    await repository.deleteProject(projectId.value)
+    projectId.value = createProjectId()
+    reset(); initDefaults()
+    await persistLocal()
+  }
+
+  const inspectLocalStorage = () => repository?.inspectStorage()
+
   return {
+    projectId, media, needsMediaRepair, localReady,
     canvasSize, canvas, palette, paletteLoading,
     layers, selectedLayerId, selectedLayer,
-    songInfo, backgroundStyle, playerTemplateId, decorations,
+    songInfo, backgroundStyle, appearance, playerTemplateId, decorations,
     canUndo, canRedo, history,
-    setCanvasSize, setPalette, setBackground, setPlayerTemplate,
+    setCanvasSize, setPalette, setBackground, setAppearance, applyAutomaticLayout, setPlayerTemplate,
     updateSongInfo, addDecorationLayer, removeDecoration,
     addPhoto, addTextLayer, moveLayer, updateLayer, removeLayer, duplicateSelected, moveSelected,
-    commit, undo, redo, reset, initDefaults, snapshot
+    commit, undo, redo, reset, initDefaults, snapshot, projectSnapshot,
+    initializeLocal, persistLocal, importLocalMedia, deleteLocalProject, inspectLocalStorage
   }
 })

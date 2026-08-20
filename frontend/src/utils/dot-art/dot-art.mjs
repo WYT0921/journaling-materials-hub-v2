@@ -1,6 +1,7 @@
-export const DOT_ART_MIN_WIDTH = 24
-export const DOT_ART_MAX_WIDTH = 96
-export const DOT_ART_DEFAULT_WIDTH = 48
+export const DOT_ART_MIN_WIDTH = 12
+export const DOT_ART_MAX_WIDTH = 40
+export const DOT_ART_DEFAULT_WIDTH = 18
+export const DOT_ART_CHAT_MAX_ROWS = 24
 export const ASCII_RAMP = '@%#*+=-:. '
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
@@ -18,6 +19,13 @@ export const clampOutputWidth = width => clamp(
   DOT_ART_MIN_WIDTH,
   DOT_ART_MAX_WIDTH
 )
+
+export const fitOutputColumns = (columns, aspectRatio, maxRows = DOT_ART_CHAT_MAX_ROWS) => {
+  if (!Number.isFinite(aspectRatio) || aspectRatio <= 0 || !maxRows) return columns
+  // ASCII 与 Braille 的最终文本行数都约为 aspectRatio * columns / 2。
+  // 同时限制行数，避免竖图在微信中形成超长聊天气泡。
+  return Math.max(4, Math.min(columns, Math.floor(maxRows * 2 / aspectRatio)))
+}
 
 export const rgbaToGrayscale = (data, background = 255) => {
   const gray = new Uint8ClampedArray(Math.floor(data.length / 4))
@@ -192,7 +200,7 @@ export const isDotArtEmpty = text => !text || !text.replace(/[\s⠀]/gu, '')
 export const generateDotArt = ({ data, width, height }, options = {}) => {
   if (!data || width <= 0 || height <= 0) throw new Error('图片像素数据无效')
   const mode = options.mode === 'ascii' ? 'ascii' : 'braille'
-  const columns = clampOutputWidth(options.outputWidth)
+  const requestedColumns = clampOutputWidth(options.outputWidth)
   const fullGray = rgbaToGrayscale(data)
   const bounds = options.autoCrop === false
     ? fullImageBounds(width, height)
@@ -203,6 +211,9 @@ export const generateDotArt = ({ data, width, height }, options = {}) => {
   const sourceWidth = bounds.width
   const sourceHeight = bounds.height
   const aspectRatio = sourceHeight / sourceWidth
+  const columns = options.chatFit === false
+    ? requestedColumns
+    : fitOutputColumns(requestedColumns, aspectRatio, options.maxRows ?? DOT_ART_CHAT_MAX_ROWS)
 
   if (mode === 'ascii') {
     const targetWidth = columns

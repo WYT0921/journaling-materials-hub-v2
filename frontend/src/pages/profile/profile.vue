@@ -185,6 +185,21 @@
           <text class="feedback-title">反馈建议</text>
           <text class="feedback-close" @tap="closeFeedbackDialog">×</text>
         </view>
+        <scroll-view v-if="userStore.isLoggedIn" scroll-y class="feedback-history">
+          <view v-if="isLoadingFeedbacks" class="feedback-empty">加载中...</view>
+          <view v-else-if="myFeedbacks.length === 0" class="feedback-empty">还没有提交过反馈</view>
+          <view v-for="item in myFeedbacks" :key="item.id" class="feedback-item">
+            <view class="feedback-item-meta">
+              <text>{{ formatFeedbackTime(item.createdAt) }}</text>
+              <text :class="item.reply ? 'feedback-replied' : ''">{{ item.reply ? '已回复' : '待回复' }}</text>
+            </view>
+            <text class="feedback-item-content">{{ item.content }}</text>
+            <view v-if="item.reply" class="feedback-reply">
+              <text class="feedback-reply-label">管理员回复</text>
+              <text>{{ item.reply }}</text>
+            </view>
+          </view>
+        </scroll-view>
         <textarea
           v-model="feedbackContent"
           class="feedback-textarea"
@@ -220,7 +235,7 @@ import { ref, computed, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../stores/user'
 import { uploadAvatar } from '../../api/user'
-import { submitFeedback } from '../../api/feedback'
+import { submitFeedback, getMyFeedbacks } from '../../api/feedback'
 import { requireLogin } from '../../utils/auth'
 import CustomToast from '../../components/CustomToast.vue'
 import CustomTabBar from '../../components/CustomTabBar.vue'
@@ -234,6 +249,8 @@ const selectedAvatarPath = ref('')
 const showFeedbackDialog = ref(false)
 const feedbackContent = ref('')
 const isSubmittingFeedback = ref(false)
+const isLoadingFeedbacks = ref(false)
+const myFeedbacks = ref([])
 
 const profileForm = ref({
   nickname: '',
@@ -358,7 +375,21 @@ const handleGoRedeem = () => {
 
 const openFeedbackDialog = () => {
   showFeedbackDialog.value = true
+  if (userStore.isLoggedIn) loadMyFeedbacks()
 }
+
+const loadMyFeedbacks = async () => {
+  isLoadingFeedbacks.value = true
+  try {
+    myFeedbacks.value = await getMyFeedbacks() || []
+  } catch (error) {
+    console.error('加载反馈记录失败:', error)
+  } finally {
+    isLoadingFeedbacks.value = false
+  }
+}
+
+const formatFeedbackTime = (value) => value ? String(value).replace('T', ' ').slice(0, 16) : ''
 
 const closeFeedbackDialog = () => {
   if (isSubmittingFeedback.value) return
@@ -376,7 +407,8 @@ const handleSubmitFeedback = async () => {
   try {
     await submitFeedback(content)
     feedbackContent.value = ''
-    showFeedbackDialog.value = false
+    if (userStore.isLoggedIn) await loadMyFeedbacks()
+    else showFeedbackDialog.value = false
     uni.showToast({ title: '感谢反馈', icon: 'success' })
   } catch (error) {
     console.error('提交反馈失败:', error)
@@ -918,6 +950,19 @@ const handleLogout = () => {
   padding: 28rpx 28rpx calc(160rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
+
+.feedback-history {
+  max-height: 360rpx;
+  margin-bottom: 22rpx;
+}
+
+.feedback-empty { padding: 30rpx 0; text-align: center; color: #999; font-size: 25rpx; }
+.feedback-item { padding: 20rpx; margin-bottom: 14rpx; border-radius: 14rpx; background: #f7f7f7; }
+.feedback-item-meta { display: flex; justify-content: space-between; margin-bottom: 10rpx; color: #999; font-size: 21rpx; }
+.feedback-replied { color: #47845a; }
+.feedback-item-content { display: block; color: #333; font-size: 26rpx; line-height: 1.5; }
+.feedback-reply { margin-top: 14rpx; padding: 14rpx; border-radius: 10rpx; background: #eef6f0; color: #315f3d; font-size: 25rpx; line-height: 1.5; }
+.feedback-reply-label { display: block; margin-bottom: 5rpx; font-weight: 600; }
 
 .feedback-header {
   display: flex;

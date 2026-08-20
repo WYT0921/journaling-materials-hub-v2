@@ -248,11 +248,35 @@ export const drawDecoration = (ctx, decorationType, bounds, options = {}) => {
   const { x, y, width, height } = bounds
 
   for (let i = 0; i < count; i++) {
-    const cx = x + (0.1 + rng() * 0.8 * randomness) * width
-    const cy = y + (0.1 + rng() * 0.8 * randomness) * height
-    const sz = size * (1 - sizeRandom / 2 + rng() * sizeRandom * randomness)
-    drawFn(ctx, cx, cy, sz, color, opacity * (0.6 + rng() * 0.4))
+    const point = decorationPoint(options.distribution || 'scatter', i, count, bounds, rng, randomness)
+    const motion = decorationMotionTransform(options.motion || 'fall', i, count, point, bounds, options.animationTime || 0)
+    const sz = size * (1 - sizeRandom / 2 + rng() * sizeRandom * randomness) * motion.scale
+    ctx.save(); ctx.translate(motion.cx, motion.cy); ctx.rotate(motion.rotation); drawFn(ctx, 0, 0, sz, color, opacity * (0.6 + rng() * 0.4) * motion.opacity); ctx.restore()
   }
+}
+
+export const decorationMotionTransform = (motion, index, count, point, bounds, time = 0) => {
+  if (!time) return { ...point, scale: 1, opacity: 1, rotation: 0 }
+  const phase = time * 1.7 + index * .72
+  if (motion === 'breathe') return { ...point, scale: 1 + Math.sin(phase) * .16, opacity: .82 + Math.sin(phase) * .18, rotation: 0 }
+  if (motion === 'together') return { cx: point.cx, cy: point.cy + Math.sin(time * 2) * bounds.height * .025, scale: 1, opacity: 1, rotation: 0 }
+  if (motion === 'sequence') return { ...point, scale: .9 + Math.max(0, Math.sin(phase)) * .18, opacity: .35 + Math.max(0, Math.sin(phase)) * .65, rotation: 0 }
+  if (motion === 'rotate') return { ...point, scale: 1, opacity: 1, rotation: phase * .45 }
+  const offset = (time * bounds.height * .08 + index * bounds.height / Math.max(count, 1)) % (bounds.height * .95)
+  return { cx: point.cx + Math.sin(phase) * bounds.width * .015, cy: bounds.y + offset, scale: 1, opacity: 1, rotation: Math.sin(phase) * .12 }
+}
+
+export const decorationPoint = (distribution, index, count, bounds, rng, randomness = 1) => {
+  const { x, y, width, height } = bounds
+  if (distribution === 'uniform') {
+    const columns = Math.max(1, Math.ceil(Math.sqrt(count * width / Math.max(height, 1)))); const rows = Math.max(1, Math.ceil(count / columns))
+    return { cx: x + ((index % columns) + .5) * width / columns, cy: y + (Math.floor(index / columns) + .5) * height / rows }
+  }
+  if (distribution === 'trail') {
+    const progress = count <= 1 ? .5 : index / (count - 1); const jitterX = (rng() - .5) * width * .14 * randomness; const jitterY = (rng() - .5) * height * .12 * randomness
+    return { cx: x + width * (.16 + progress * .68) + jitterX, cy: y + height * (.12 + progress * .76) + jitterY }
+  }
+  return { cx: x + (0.1 + rng() * .8 * randomness) * width, cy: y + (0.1 + rng() * .8 * randomness) * height }
 }
 
 /**

@@ -4,9 +4,6 @@ admin:
   # BCrypt hash of "admin123"
   password-hash: $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy
 
-collector:
-  token: test-collector-token-at-least-32-characters
-
 spring:
   flyway:
     enabled: false

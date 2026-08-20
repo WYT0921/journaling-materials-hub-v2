@@ -15,6 +15,13 @@ const loadCanvasImage = (canvas, path) => new Promise((resolve, reject) => {
   image.src = path
 })
 
+export const coverCropRect = (sourceWidth, sourceHeight, targetWidth, targetHeight) => {
+  const sourceRatio = sourceWidth / Math.max(1, sourceHeight), targetRatio = targetWidth / Math.max(1, targetHeight)
+  if (sourceRatio > targetRatio) { const width = sourceHeight * targetRatio; return { x: (sourceWidth - width) / 2, y: 0, width, height: sourceHeight } }
+  const height = sourceWidth / targetRatio
+  return { x: 0, y: (sourceHeight - height) / 2, width: sourceWidth, height }
+}
+
 // ---- 图层渲染调度 ----
 
 const renderBackground = async (ctx, layer, scene, images) => {
@@ -33,8 +40,11 @@ const renderPhoto = async (ctx, layer, scene, images) => {
   ctx.save()
   ctx.translate(x + (layer.width || img.width) * scale / 2, y + (layer.height || img.height) * scale / 2)
   ctx.rotate((rotation * Math.PI) / 180)
-  ctx.drawImage(img, -(layer.width || img.width) * scale / 2, -(layer.height || img.height) * scale / 2,
-    (layer.width || img.width) * scale, (layer.height || img.height) * scale)
+  const targetWidth = (layer.width || img.width) * scale, targetHeight = (layer.height || img.height) * scale
+  if (layer.fit === 'cover') {
+    const crop = coverCropRect(layer.sourceWidth || img.width, layer.sourceHeight || img.height, targetWidth, targetHeight)
+    ctx.drawImage(img, crop.x, crop.y, crop.width, crop.height, -targetWidth / 2, -targetHeight / 2, targetWidth, targetHeight)
+  } else ctx.drawImage(img, -targetWidth / 2, -targetHeight / 2, targetWidth, targetHeight)
   ctx.restore()
 }
 
@@ -45,7 +55,11 @@ const renderPlayer = async (ctx, layer, scene, images) => {
   ctx.translate(x + width * scale / 2, y + height * scale / 2)
   ctx.rotate(rotation * Math.PI / 180)
   ctx.scale(scale, scale)
-  await drawPlayerTemplate(ctx, layer.templateId, scene.songInfo, scene.palette, { x: -width / 2, y: -height / 2, width, height }, coverPath, layer.colorMode)
+  const songInfo = scene.appearance?.lyricsVisible === false ? { ...scene.songInfo, lyrics: '' } : scene.songInfo
+  await drawPlayerTemplate(ctx, layer.templateId, songInfo, scene.palette, { x: -width / 2, y: -height / 2, width, height }, coverPath, layer.colorMode, {
+    lyricsStyle: scene.appearance?.lyricsStyle, lyricsFontSize: scene.appearance?.lyricsFontSize, lyricsOpacity: scene.appearance?.lyricsOpacity,
+    animationTime: scene.animationTime || 0
+  })
   ctx.restore()
 }
 
@@ -74,7 +88,7 @@ const renderText = (ctx, layer, scene) => {
 }
 
 const renderDecorationLayer = (ctx, layer, scene) => {
-  drawDecorations(ctx, layer.decorations || [])
+  drawDecorations(ctx, (layer.decorations || []).map(item => ({ ...item, options: { ...(item.options || {}), animationTime: scene.animationTime || 0 } })))
 }
 
 // ---- 主渲染入口 ----
@@ -149,29 +163,44 @@ const toTempFilePath = (canvas, width, height) => new Promise((resolve, reject) 
  * @param {number} [dpi=300] - 输出 DPI
  * @returns {Promise<{filePath: string, width: number, height: number}>}
  */
+export const calculateExportSize = (canvasSize, pixelRatio = 2, limits = {}) => {
+  const logicalW = Number(canvasSize?.width), logicalH = Number(canvasSize?.height)
+  if (!(logicalW > 0 && logicalH > 0)) throw new Error('画布尺寸无效')
+  const maxEdge = limits.maxEdge || 4096, maxPixels = limits.maxPixels || 12000000
+  const edgeScale = maxEdge / Math.max(logicalW, logicalH)
+  const pixelScale = Math.sqrt(maxPixels / (logicalW * logicalH))
+  const scale = Math.max(.5, Math.min(Number(pixelRatio) || 1, edgeScale, pixelScale))
+  return { width: Math.max(1, Math.round(logicalW * scale)), height: Math.max(1, Math.round(logicalH * scale)), scale }
+}
+
+const exportAtScale = async (scene, scale) => {
+  const exportW = Math.round(scene.canvas.width * scale), exportH = Math.round(scene.canvas.height * scale)
+  const canvas = wx.createOffscreenCanvas({ type: '2d', width: exportW, height: exportH })
+  if (!canvas) throw new Error('无法创建导出画布')
+  canvas.width = exportW; canvas.height = exportH
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('无法创建 Canvas 2D 上下文')
+  ctx.scale(scale, scale)
+  await drawMusicCardScene(ctx, { ...scene, animationTime: 0 }, new Map())
+  const filePath = await toTempFilePath(canvas, exportW, exportH)
+  return { filePath, width: exportW, height: exportH, pixelRatio: scale }
+}
+
 export const exportMusicCard = async (scene, pixelRatio = 2) => {
   if (typeof wx === 'undefined' || !wx.createOffscreenCanvas) {
     throw new Error('当前微信版本不支持离屏 Canvas')
   }
-
-  const logicalW = scene.canvas.width
-  const logicalH = scene.canvas.height
-  const maxEdge = 4096
-  const scale = Math.min(pixelRatio, maxEdge / Math.max(logicalW, logicalH))
-  const exportW = Math.round(logicalW * scale)
-  const exportH = Math.round(logicalH * scale)
-
-  const canvas = wx.createOffscreenCanvas({ type: '2d', width: exportW, height: exportH })
-  canvas.width = exportW
-  canvas.height = exportH
-  const ctx = canvas.getContext('2d')
-  ctx.scale(scale, scale)
-
-  const images = new Map()
-  await drawMusicCardScene(ctx, scene, images)
-
-  const filePath = await toTempFilePath(canvas, exportW, exportH)
-  return { filePath, width: exportW, height: exportH, pixelRatio: scale }
+  const requested = calculateExportSize(scene.canvas, pixelRatio).scale
+  const candidates = [...new Set([requested, Math.min(requested, 1.5), 1].filter(scale => scale > 0).map(scale => Number(scale.toFixed(4))))]
+  let lastError
+  for (const scale of candidates) {
+    try { return { ...(await exportAtScale(scene, scale)), degraded: scale < requested } }
+    catch (error) {
+      if (/关键图片加载失败|播放器封面加载失败/.test(String(error?.message || ''))) throw error
+      lastError = error
+    }
+  }
+  throw new Error(`设备无法完成 PNG 导出${lastError?.message ? `：${lastError.message}` : ''}`)
 }
 
 /**

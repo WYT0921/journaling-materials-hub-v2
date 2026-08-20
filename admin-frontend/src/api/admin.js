@@ -50,7 +50,6 @@ export const updateTextAssetStatus = (id, status) => http.put(`/v2/admin/text-as
 export const batchUpdateTextAssetStatus = (ids, status) => http.put('/v2/admin/text-assets/batch-status', { ids, status })
 export const importTextAssets = items => http.post('/v2/admin/text-assets/import', { items })
 export const deleteTextAsset = id => http.delete(`/v2/admin/text-assets/${id}`)
-export const getCollectorRuns = params => http.get('/v2/admin/collector-runs', { params })
 
 // ===== Users =====
 export const getUsers = (params) =>
@@ -79,6 +78,9 @@ export const getFeedbacks = (params) =>
 export const updateFeedbackStatus = (id, status) =>
   http.put(`/v2/admin/feedbacks/${id}/status`, null, { params: { status } })
 
+export const replyFeedback = (id, reply) =>
+  http.put(`/v2/admin/feedbacks/${id}/reply`, { reply })
+
 export const deleteFeedback = (id) =>
   http.delete(`/v2/admin/feedbacks/${id}`)
 
@@ -96,21 +98,3 @@ export const updateMusicCardAssetStatus = (id, status) => http.put(`/v2/admin/mu
 export const deleteMusicCardAsset = id => http.delete(`/v2/admin/music-card/assets/${id}`)
 
 export const getMusicCardCreations = params => http.get('/v2/admin/music-card/creations', { params })
-
-// ===== AURA Music =====
-export const getAuraTemplates = () => http.get('/v2/admin/aura/templates')
-export const createAuraTemplate = data => http.post('/v2/admin/aura/templates', data)
-export const updateAuraTemplate = (id, data) => http.put(`/v2/admin/aura/templates/${id}`, data)
-export const updateAuraTemplateStatus = (id, status) => http.put(`/v2/admin/aura/templates/${id}/status`, null, { params: { status } })
-export const deleteAuraTemplate = id => http.delete(`/v2/admin/aura/templates/${id}`)
-
-export const getAuraAssets = type => http.get('/v2/admin/aura/assets', { params: type ? { type } : {} })
-export const createAuraAsset = data => http.post('/v2/admin/aura/assets', data)
-export const updateAuraAsset = (id, data) => http.put(`/v2/admin/aura/assets/${id}`, data)
-export const updateAuraAssetStatus = (id, status) => http.put(`/v2/admin/aura/assets/${id}/status`, null, { params: { status } })
-export const deleteAuraAsset = id => http.delete(`/v2/admin/aura/assets/${id}`)
-export const uploadAuraAsset = file => {
-  const formData = new FormData()
-  formData.append('file', file)
-  return http.post('/v2/admin/aura/assets/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-}

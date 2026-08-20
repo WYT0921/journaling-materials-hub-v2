@@ -33,6 +33,8 @@ spring:
       validation-timeout: ${DB_POOL_VALIDATION_TIMEOUT:5000}
   flyway:
     enabled: true
+    # V11 Collector 已从发布包移除；生产库保留历史记录并允许其缺失。
+    ignore-migration-patterns: "*:missing"
     locations: classpath:db
     baseline-on-migrate: true
     baseline-version: 3
@@ -83,8 +85,6 @@ admin:
   username: ${ADMIN_USERNAME:admin}
   password-hash: ${ADMIN_PASSWORD_HASH:}  # BCrypt 哈希，通过 BCrypt.hashpw() 生成
 
-collector:
-  token: ${COLLECTOR_TOKEN:}
 
 # 微信小程序配置
 wechat:

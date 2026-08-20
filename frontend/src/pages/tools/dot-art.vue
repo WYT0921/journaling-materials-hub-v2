@@ -24,7 +24,7 @@
       <view class="panel settings-panel">
         <view class="panel-heading">
           <text class="panel-title">生成设置</text>
-          <text class="width-value">{{ outputWidth }} 字符宽</text>
+          <text class="width-value">微信适配 · {{ outputWidth }} 字符宽</text>
         </view>
 
         <view class="mode-switch" aria-label="点阵模式">
@@ -42,14 +42,14 @@
         <view class="setting-row setting-row--slider">
           <view class="setting-copy">
             <text class="setting-label">精细度</text>
-            <text class="setting-description">越高越接近原图，也会产生更多字符</text>
+            <text class="setting-description">默认适配手机微信气泡，竖图会自动限制在约 24 行</text>
           </view>
           <slider
             class="width-slider"
             :value="outputWidth"
-            :min="24"
-            :max="96"
-            :step="4"
+            :min="12"
+            :max="40"
+            :step="2"
             active-color="#8FBC93"
             background-color="#DDE8D1"
             block-color="#5F8564"
@@ -108,7 +108,7 @@
 import { computed, onMounted, ref } from 'vue'
 import GlassNavBar from '../../components/GlassNavBar.vue'
 import { convertImageToDotArt } from '../../utils/dot-art/image-processor.js'
-import { isDotArtEmpty } from '../../utils/dot-art/dot-art.mjs'
+import { DOT_ART_DEFAULT_WIDTH, isDotArtEmpty } from '../../utils/dot-art/dot-art.mjs'
 import { hidePageShareMenu } from '../../utils/tool-share'
 
 const modes = [
@@ -118,7 +118,7 @@ const modes = [
 
 const imagePath = ref('')
 const mode = ref('braille')
-const outputWidth = ref(48)
+const outputWidth = ref(DOT_ART_DEFAULT_WIDTH)
 const inverted = ref(false)
 const dotText = ref('')
 const processing = ref(false)
@@ -201,6 +201,7 @@ async function generate() {
     const result = await convertImageToDotArt(imagePath.value, {
       mode: mode.value,
       outputWidth: outputWidth.value,
+      maxRows: 24,
       inverted: inverted.value
     })
     if (currentId !== generationId) return
