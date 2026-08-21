@@ -23,25 +23,23 @@ class DownloadControllerTest extends ControllerTestBase {
     }
 
     @Test
-    @DisplayName("GET /api/download/{materialId} — 普通用户额度内可下载会员素材")
+    @DisplayName("GET /api/download/{materialId} — 普通用户可下载任意在线素材")
     void download_normalUserWithinFreeQuota_shouldSucceed() throws Exception {
         mockMvc.perform(get("/api/download/2")
                         .header("Authorization", freeQuotaUserToken()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.freeDownloadUsed").value(5))
-                .andExpect(jsonPath("$.data.freeDownloadRemaining").value(45));
+                .andExpect(jsonPath("$.data.url").exists());
     }
 
     @Test
-    @DisplayName("GET /api/download/{materialId} — 普通用户免费额度用完后失败")
-    void download_normalUserFreeLimitExceeded_shouldFail() throws Exception {
+    @DisplayName("GET /api/download/{materialId} — 原额度用完的普通用户仍可下载")
+    void download_normalUserWithoutQuotaLimit_shouldSucceed() throws Exception {
         mockMvc.perform(get("/api/download/2")
                         .header("Authorization", normalUserToken()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.statusCode").value(4004))
-                .andExpect(jsonPath("$.error.message").value("免费保存次数已用完，请输入通行码后继续使用"));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.url").exists());
     }
 
     @Test

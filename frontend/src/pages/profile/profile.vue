@@ -1,5 +1,6 @@
 <template>
   <view class="page-profile">
+    <PageBackground />
     <!-- ===== 身份区 ===== -->
     <view class="profile-section" :style="{ paddingTop: statusBarHeight + 'px' }">
       <!-- 已登录 -->
@@ -15,7 +16,7 @@
         </view>
         <view class="profile-info">
           <text class="profile-name">{{ userStore.nickname }}</text>
-          <text class="profile-level">{{ userStore.isPremium ? '素材权限已开启' : '普通用户' }}</text>
+          <text class="profile-level">所有素材均可免费下载</text>
         </view>
       </view>
 
@@ -56,20 +57,6 @@
           </view>
           <text class="card-arrow">›</text>
         </view>
-      </view>
-    </view>
-
-    <view class="profile-block">
-      <text class="section-title">素材权限</text>
-      <view class="member-card" @tap="handleGoRedeem">
-        <view class="member-icon">
-          <text class="member-icon-text">♕</text>
-        </view>
-        <view class="member-info">
-          <text class="member-title">输入通行码</text>
-          <text class="member-desc">开启高清素材 + 全部工具</text>
-        </view>
-        <text class="member-arrow">›</text>
       </view>
     </view>
 
@@ -239,6 +226,7 @@ import { submitFeedback, getMyFeedbacks } from '../../api/feedback'
 import { requireLogin } from '../../utils/auth'
 import CustomToast from '../../components/CustomToast.vue'
 import CustomTabBar from '../../components/CustomTabBar.vue'
+import PageBackground from '../../components/PageBackground.vue'
 
 const userStore = useUserStore()
 const toastRef = ref(null)
@@ -369,10 +357,6 @@ const handleSaveProfile = async () => {
   }
 }
 
-const handleGoRedeem = () => {
-  uni.navigateTo({ url: '/pages/redeem/index' })
-}
-
 const openFeedbackDialog = () => {
   showFeedbackDialog.value = true
   if (userStore.isLoggedIn) loadMyFeedbacks()
@@ -466,6 +450,8 @@ const handleLogout = () => {
   min-height: 100vh;
   padding: 0 52rpx 160rpx;
   box-sizing: border-box;
+  position: relative;
+  z-index: 0;
 }
 
 /* ===== 身份区 ===== */

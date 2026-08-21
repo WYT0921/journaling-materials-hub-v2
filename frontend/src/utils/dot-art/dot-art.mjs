@@ -20,6 +20,11 @@ export const clampOutputWidth = width => clamp(
   DOT_ART_MAX_WIDTH
 )
 
+export const getDensityOutputWidth = (width, density = 'dense') => {
+  const multiplier = density === 'dense' ? 4 / 3 : density === 'light' ? 5 / 6 : 1
+  return clampOutputWidth(clampOutputWidth(width) * multiplier)
+}
+
 export const fitOutputColumns = (columns, aspectRatio, maxRows = DOT_ART_CHAT_MAX_ROWS) => {
   if (!Number.isFinite(aspectRatio) || aspectRatio <= 0 || !maxRows) return columns
   // ASCII 与 Braille 的最终文本行数都约为 aspectRatio * columns / 2。
@@ -145,6 +150,14 @@ export const calculateAdaptiveThreshold = pixels => {
   return clamp(Math.round(total / pixels.length), 8, 247)
 }
 
+export const calculateDensityThreshold = (pixels, options = {}) => {
+  if (options.threshold != null) return options.threshold
+  const base = calculateAdaptiveThreshold(pixels)
+  const density = options.density || 'dense'
+  const offset = density === 'dense' ? 10 : density === 'light' ? -12 : 0
+  return clamp(base + (options.inverted ? -offset : offset), 8, 247)
+}
+
 const BRAILLE_BITS = [
   [0x01, 0x08],
   [0x02, 0x10],
@@ -153,7 +166,7 @@ const BRAILLE_BITS = [
 ]
 
 export const grayscaleToBraille = (pixels, width, height, options = {}) => {
-  const threshold = options.threshold ?? calculateAdaptiveThreshold(pixels)
+  const threshold = calculateDensityThreshold(pixels, options)
   const inverted = Boolean(options.inverted)
   const rows = []
 
@@ -236,19 +249,36 @@ export const getTextArtLayout = (text, options = {}) => {
   const padding = options.padding || 32
   const preferredFontSize = options.fontSize || 24
   const preferredLineHeight = preferredFontSize * 1.35
-  const preferredCharWidth = preferredFontSize * 0.62
-  const rawWidth = padding * 2 + maxColumns * preferredCharWidth
+  const measuredLineWidth = typeof options.measureText === 'function'
+    ? Math.max(1, ...lines.map(line => options.measureText(line || ' ', preferredFontSize)))
+    : maxColumns * preferredFontSize * 0.62
+  const targetWidth = Math.min(maxEdge, Number(options.targetWidth) || 0)
+  if (targetWidth > padding * 2) {
+    const contentScale = (targetWidth - padding * 2) / measuredLineWidth
+    const targetFontSize = preferredFontSize * contentScale
+    const targetLineHeight = targetFontSize * 1.35
+    const targetHeight = padding * 2 + lines.length * targetLineHeight
+    const edgeScale = Math.min(1, maxEdge / targetHeight)
+    return {
+      lines,
+      fontSize: Math.max(1, targetFontSize * edgeScale),
+      lineHeight: targetLineHeight * edgeScale,
+      padding: Math.round(padding * edgeScale),
+      width: Math.max(1, Math.ceil(targetWidth * edgeScale)),
+      height: Math.max(1, Math.ceil(targetHeight * edgeScale))
+    }
+  }
+  const rawWidth = padding * 2 + measuredLineWidth
   const rawHeight = padding * 2 + lines.length * preferredLineHeight
   const scale = Math.min(1, maxEdge / Math.max(rawWidth, rawHeight))
   const fontSize = Math.max(1, preferredFontSize * scale)
   const lineHeight = fontSize * 1.35
-  const charWidth = fontSize * 0.62
   return {
     lines,
     fontSize,
     lineHeight,
     padding: Math.round(padding * scale),
-    width: Math.min(maxEdge, Math.max(1, Math.ceil(padding * 2 * scale + maxColumns * charWidth))),
+    width: Math.min(maxEdge, Math.max(1, Math.ceil((padding * 2 + measuredLineWidth) * scale))),
     height: Math.min(maxEdge, Math.max(1, Math.ceil(padding * 2 * scale + lines.length * lineHeight)))
   }
 }

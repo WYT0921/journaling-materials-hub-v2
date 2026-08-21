@@ -45,7 +45,7 @@
               <td class="truncate" style="max-width:160px">{{ m.title }}</td>
               <td>{{ getMaterialTypeLabel(m.materialType) }}</td>
               <td><span :class="['tag', m.mediaType === 'animated_gif' ? 'tag-warning' : 'tag-default']">{{ m.mediaType === 'animated_gif' ? 'GIF' : '静态' }}</span></td>
-              <td>{{ m.category }}</td>
+              <td>{{ (m.categories?.length ? m.categories : [m.category]).filter(Boolean).join('、') }}</td>
               <td>{{ formatDynamicMeta(m) }}</td>
               <td><a v-if="m.sourceUrl" :href="m.sourceUrl" target="_blank" rel="noopener">{{ m.source || '来源' }}</a><span v-else>—</span></td>
               <td>{{ formatIssue(m.issueYear, m.issueNumber) }}</td>
@@ -92,11 +92,12 @@
             <textarea v-model="form.description" class="form-textarea" placeholder="素材描述"></textarea>
           </div>
           <div class="form-group">
-            <label class="form-label">分类</label>
-            <select v-model="form.category" class="form-select">
-              <option value="">请选择</option>
-              <option v-for="c in categories" :key="c.id" :value="c.name">{{ c.name }}</option>
-            </select>
+            <label class="form-label">分类（可多选，第一个为主分类）</label>
+            <div class="flex gap-3" style="flex-wrap:wrap">
+              <label v-for="c in categories" :key="c.id" class="tag" style="cursor:pointer">
+                <input v-model="form.categories" type="checkbox" :value="c.name" /> {{ c.name }}
+              </label>
+            </div>
           </div>
           <div class="form-group">
             <label class="form-label">素材类型</label>
@@ -188,7 +189,7 @@ const dialogVisible = ref(false)
 const editingId = ref(null)
 
 const form = reactive({
-  title: '', description: '', category: '', materialType: 'single', mediaType: 'static_image', issueYear: '', issueNumber: '', imageUrl: '', thumbnailUrl: '',
+  title: '', description: '', category: '', categories: [], materialType: 'single', mediaType: 'static_image', issueYear: '', issueNumber: '', imageUrl: '', thumbnailUrl: '',
   contentHash: '', mimeType: '', fileSize: null, width: null, height: null, durationMs: null, frameCount: null,
   isPremium: false, status: 1, sortOrder: 0, tags: ''
 })
@@ -260,7 +261,7 @@ function openDialog(m) {
   if (m) {
     editingId.value = m.id
     Object.assign(form, {
-      title: m.title, description: m.description || '', category: m.category || '', materialType: m.materialType || 'single',
+      title: m.title, description: m.description || '', category: m.category || '', categories: m.categories?.length ? [...m.categories] : (m.category ? [m.category] : []), materialType: m.materialType || 'single',
       mediaType: m.mediaType || 'static_image', contentHash: m.contentHash || '', mimeType: m.mimeType || '', fileSize: m.fileSize, width: m.width, height: m.height, durationMs: m.durationMs, frameCount: m.frameCount,
       issueYear: m.issueYear ?? '', issueNumber: m.issueNumber ?? '',
       imageUrl: m.imageUrl, thumbnailUrl: m.thumbnailUrl || '',
@@ -269,7 +270,7 @@ function openDialog(m) {
     })
   } else {
     editingId.value = null
-    Object.assign(form, { title: '', description: '', category: '', materialType: 'single', mediaType: 'static_image', issueYear: '', issueNumber: '', imageUrl: '', thumbnailUrl: '', contentHash: '', mimeType: '', fileSize: null, width: null, height: null, durationMs: null, frameCount: null, isPremium: false, status: 1, sortOrder: 0, tags: '' })
+    Object.assign(form, { title: '', description: '', category: '', categories: [], materialType: 'single', mediaType: 'static_image', issueYear: '', issueNumber: '', imageUrl: '', thumbnailUrl: '', contentHash: '', mimeType: '', fileSize: null, width: null, height: null, durationMs: null, frameCount: null, isPremium: false, status: 1, sortOrder: 0, tags: '' })
   }
   dialogVisible.value = true
 }
@@ -287,6 +288,7 @@ async function handleUpload(e) {
 
 async function handleSave() {
   if (!form.title) return alert('请输入标题')
+  if (!form.categories.length) return alert('请至少选择一个分类')
   const hasIssueYear = form.issueYear !== '' && form.issueYear !== null
   const hasIssueNumber = form.issueNumber !== '' && form.issueNumber !== null
   if (hasIssueYear !== hasIssueNumber) return alert('上传年份和期号必须同时填写')
@@ -296,6 +298,7 @@ async function handleSave() {
   try {
     const data = {
       ...form,
+      category: form.categories[0],
       issueYear: hasIssueYear ? Number(form.issueYear) : null,
       issueNumber: hasIssueNumber ? Number(form.issueNumber) : null,
       tags: form.tags || '[]'

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 素材实体
@@ -56,6 +57,9 @@ public class Material {
 
     @TableField("category")
     private String category;
+
+    @TableField(exist = false)
+    private List<String> categories;
 
     @TableField("material_type")
     private String materialType;

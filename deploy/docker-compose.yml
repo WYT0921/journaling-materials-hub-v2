@@ -1,7 +1,7 @@
 services:
   # SpringBoot 后端
   backend:
-    image: journaling-materials-hub-backend:20260818-dcdbcb8-feedback-reply
+    image: journaling-materials-hub-backend:20260821-material-categories
     build:
       context: ./backend
       dockerfile: Dockerfile

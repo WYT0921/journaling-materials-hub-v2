@@ -16,19 +16,27 @@ const canvasToTempFilePath = (canvas, width, height) => new Promise((resolve, re
   })
 })
 
-export const renderDotArtPng = async text => {
+export const renderDotArtPng = async (text, options = {}) => {
   if (!text) throw new Error('请先生成点阵图')
   if (typeof wx === 'undefined' || !wx.createOffscreenCanvas) {
     throw new Error('当前微信版本不支持图片导出')
   }
-  const layout = getTextArtLayout(text)
+  const measureCanvas = wx.createOffscreenCanvas({ type: '2d', width: 1, height: 1 })
+  const measureContext = measureCanvas.getContext('2d')
+  const layout = getTextArtLayout(text, {
+    targetWidth: options.targetWidth || 720,
+    measureText: (line, fontSize) => {
+      measureContext.font = `${fontSize}px monospace`
+      return measureContext.measureText(line).width
+    }
+  })
   const canvas = wx.createOffscreenCanvas({ type: '2d', width: layout.width, height: layout.height })
   canvas.width = layout.width
   canvas.height = layout.height
   const context = canvas.getContext('2d')
-  context.fillStyle = '#EEEFE8'
+  context.fillStyle = options.backgroundColor || '#FFFDF9'
   context.fillRect(0, 0, layout.width, layout.height)
-  context.fillStyle = '#3F4D50'
+  context.fillStyle = options.textColor || '#25362F'
   context.font = `${layout.fontSize}px monospace`
   context.textBaseline = 'top'
   layout.lines.forEach((line, index) => {
@@ -59,8 +67,8 @@ const requestAlbumSetting = () => new Promise((resolve, reject) => {
   })
 })
 
-export const saveDotArtToAlbum = async text => {
-  const filePath = await renderDotArtPng(text)
+export const saveDotArtToAlbum = async (text, options = {}) => {
+  const filePath = await renderDotArtPng(text, options)
   try {
     await saveImage(filePath)
   } catch (error) {

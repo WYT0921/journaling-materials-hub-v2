@@ -296,6 +296,7 @@ GET /api/materials
         "imageUrl": "图片URL",
         "thumbnailUrl": "缩略图URL",
         "category": "治愈系",
+        "categories": ["治愈系", "便签"],
         "materialType": "single",
         "mediaType": "static_image",
         "issueYear": 2026,
@@ -330,6 +331,7 @@ GET /api/materials/:id
     "imageUrl": "图片URL",
     "thumbnailUrl": "缩略图URL",
     "category": "治愈系",
+    "categories": ["治愈系", "便签"],
     "materialType": "single",
     "mediaType": "animated_gif",
     "issueYear": 2026,
@@ -501,11 +503,10 @@ POST /api/redeem/activate
 GET /api/download/:materialId
 ```
 
-**权限规则**
+**当前下载规则**
 
-- 普通用户可免费下载 5 个不同素材，重复下载同一素材不重复扣减额度。
-- 普通用户保存超过 5 个不同素材后返回 `4004`，需要输入通行码开启素材权限后继续使用。
-- 会员用户不受免费次数限制。
+- 已登录用户可免费下载任意在线素材，不校验会员状态、兑换码或历史下载额度。
+- 重复下载同一素材仍只保留一条下载记录。
 
 **响应**
 
@@ -515,10 +516,7 @@ GET /api/download/:materialId
   "data": {
     "url": "下载链接",
     "filename": "素材标题.png",
-    "message": "下载成功",
-    "freeDownloadLimit": 5,
-    "freeDownloadUsed": 3,
-    "freeDownloadRemaining": 2
+    "message": "下载成功"
   }
 }
 ```
@@ -712,7 +710,6 @@ GET /api/v2/categories?type=tool
 | 401 | 未授权/认证失败 |
 | 403 | 禁止访问（需要会员权限） |
 | 404 | 资源不存在 |
-| 4004 | 免费保存次数已用完，需要输入通行码 |
 | 409 | 数据冲突 |
 | 429 | 请求过于频繁 |
 | 500 | 服务器内部错误 |
@@ -725,4 +722,4 @@ GET /api/v2/categories?type=tool
 2. 图片URL需要支持HTTPS访问
 3. 分页参数从1开始
 4. 搜索关键词会进行模糊匹配
-5. 普通用户可预览原图；前 5 个不同素材可免费保存，超过后需输入通行码开启素材权限
+5. 当前所有在线素材均向已登录用户开放原图预览与免费下载，不校验会员或兑换码

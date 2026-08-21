@@ -1,5 +1,5 @@
 <template>
-  <view class="material-card" :class="cardClass" @tap="handleTap">
+  <view class="material-card" :class="cardClass" :aria-label="material.title" hover-class="material-card--pressed" @tap="handleTap">
     <!-- 图片区域 -->
     <view class="card-image-wrapper">
       <image
@@ -8,15 +8,11 @@
         mode="aspectFit"
         lazy-load
       />
-      <!-- 权限角标（黑底白字） -->
-      <view v-if="material.isPremium" class="vip-badge">
-        <text class="vip-text">权限</text>
-      </view>
       <view v-if="material.mediaType === 'animated_gif'" class="dynamic-badge"><text>GIF</text></view>
     </view>
 
     <!-- 信息区域 -->
-    <view class="card-info">
+    <view v-if="layout !== 'compact'" class="card-info">
       <text class="card-title">{{ material.title }}</text>
       <view class="card-meta">
         <text class="card-category">{{ material.category }}</text>
@@ -46,6 +42,7 @@ const displayImage = computed(() => props.material.thumbnailUrl || props.materia
 
 const cardClass = computed(() => ({
   'material-card-wide': props.layout === 'wide',
+  'material-card-compact': props.layout === 'compact',
   'material-card-bundle': props.material.materialType === 'bundle'
 }))
 
@@ -68,6 +65,10 @@ const handleTap = () => {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+}
+
+.material-card--pressed {
+  opacity: 0.76;
 }
 
 @supports not ((-webkit-backdrop-filter: blur(10px)) or (backdrop-filter: blur(10px))) {
@@ -100,20 +101,25 @@ const handleTap = () => {
   height: 560rpx;
 }
 
-/* 权限角标：黑底白字（左上角） */
-.vip-badge {
-  position: absolute;
-  top: 12rpx;
-  left: 12rpx;
-  background: #000;
-  padding: 4rpx 14rpx;
-  border-radius: 6rpx;
+.material-card-compact {
+  margin-bottom: 0;
+  border-radius: 18rpx;
+  background: rgba(255, 253, 247, 0.72);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-color: rgba(126, 139, 116, 0.14);
+  box-shadow: 0 8rpx 22rpx rgba(91, 105, 83, 0.06);
 }
 
-.vip-text {
-  font-size: 20rpx;
-  color: #fff;
-  font-weight: 600;
+.material-card-compact .card-image-wrapper {
+  height: auto;
+  aspect-ratio: 1;
+  background: linear-gradient(145deg, rgba(255, 254, 250, 0.96), rgba(244, 247, 236, 0.9));
+  box-shadow: inset 0 0 32rpx rgba(137, 154, 120, 0.05);
+}
+
+.material-card-compact .dynamic-badge {
+  font-size: 18rpx;
 }
 
 .card-info {

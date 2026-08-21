@@ -240,6 +240,13 @@ CREATE TABLE IF NOT EXISTS user_music_cards (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS material_categories (
+  material_id BIGINT NOT NULL,
+  category VARCHAR(32) NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (material_id, category)
+);
+
 CREATE TABLE IF NOT EXISTS aura_templates (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   template_key VARCHAR(64) NOT NULL,

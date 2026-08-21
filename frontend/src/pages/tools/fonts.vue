@@ -82,6 +82,7 @@ import CustomToast from '../../components/CustomToast.vue'
 import fontStyles from '../../utils/fonts/fonts.json'
 import { generateFontResults } from '../../utils/fonts/font-generator.mjs'
 import { hidePageShareMenu } from '../../utils/tool-share'
+import { copyToClipboard } from '../../utils/clipboard'
 
 const sourceText = ref('fancy text')
 const convertedText = ref(sourceText.value)
@@ -110,10 +111,12 @@ function clearInput() {
 }
 
 function copyResult(text) {
-  uni.setClipboardData({
-    data: text,
-    success: () => toastRef.value?.showToast('复制成功', 'check'),
-    fail: () => toastRef.value?.showToast('复制失败，请重试', 'error')
+  copyToClipboard(text, {
+    onSuccess: () => toastRef.value?.showToast('复制成功', 'check'),
+    onFailure: (message, error) => {
+      console.error('特殊字体复制失败:', error)
+      toastRef.value?.showToast(message, 'error')
+    }
   })
 }
 </script>

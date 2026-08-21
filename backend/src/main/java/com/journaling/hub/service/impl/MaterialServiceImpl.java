@@ -10,6 +10,7 @@ import com.journaling.hub.entity.Material;
 import com.journaling.hub.mapper.CategoryMapper;
 import com.journaling.hub.mapper.MaterialMapper;
 import com.journaling.hub.service.MaterialService;
+import com.journaling.hub.service.MaterialCategoryService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,9 @@ public class MaterialServiceImpl implements MaterialService {
 
     @Autowired
     private CategoryMapper categoryMapper;
+
+    @Autowired
+    private MaterialCategoryService materialCategoryService;
 
     @Override
     public IPage<Material> listMaterials(int page, int limit, String materialType, String category,
@@ -50,7 +54,8 @@ public class MaterialServiceImpl implements MaterialService {
         }
 
         if (category != null && !category.isEmpty()) {
-            wrapper.eq(Material::getCategory, category);
+            wrapper.and(w -> w.eq(Material::getCategory, category)
+                    .or().apply("EXISTS (SELECT 1 FROM material_categories mc WHERE mc.material_id = materials.id AND mc.category = {0})", category));
         }
 
         if (issueYear != null) {
@@ -90,7 +95,9 @@ public class MaterialServiceImpl implements MaterialService {
                     .orderByDesc(Material::getCreatedAt);
         }
 
-        return materialMapper.selectPage(pageParam, wrapper);
+        IPage<Material> result = materialMapper.selectPage(pageParam, wrapper);
+        materialCategoryService.hydrate(result.getRecords());
+        return result;
     }
 
     @Override
@@ -102,6 +109,7 @@ public class MaterialServiceImpl implements MaterialService {
         if (material.getStatus() != 1) {
             throw new BusinessException(ErrorCode.MATERIAL_OFFLINE);
         }
+        materialCategoryService.hydrate(material);
         return material;
     }
 
@@ -118,7 +126,9 @@ public class MaterialServiceImpl implements MaterialService {
         }
         wrapper.orderByDesc(Material::getSortOrder)
                .orderByDesc(Material::getCreatedAt);
-        return materialMapper.selectPage(pageParam, wrapper);
+        IPage<Material> result = materialMapper.selectPage(pageParam, wrapper);
+        materialCategoryService.hydrate(result.getRecords());
+        return result;
     }
 
     @Override
@@ -136,15 +146,17 @@ public class MaterialServiceImpl implements MaterialService {
 
         LambdaQueryWrapper<Material> wrapper = new LambdaQueryWrapper<Material>()
                 .eq(Material::getStatus, 1)
-                .select(Material::getCategory);
+                .select(Material::getId, Material::getCategory);
 
         if (materialType != null && !materialType.isEmpty()) {
             wrapper.eq(Material::getMaterialType, materialType);
         }
 
-        Map<String, Long> categoryCounts = materialMapper.selectList(wrapper).stream()
-                .filter(material -> material.getCategory() != null && !material.getCategory().isEmpty())
-                .collect(Collectors.groupingBy(Material::getCategory, Collectors.counting()));
+        List<Material> categoryMaterials = materialMapper.selectList(wrapper);
+        materialCategoryService.hydrate(categoryMaterials);
+        Map<String, Long> categoryCounts = categoryMaterials.stream()
+                .flatMap(material -> material.getCategories().stream().distinct())
+                .collect(Collectors.groupingBy(value -> value, Collectors.counting()));
 
         List<Map<String, Object>> result = new ArrayList<>();
         categories.forEach(category -> {

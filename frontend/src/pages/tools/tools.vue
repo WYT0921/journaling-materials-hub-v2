@@ -1,5 +1,6 @@
 <template>
   <view class="tools-page">
+    <PageBackground />
     <GlassNavBar title="工具箱" />
 
     <scroll-view class="tools-scroll" scroll-y>
@@ -47,7 +48,7 @@
       </view>
     </scroll-view>
 
-    <CustomTabBar :current="1" />
+    <CustomTabBar :current="0" />
   </view>
 </template>
 
@@ -56,6 +57,7 @@ import { onMounted } from 'vue'
 import { onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
 import GlassNavBar from '../../components/GlassNavBar.vue'
 import CustomTabBar from '../../components/CustomTabBar.vue'
+import PageBackground from '../../components/PageBackground.vue'
 import { buildShareAppMessage, buildShareTimeline, showToolShareMenu } from '../../utils/tool-share'
 
 onMounted(showToolShareMenu)
@@ -113,8 +115,10 @@ function openTool(tool) {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  position: relative;
+  z-index: 0;
   color: #3f4d50;
-  background: linear-gradient(180deg, #f7fde9 0%, #f2fbdd 58%, #eaf7d2 100%);
+  background: transparent;
 }
 
 .tools-scroll {

@@ -1,5 +1,9 @@
 # 数据库设计文档
 
+## 素材多分类（V16）
+
+`material_categories(material_id, category, sort_order)` 保存素材与分类的多对多关系，组合主键防止重复。`materials.category` 保留为主分类（即 `categories[0]`），用于兼容旧客户端、旧上传脚本与历史数据；V16 会把所有历史主分类自动迁入关联表。按分类筛选时匹配任一关联分类。
+
 ## 数据库概述
 
 - 数据库类型: MySQL 8.0+

@@ -94,6 +94,7 @@ import GlassNavBar from '../../components/GlassNavBar.vue'
 import CustomToast from '../../components/CustomToast.vue'
 import { getTextAssetCategories, getTextAssets } from '../../api/text-assets'
 import { hidePageShareMenu } from '../../utils/tool-share'
+import { copyToClipboard } from '../../utils/clipboard'
 
 const PAGE_SIZE = 30
 const typeTabs = [
@@ -206,10 +207,12 @@ function loadMore() {
 }
 
 function copyAsset(content) {
-  uni.setClipboardData({
-    data: content,
-    success: () => toastRef.value?.showToast('复制成功', 'check'),
-    fail: () => toastRef.value?.showToast('复制失败，请重试', 'error')
+  copyToClipboard(content, {
+    onSuccess: () => toastRef.value?.showToast('复制成功', 'check'),
+    onFailure: (message, error) => {
+      console.error('颜文字复制失败:', error)
+      toastRef.value?.showToast(message, 'error')
+    }
   })
 }
 </script>

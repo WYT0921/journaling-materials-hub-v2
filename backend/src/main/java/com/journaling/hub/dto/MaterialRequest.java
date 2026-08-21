@@ -1,6 +1,7 @@
 package com.journaling.hub.dto;
 
 import lombok.Data;
+import java.util.List;
 
 @Data
 public class MaterialRequest {
@@ -9,6 +10,7 @@ public class MaterialRequest {
     private String imageUrl;
     private String thumbnailUrl;
     private String category;
+    private List<String> categories;
     private String materialType;
     private String mediaType;
     private String contentHash;

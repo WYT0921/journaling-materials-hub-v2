@@ -1,5 +1,6 @@
 <template>
   <view class="page-index">
+    <PageBackground />
     <!-- 毛玻璃导航栏 -->
     <GlassNavBar title="发现 · Discover">
       <template #right>
@@ -131,7 +132,7 @@
         @retry="handleRefresh"
       />
 
-      <!-- 瀑布流布局 -->
+      <!-- 合并素材保留宽卡，单个素材使用移动端三列网格 -->
       <view v-else-if="materialStore.activeMaterialType === 'bundle'" class="bundle-list">
         <MaterialCard
           v-for="item in materialStore.materials"
@@ -142,23 +143,14 @@
         />
       </view>
 
-      <view v-else class="waterfall">
-        <view class="waterfall-column">
-          <MaterialCard
-            v-for="item in materialStore.leftColumn"
-            :key="item.id"
-            :material="item"
-            @select="handleMaterialTap"
-          />
-        </view>
-        <view class="waterfall-column">
-          <MaterialCard
-            v-for="item in materialStore.rightColumn"
-            :key="item.id"
-            :material="item"
-            @select="handleMaterialTap"
-          />
-        </view>
+      <view v-else class="material-grid">
+        <MaterialCard
+          v-for="item in materialStore.materials"
+          :key="item.id"
+          :material="item"
+          layout="compact"
+          @select="handleMaterialTap"
+        />
       </view>
 
       <!-- 加载更多 -->
@@ -179,7 +171,7 @@
     </scroll-view>
 
     <!-- 底部 TabBar -->
-    <CustomTabBar :current="0" />
+    <CustomTabBar :current="1" />
   </view>
 </template>
 
@@ -192,6 +184,7 @@ import LoadingSpinner from '../../components/LoadingSpinner.vue'
 import EmptyState from '../../components/EmptyState.vue'
 import GlassNavBar from '../../components/GlassNavBar.vue'
 import CustomTabBar from '../../components/CustomTabBar.vue'
+import PageBackground from '../../components/PageBackground.vue'
 import { buildShareAppMessage, buildShareTimeline, showToolShareMenu } from '../../utils/tool-share'
 
 const materialStore = useMaterialStore()
@@ -317,6 +310,8 @@ onPullDownRefresh(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  position: relative;
+  z-index: 0;
 }
 
 /* ===== 搜索栏 ===== */
@@ -553,7 +548,7 @@ onPullDownRefresh(() => {
   font-size: 26rpx;
 }
 
-/* ===== 素材瀑布流 ===== */
+/* ===== 素材网格 ===== */
 .material-list {
   flex: 1;
   height: 0;
@@ -561,8 +556,9 @@ onPullDownRefresh(() => {
   overflow: hidden;
 }
 
-.waterfall {
-  display: flex;
+.material-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   padding: 16rpx 20rpx;
   gap: 16rpx;
   width: 100%;
@@ -570,11 +566,13 @@ onPullDownRefresh(() => {
   overflow: hidden;
 }
 
-.waterfall-column {
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
+@media (min-width: 600px) {
+  .material-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding-right: 32rpx;
+    padding-left: 32rpx;
+    gap: 20rpx;
+  }
 }
 
 .bundle-list {

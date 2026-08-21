@@ -8,6 +8,7 @@ DELETE FROM redeem_codes;
 DELETE FROM tools;
 DELETE FROM text_assets;
 DELETE FROM categories;
+DELETE FROM material_categories;
 DELETE FROM materials;
 DELETE FROM users;
 
@@ -25,6 +26,9 @@ INSERT INTO materials (id, title, description, image_url, thumbnail_url, categor
 (3, 'Vintage Note', 'Vintage note paper', 'https://example.com/img3.png', 'https://example.com/thumb3.png', 'note', 'single', NULL, NULL, '["vintage"]', 0, 200, 1, 3),
 (4, 'Offline Sticker', 'Hidden material', 'https://example.com/img4.png', 'https://example.com/thumb4.png', 'sticker', 'single', 2027, 1, '[]', 0, 10, 0, 4),
 (5, 'Spring Sticker Bundle', 'Bundle material pack', 'https://example.com/img5.png', 'https://example.com/thumb5.png', 'sticker', 'bundle', 2026, 7, '["bundle","sticker"]', 0, 30, 1, 5);
+
+INSERT INTO material_categories (material_id, category, sort_order) VALUES
+(1, 'sticker', 0), (2, 'background', 0), (2, 'note', 1), (3, 'note', 0), (4, 'sticker', 0), (5, 'sticker', 0);
 
 -- 测试兑换码（未使用/已使用/永久）
 INSERT INTO redeem_codes (id, code, type, status, user_id, used_time, expire_time) VALUES

@@ -24,7 +24,7 @@
       <view class="panel settings-panel">
         <view class="panel-heading">
           <text class="panel-title">生成设置</text>
-          <text class="width-value">微信适配 · {{ outputWidth }} 字符宽</text>
+          <text class="width-value">微信适配 · {{ effectiveOutputWidth }} 字符宽</text>
         </view>
 
         <view class="mode-switch" aria-label="点阵模式">
@@ -36,6 +36,61 @@
             @tap="setMode(item.value)"
           >
             <text>{{ item.label }}</text>
+          </view>
+        </view>
+
+        <view class="setting-row setting-row--block">
+          <view class="setting-copy">
+            <text class="setting-label">点阵密度</text>
+            <text class="setting-description">默认密集，主体轮廓和细节会更完整</text>
+          </view>
+          <view class="density-switch">
+            <view v-for="item in densities" :key="item.value" class="density-option" :class="{ 'density-option--active': density === item.value }" @tap="setDensity(item.value)">
+              <text>{{ item.label }}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="setting-row setting-row--block">
+          <view class="setting-copy">
+            <text class="setting-label">文字颜色</text>
+            <text class="setting-description">颜色会用于预览和下载图片，复制文字不携带颜色</text>
+          </view>
+          <view class="color-palette">
+            <view v-for="item in colors" :key="item.value" class="color-swatch" :class="{ 'color-swatch--active': textColor === item.value }" :style="{ backgroundColor: item.value }" :aria-label="item.label" @tap="setTextColor(item.value)" />
+          </view>
+          <view class="custom-color-row">
+            <view class="custom-color-preview" :style="{ backgroundColor: textColor }" />
+            <input
+              v-model="customColorInput"
+              class="color-hex-input"
+              type="text"
+              maxlength="7"
+              placeholder="#RRGGBB"
+              confirm-type="done"
+              @confirm="applyCustomColor"
+              @blur="applyCustomColor"
+            />
+            <button class="color-apply-button" @tap="applyCustomColor">应用</button>
+          </view>
+          <view class="rgb-controls">
+            <view v-for="item in rgbChannels" :key="item.key" class="rgb-row">
+              <text class="rgb-label">{{ item.label }}</text>
+              <slider
+                class="rgb-slider"
+                :value="rgb[item.key]"
+                :min="0"
+                :max="255"
+                :step="1"
+                :active-color="item.color"
+                background-color="#DDE3DA"
+                block-color="#FFFFFF"
+                block-size="18"
+                @changing="handleRgbChange(item.key, $event)"
+                @change="handleRgbChange(item.key, $event)"
+              />
+              <text class="rgb-value">{{ rgb[item.key] }}</text>
+            </view>
           </view>
         </view>
 
@@ -85,7 +140,7 @@
           <button class="retry-button" @tap="generate">重新生成</button>
         </view>
         <scroll-view v-else-if="dotText" class="result-scroll" scroll-x scroll-y>
-          <text class="dot-output" :class="{ 'dot-output--ascii': mode === 'ascii' }" user-select>{{ dotText }}</text>
+          <text class="dot-output" :class="{ 'dot-output--ascii': mode === 'ascii' }" :style="dotOutputStyle" user-select>{{ dotText }}</text>
         </scroll-view>
         <view v-else class="result-state">
           <text class="empty-symbol">⠿</text>
@@ -94,46 +149,122 @@
 
         <view class="action-row">
           <button class="action-button action-button--primary" :disabled="!canUseResult" @tap="copyResult">复制文字</button>
+          <button class="action-button action-button--download" :loading="saving" :disabled="!canUseResult || saving" @tap="saveResult">下载图片</button>
         </view>
       </view>
 
       <view class="privacy-note">
-        <text>本工具不会保存图片或生成记录，退出页面后内容自动清除。</text>
+        <text>图片仅在本机处理；只有点击“下载图片”时才会保存到相册。</text>
       </view>
     </scroll-view>
   </view>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import GlassNavBar from '../../components/GlassNavBar.vue'
-import { convertImageToDotArt } from '../../utils/dot-art/image-processor.js'
-import { DOT_ART_DEFAULT_WIDTH, isDotArtEmpty } from '../../utils/dot-art/dot-art.mjs'
+import { readImagePixels } from '../../utils/dot-art/image-processor.js'
+import { DOT_ART_DEFAULT_WIDTH, generateDotArt, getDensityOutputWidth, isDotArtEmpty } from '../../utils/dot-art/dot-art.mjs'
+import { saveDotArtToAlbum } from '../../utils/dot-art/exporter.js'
 import { hidePageShareMenu } from '../../utils/tool-share'
+import { copyToClipboard } from '../../utils/clipboard'
 
 const modes = [
   { label: 'Braille 点阵', value: 'braille' },
   { label: 'ASCII 字符', value: 'ascii' }
+]
+const densities = [
+  { label: '清爽', value: 'light' },
+  { label: '标准', value: 'normal' },
+  { label: '密集', value: 'dense' }
+]
+const colors = [
+  { label: '黑色', value: '#202522' },
+  { label: '墨绿', value: '#315F3D' },
+  { label: '粉色', value: '#D96B8A' },
+  { label: '紫色', value: '#7356A8' },
+  { label: '蓝色', value: '#3978A8' },
+  { label: '橙色', value: '#C96F32' }
+]
+const rgbChannels = [
+  { label: 'R', key: 'r', color: '#D96B6B' },
+  { label: 'G', key: 'g', color: '#67A56E' },
+  { label: 'B', key: 'b', color: '#628BC2' }
 ]
 
 const imagePath = ref('')
 const mode = ref('braille')
 const outputWidth = ref(DOT_ART_DEFAULT_WIDTH)
 const inverted = ref(false)
+const density = ref('dense')
+const textColor = ref(colors[0].value)
+const customColorInput = ref(colors[0].value)
+const rgb = reactive({ r: 32, g: 37, b: 34 })
+const saving = ref(false)
 const dotText = ref('')
 const processing = ref(false)
 const errorMessage = ref('')
 let generationId = 0
 let generationTimer
+let cachedImagePath = ''
+let cachedImagePixels = null
+let imageReadPath = ''
+let imageReadPromise = null
 
 onMounted(hidePageShareMenu)
+onUnmounted(() => {
+  clearTimeout(generationTimer)
+  generationId += 1
+  cachedImagePixels = null
+  imageReadPromise = null
+})
 
 const canUseResult = computed(() => Boolean(dotText.value) && !processing.value && !isDotArtEmpty(dotText.value))
+const effectiveOutputWidth = computed(() => getDensityOutputWidth(outputWidth.value, density.value))
+const dotOutputStyle = computed(() => ({
+  color: textColor.value,
+  fontSize: `${22 * outputWidth.value / effectiveOutputWidth.value}rpx`
+}))
 const resultMeta = computed(() => {
   const lines = dotText.value.split('\n')
   const columns = Math.max(0, ...lines.map(line => [...line].length))
   return `${columns} × ${lines.length}`
 })
+
+function toHex(value) {
+  return Math.max(0, Math.min(255, Number(value) || 0)).toString(16).padStart(2, '0').toUpperCase()
+}
+
+function normalizeHex(value) {
+  const input = String(value || '').trim()
+  const withHash = input.startsWith('#') ? input : `#${input}`
+  if (/^#[0-9A-Fa-f]{3}$/.test(withHash)) {
+    return `#${[...withHash.slice(1)].map(char => char.repeat(2)).join('')}`.toUpperCase()
+  }
+  return /^#[0-9A-Fa-f]{6}$/.test(withHash) ? withHash.toUpperCase() : ''
+}
+
+function setTextColor(value) {
+  const normalized = normalizeHex(value)
+  if (!normalized) return false
+  textColor.value = normalized
+  customColorInput.value = normalized
+  rgb.r = Number.parseInt(normalized.slice(1, 3), 16)
+  rgb.g = Number.parseInt(normalized.slice(3, 5), 16)
+  rgb.b = Number.parseInt(normalized.slice(5, 7), 16)
+  return true
+}
+
+function handleRgbChange(channel, event) {
+  rgb[channel] = Number(event.detail.value)
+  setTextColor(`#${toHex(rgb.r)}${toHex(rgb.g)}${toHex(rgb.b)}`)
+}
+
+function applyCustomColor() {
+  if (setTextColor(customColorInput.value)) return
+  customColorInput.value = textColor.value
+  uni.showToast({ title: '请输入正确的颜色值', icon: 'none' })
+}
 
 function chooseImage() {
   if (processing.value) return
@@ -148,6 +279,10 @@ function chooseImage() {
         return
       }
       imagePath.value = path
+      cachedImagePath = ''
+      cachedImagePixels = null
+      imageReadPath = ''
+      imageReadPromise = null
       dotText.value = ''
       errorMessage.value = ''
       generate()
@@ -169,6 +304,12 @@ function chooseImage() {
 function setMode(value) {
   if (mode.value === value) return
   mode.value = value
+  scheduleGenerate()
+}
+
+function setDensity(value) {
+  if (density.value === value) return
+  density.value = value
   scheduleGenerate()
 }
 
@@ -195,13 +336,34 @@ function scheduleGenerate(delay = 160) {
 async function generate() {
   if (!imagePath.value) return
   const currentId = ++generationId
+  const currentPath = imagePath.value
   processing.value = true
   errorMessage.value = ''
   try {
-    const result = await convertImageToDotArt(imagePath.value, {
+    let pixels = cachedImagePath === currentPath ? cachedImagePixels : null
+    if (!pixels) {
+      if (!imageReadPromise || imageReadPath !== currentPath) {
+        imageReadPath = currentPath
+        imageReadPromise = readImagePixels(currentPath)
+      }
+      const currentRead = imageReadPromise
+      try {
+        pixels = await currentRead
+      } finally {
+        if (imageReadPromise === currentRead) {
+          imageReadPromise = null
+          imageReadPath = ''
+        }
+      }
+      if (currentId !== generationId || currentPath !== imagePath.value) return
+      cachedImagePath = currentPath
+      cachedImagePixels = pixels
+    }
+    const result = generateDotArt(pixels, {
       mode: mode.value,
-      outputWidth: outputWidth.value,
-      maxRows: 24,
+      outputWidth: effectiveOutputWidth.value,
+      maxRows: density.value === 'dense' ? 32 : density.value === 'light' ? 20 : 24,
+      density: density.value,
       inverted: inverted.value
     })
     if (currentId !== generationId) return
@@ -222,11 +384,26 @@ async function generate() {
 
 function copyResult() {
   if (!canUseResult.value) return
-  uni.setClipboardData({
-    data: dotText.value,
-    success: () => uni.showToast({ title: '已复制', icon: 'success' }),
-    fail: () => uni.showToast({ title: '复制失败，请重试', icon: 'none' })
+  copyToClipboard(dotText.value, {
+    onSuccess: () => uni.showToast({ title: '已复制', icon: 'success' }),
+    onFailure: message => uni.showToast({ title: message, icon: 'none' })
   })
+}
+
+async function saveResult() {
+  if (!canUseResult.value || saving.value) return
+  saving.value = true
+  try {
+    await saveDotArtToAlbum(dotText.value, { textColor: textColor.value })
+    uni.showToast({ title: '已保存到相册', icon: 'success' })
+  } catch (error) {
+    const message = String(error?.errMsg || error?.message || '')
+    if (/cancel|未获得相册权限/i.test(message)) return
+    console.error('save dot art failed', error)
+    uni.showToast({ title: error?.message || '保存失败，请重试', icon: 'none' })
+  } finally {
+    saving.value = false
+  }
 }
 
 </script>
@@ -258,12 +435,29 @@ function copyResult() {
 .mode-option--active { color: #35513a; font-weight: 600; box-shadow: 0 4rpx 12rpx rgba(95, 133, 100, 0.08); background: #fff; }
 .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; padding-top: 28rpx; margin-top: 24rpx; border-top: 1rpx solid rgba(95, 133, 100, 0.15); }
 .setting-row--slider { display: block; }
+.setting-row--block { display: block; }
 .setting-copy { flex: 1; }
 .setting-label, .setting-description { display: block; }
 .setting-label { font-size: 25rpx; font-weight: 600; }
 .setting-description { margin-top: 8rpx; color: #68746a; font-size: 20rpx; line-height: 1.5; }
 .width-slider { margin: 20rpx 0 0; }
 .slider-labels { display: flex; justify-content: space-between; padding: 0 8rpx; color: #748079; font-size: 19rpx; }
+.density-switch { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10rpx; margin-top: 18rpx; padding: 7rpx; border-radius: 16rpx; background: #dfe8d9; }
+.density-option { display: flex; align-items: center; justify-content: center; min-height: 64rpx; border-radius: 12rpx; color: #68746a; font-size: 22rpx; }
+.density-option--active { color: #35513a; font-weight: 600; background: #fff; }
+.color-palette { display: flex; flex-wrap: wrap; gap: 18rpx; margin-top: 20rpx; }
+.color-swatch { width: 52rpx; height: 52rpx; box-sizing: border-box; border: 5rpx solid #eef0e8; border-radius: 50%; box-shadow: 0 0 0 1rpx rgba(63,77,80,.18); }
+.color-swatch--active { border-color: #fff; box-shadow: 0 0 0 4rpx #8fbc93; }
+.custom-color-row { display: flex; align-items: center; gap: 14rpx; margin-top: 22rpx; }
+.custom-color-preview { flex: 0 0 52rpx; width: 52rpx; height: 52rpx; box-sizing: border-box; border: 5rpx solid #fff; border-radius: 14rpx; box-shadow: 0 0 0 1rpx rgba(63,77,80,.18); }
+.color-hex-input { flex: 1; height: 64rpx; box-sizing: border-box; padding: 0 18rpx; border: 1rpx solid rgba(95,133,100,.25); border-radius: 14rpx; color: #3f4d50; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 23rpx; background: rgba(255,255,255,.72); }
+.color-apply-button { display: flex; align-items: center; justify-content: center; width: 112rpx; height: 64rpx; margin: 0; padding: 0; border-radius: 14rpx; color: #35513a; font-size: 21rpx; line-height: 1; background: #dcebd7; }
+.color-apply-button::after { border: 0; }
+.rgb-controls { margin-top: 16rpx; padding: 12rpx 16rpx; border-radius: 16rpx; background: rgba(255,255,255,.48); }
+.rgb-row { display: flex; align-items: center; min-height: 58rpx; }
+.rgb-label { width: 34rpx; font-size: 21rpx; font-weight: 600; }
+.rgb-slider { flex: 1; margin: 0 8rpx; }
+.rgb-value { width: 54rpx; color: #68746a; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 19rpx; text-align: right; }
 .result-panel { background: #f9edf0; }
 .result-scroll { box-sizing: border-box; width: 100%; height: 500rpx; margin-top: 22rpx; border: 1rpx solid rgba(233, 172, 187, 0.45); border-radius: 18rpx; background: #fffdf9; }
 .dot-output { display: block; width: max-content; min-width: 100%; box-sizing: border-box; padding: 24rpx; color: #25362f; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 22rpx; line-height: 1.05; white-space: pre; }
@@ -273,9 +467,10 @@ function copyResult() {
 .empty-symbol { margin-bottom: 14rpx; color: #8fbc93; font-size: 52rpx; }
 .loading-dot { width: 24rpx; height: 24rpx; margin-bottom: 20rpx; border-radius: 50%; background: #8fbc93; animation: pulse 900ms ease-in-out infinite alternate; }
 .retry-button { min-width: 180rpx; min-height: 76rpx; margin-top: 22rpx; border-radius: 999rpx; color: #3f5943; font-size: 22rpx; background: #dcebd7; }
-.action-row { display: grid; grid-template-columns: 1fr; margin-top: 22rpx; }
+.action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14rpx; margin-top: 22rpx; }
 .action-button { display: flex; align-items: center; justify-content: center; min-height: 92rpx; margin: 0; border-radius: 18rpx; font-size: 24rpx; font-weight: 600; line-height: 1; }
 .action-button--primary { color: #29412e; background: #bcd9b9; }
+.action-button--download { color: #674654; background: #f1cad5; }
 .action-button[disabled] { opacity: 0.42; }
 .privacy-note { margin: 0 42rpx; padding: 4rpx 0 calc(52rpx + env(safe-area-inset-bottom)); color: #647269; font-size: 20rpx; line-height: 1.6; text-align: center; }
 @keyframes pulse { from { opacity: 0.35; transform: scale(0.78); } to { opacity: 1; transform: scale(1); } }

@@ -7,14 +7,12 @@ import com.journaling.hub.common.BusinessException;
 import com.journaling.hub.common.ErrorCode;
 import com.journaling.hub.entity.Download;
 import com.journaling.hub.entity.Material;
-import com.journaling.hub.entity.User;
 import com.journaling.hub.mapper.DownloadMapper;
 import com.journaling.hub.mapper.MaterialMapper;
 import com.journaling.hub.service.DownloadService;
 import com.journaling.hub.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,9 +26,6 @@ import java.util.Map;
 @Slf4j
 @Service
 public class DownloadServiceImpl implements DownloadService {
-
-    @Value("${FREE_DOWNLOAD_LIMIT:50}")
-    private int freeDownloadLimit;
 
     @Autowired
     private DownloadMapper downloadMapper;
@@ -53,28 +48,13 @@ public class DownloadServiceImpl implements DownloadService {
             throw new BusinessException(ErrorCode.MATERIAL_OFFLINE);
         }
 
-        User user = userService.getProfile(userId);
-        boolean alreadyDownloaded = downloadMapper.selectCount(
-                new LambdaQueryWrapper<Download>()
-                        .eq(Download::getUserId, userId)
-                        .eq(Download::getMaterialId, materialId)
-        ) > 0;
-
-        int downloadCount = user.getDownloadCount() == null ? 0 : user.getDownloadCount();
-        if (!user.isPremium() && !alreadyDownloaded && downloadCount >= freeDownloadLimit) {
-            throw new BusinessException(ErrorCode.DOWNLOAD_FREE_LIMIT_EXCEEDED);
-        }
-
         // 记录下载（使用唯一索引防止重复）
-        boolean createdDownload = false;
         try {
             Download download = new Download();
             download.setUserId(userId);
             download.setMaterialId(materialId);
             download.setDownloadedAt(LocalDateTime.now());
             downloadMapper.insert(download);
-            createdDownload = true;
-
             // 增加下载次数
             int materialDownloadCount = material.getDownloadCount() == null ? 0 : material.getDownloadCount();
             material.setDownloadCount(materialDownloadCount + 1);
@@ -95,10 +75,6 @@ public class DownloadServiceImpl implements DownloadService {
         result.put("mimeType", gif ? "image/gif" : material.getMimeType());
         result.put("materialId", materialId);
         result.put("message", "下载成功");
-        result.put("freeDownloadLimit", freeDownloadLimit);
-        result.put("freeDownloadUsed", createdDownload ? downloadCount + 1 : downloadCount);
-        result.put("freeDownloadRemaining", user.isPremium() ? null : Math.max(0, freeDownloadLimit - (createdDownload ? downloadCount + 1 : downloadCount)));
-
         return result;
     }
 

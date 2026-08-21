@@ -27,9 +27,8 @@ class DownloadServiceTest extends BaseTest {
         assertNotNull(result);
         assertNotNull(result.get("url"));
         assertEquals(1L, (long) result.get("materialId"));
-        assertEquals(50, result.get("freeDownloadLimit"));
-        assertEquals(5, result.get("freeDownloadUsed"));
-        assertEquals(45, result.get("freeDownloadRemaining"));
+        assertFalse(result.containsKey("freeDownloadLimit"));
+        assertFalse(result.containsKey("freeDownloadRemaining"));
     }
 
     @Test
@@ -39,8 +38,7 @@ class DownloadServiceTest extends BaseTest {
         Map<String, Object> result = downloadService.download(4L, 1L);
         assertNotNull(result);
         assertEquals("下载成功", result.get("message"));
-        assertEquals(5, result.get("freeDownloadUsed"));
-        assertEquals(45, result.get("freeDownloadRemaining"));
+        assertFalse(result.containsKey("freeDownloadRemaining"));
     }
 
     @Test
@@ -54,10 +52,10 @@ class DownloadServiceTest extends BaseTest {
 
     @Test
     @Order(4)
-    void testDownload_FreeLimitExceeded() {
-        BusinessException exception = assertThrows(BusinessException.class,
-                () -> downloadService.download(1L, 2L));
-        assertEquals(4004, exception.getCode());
+    void testDownload_NormalUserWithoutQuotaLimit() {
+        Map<String, Object> result = downloadService.download(1L, 2L);
+        assertNotNull(result);
+        assertNotNull(result.get("url"));
     }
 
     @Test

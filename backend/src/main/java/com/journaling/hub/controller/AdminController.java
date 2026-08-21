@@ -11,6 +11,7 @@ import com.journaling.hub.common.Result;
 import com.journaling.hub.dto.RedeemCodeGenerateRequest;
 import com.journaling.hub.dto.MaterialRequest;
 import com.journaling.hub.service.FileService;
+import com.journaling.hub.service.MaterialCategoryService;
 import com.journaling.hub.entity.Feedback;
 import com.journaling.hub.dto.FeedbackReplyRequest;
 import com.journaling.hub.entity.Material;
@@ -56,6 +57,9 @@ public class AdminController {
     @Autowired
     private FileService fileService;
 
+    @Autowired
+    private MaterialCategoryService materialCategoryService;
+
     private static final SecureRandom REDEEM_RANDOM = new SecureRandom();
     private static final String REDEEM_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -91,7 +95,8 @@ public class AdminController {
             wrapper.eq(Material::getMediaType, mediaType);
         }
         if (StringUtils.hasText(category)) {
-            wrapper.eq(Material::getCategory, category);
+            wrapper.and(w -> w.eq(Material::getCategory, category)
+                    .or().apply("EXISTS (SELECT 1 FROM material_categories mc WHERE mc.material_id = materials.id AND mc.category = {0})", category));
         }
         if (StringUtils.hasText(keyword)) {
             wrapper.like(Material::getTitle, keyword);
@@ -103,6 +108,7 @@ public class AdminController {
         wrapper.orderByDesc(Material::getCreatedAt);
 
         IPage<Material> result = materialMapper.selectPage(new Page<>(page, limit), wrapper);
+        materialCategoryService.hydrate(result.getRecords());
         return Result.ok(PageResult.from(result));
     }
 
@@ -131,6 +137,7 @@ public class AdminController {
             material.setSortOrder(0);
         }
         materialMapper.insert(material);
+        material.setCategories(materialCategoryService.sync(material.getId(), request.getCategories(), request.getCategory()));
         log.info("素材新增成功: id={}, title={}", material.getId(), material.getTitle());
         return Result.ok(material);
     }
@@ -147,7 +154,8 @@ public class AdminController {
 
         if (material.getTitle() != null) existing.setTitle(material.getTitle());
         if (material.getDescription() != null) existing.setDescription(material.getDescription());
-        if (material.getCategory() != null) existing.setCategory(material.getCategory());
+        if (material.getCategories() != null) existing.setCategory(material.getCategories().stream().filter(StringUtils::hasText).findFirst().orElse(null));
+        else if (material.getCategory() != null) existing.setCategory(material.getCategory());
         if (material.getMaterialType() != null) {
             validateMaterialType(material.getMaterialType());
             existing.setMaterialType(material.getMaterialType());
@@ -171,6 +179,11 @@ public class AdminController {
         }
 
         materialMapper.updateById(existing);
+        if (material.getCategories() != null || material.getCategory() != null) {
+            existing.setCategories(materialCategoryService.sync(id, material.getCategories(), existing.getCategory()));
+        } else {
+            materialCategoryService.hydrate(existing);
+        }
         if (material.isIssueYearSpecified() && material.getIssueYear() == null) {
             materialMapper.update(null, new LambdaUpdateWrapper<Material>()
                     .eq(Material::getId, id)

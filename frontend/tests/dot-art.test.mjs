@@ -2,10 +2,12 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   clampOutputWidth,
+  calculateDensityThreshold,
   cropGrayscale,
   detectContentBounds,
   fitOutputColumns,
   generateDotArt,
+  getDensityOutputWidth,
   getTextArtLayout,
   grayscaleToAscii,
   grayscaleToBraille,
@@ -32,6 +34,18 @@ test('chat fitting keeps ordinary images narrow and caps portrait message height
   assert.equal(fitOutputColumns(18, 2), 18)
   assert.equal(fitOutputColumns(18, 4), 12)
   assert.equal(fitOutputColumns(18, 12), 4)
+})
+
+test('dense mode activates more dark pixels than normal mode', () => {
+  const pixels = new Uint8ClampedArray([80, 110, 140, 170, 210])
+  assert.ok(calculateDensityThreshold(pixels, { density: 'dense' }) > calculateDensityThreshold(pixels, { density: 'normal' }))
+  assert.ok(calculateDensityThreshold(pixels, { density: 'light' }) < calculateDensityThreshold(pixels, { density: 'normal' }))
+})
+
+test('dense mode increases sampling resolution instead of enlarging existing dots', () => {
+  assert.equal(getDensityOutputWidth(18, 'light'), 15)
+  assert.equal(getDensityOutputWidth(18, 'normal'), 18)
+  assert.equal(getDensityOutputWidth(18, 'dense'), 24)
 })
 
 test('grayscale resize keeps dimensions and supports tiny sources', () => {
@@ -131,4 +145,20 @@ test('PNG text layout respects maximum edge for long output', () => {
   assert.ok(layout.width <= 1024)
   assert.ok(layout.height <= 1024)
   assert.ok(layout.fontSize > 0)
+})
+
+test('PNG text layout uses measured glyph width instead of clipping wide braille glyphs', () => {
+  const text = '⣿'.repeat(18)
+  const layout = getTextArtLayout(text, {
+    measureText: line => [...line].length * 24
+  })
+  assert.equal(layout.width, 496)
+})
+
+test('fixed PNG width makes higher point counts render with smaller glyphs', () => {
+  const measureText = line => [...line].length * 24
+  const sparse = getTextArtLayout('⣿'.repeat(18), { targetWidth: 720, measureText })
+  const dense = getTextArtLayout('⣿'.repeat(24), { targetWidth: 720, measureText })
+  assert.equal(sparse.width, dense.width)
+  assert.ok(dense.fontSize < sparse.fontSize)
 })

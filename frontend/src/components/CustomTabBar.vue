@@ -34,16 +34,16 @@ const emit = defineEmits(['change'])
 
 const tabs = [
   {
-    text: '首页',
-    icon: '/static/icons/home.png',
-    activeIcon: '/static/icons/home-active.png',
-    pagePath: '/pages/index/index'
-  },
-  {
-    text: '工具',
+    text: '工具箱',
     icon: '/static/icons/tools.png',
     activeIcon: '/static/icons/tools-active.png',
     pagePath: '/pages/tools/tools'
+  },
+  {
+    text: '素材',
+    icon: '/static/icons/home.png',
+    activeIcon: '/static/icons/home-active.png',
+    pagePath: '/pages/index/index'
   },
   {
     text: '我的',
