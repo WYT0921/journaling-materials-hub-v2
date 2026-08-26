@@ -7,6 +7,7 @@ DELETE FROM downloads;
 DELETE FROM redeem_codes;
 DELETE FROM tools;
 DELETE FROM text_assets;
+DELETE FROM text_decoration_templates;
 DELETE FROM categories;
 DELETE FROM material_categories;
 DELETE FROM materials;
@@ -57,6 +58,13 @@ INSERT INTO text_assets (id, content, content_hash, type, category, tags, source
 (1, '(｡･ω･｡)', '7222c39a69189bf63584d9d6a661cbd10b43b4f0a9a6d4f3338e07f9916d162a', 'kaomoji', '可爱', '["可爱"]', 'manual', 'safe', 1, 1),
 (2, '(｡•́︿•̀｡)', 'fa8eb34de58556033bd1f622a0c9f044f2f05df5c9ee77a355349347c50bb61a', 'kaomoji', '难过', '["难过"]', 'manual', 'safe', 0, 2),
 (3, '₊˚⊹♡', 'ab2a88c3316f8bae975854f3702f9306e734fa0895b8f2b357e389fc31436f58', 'emoji', '爱心', '["爱心"]', 'emojidb', 'safe', 1, 1);
+
+INSERT INTO text_decoration_templates
+(id, name, category, type, prefix, suffix, template, preview_text, unicode_level, enabled, sort_order) VALUES
+(1, 'Soft Heart', 'heart', 'inline', '♡ ', ' ♡', NULL, 'hello', 'basic', 1, 1),
+(2, 'Heart Frame', 'frame', 'multiline', '', '', '╭─♡─╮\n{text}\n╰─♡─╯', 'hello', 'standard', 1, 2),
+(3, 'Heart Join', 'divider', 'replace', '', '', '♡', 'hello', 'basic', 1, 3),
+(4, 'Disabled Star', 'star', 'inline', '☆ ', ' ☆', NULL, 'hello', 'basic', 0, 4);
 
 -- 测试默认工具
 INSERT INTO tools (id, name, description, icon, url, category, sort_order, is_default, user_id, status) VALUES

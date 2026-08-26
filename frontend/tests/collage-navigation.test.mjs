@@ -65,7 +65,7 @@ test('Dot Art page exposes dense local generation, color selection, copy and PNG
   assert.match(dotArt, /saveDotArtToAlbum/)
   assert.match(dotArt, /cachedImagePixels/)
   assert.match(dotArt, /dotOutputStyle/)
-  assert.match(dotArt, /22 \* outputWidth\.value \/ effectiveOutputWidth\.value/)
+  assert.match(dotArt, /getFixedPreviewFontSize\(effectiveOutputWidth\.value\)/)
   assert.match(dotArt, /下载图片/)
   assert.match(dotArt, /图片仅在本机处理/)
 })

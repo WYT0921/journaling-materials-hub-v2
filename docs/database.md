@@ -188,6 +188,22 @@
 
 **索引:** `uk_text_assets_content_hash` 保证内容全局唯一；`idx_text_assets_public` 支持类型、状态、分类和排序查询。
 
+### 8. 文字装饰模板表 (text_decoration_templates)
+
+存储文字装饰生成器的全部模板。V17 初始化 102 个启用模板，前端不内置生产模板。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键 |
+| name/category/type | VARCHAR | 名称、分类及 `inline/multiline/replace` 类型 |
+| prefix/suffix | TEXT | inline 类型的前后缀 |
+| template | TEXT | multiline 的 `{text}` 模板或 replace 的字符分隔符 |
+| preview_text | VARCHAR(64) | 模板选择器默认预览文字 |
+| unicode_level | VARCHAR(16) | `basic/standard/extended/emoji` 兼容等级 |
+| enabled/sort_order | TINYINT/INT | 启用状态与展示顺序 |
+
+**索引:** `idx_text_decoration_public(enabled, category, sort_order, id)` 支持公开模板列表查询。
+
 ### 8. 已移除的数据结构
 
 Collector 与 AURA 已于 2026-08-18 移除。V14 删除 `collector_runs` 及自动采集专用字段；AURA 表从未进入生产迁移历史。

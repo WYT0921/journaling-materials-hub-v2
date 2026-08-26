@@ -33,6 +33,12 @@
       }
     },
     {
+      "path": "pages/tools/text-decoration",
+      "style": {
+        "navigationBarTitleText": "文字装饰"
+      }
+    },
+    {
       "path": "pages/tools/text-assets",
       "style": {
         "navigationBarTitleText": "颜文字与 Emoji"

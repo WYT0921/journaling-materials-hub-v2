@@ -33,6 +33,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/api/materials/{id}",
                         "/api/text-assets",
                         "/api/text-assets/**",
+                        "/api/text-decoration/**",
                         "/api/redeem/verify",
                         "/api/feedback",
                         "/api/wechat/official/callback",

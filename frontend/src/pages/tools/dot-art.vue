@@ -97,7 +97,7 @@
         <view class="setting-row setting-row--slider">
           <view class="setting-copy">
             <text class="setting-label">精细度</text>
-            <text class="setting-description">默认适配手机微信气泡，竖图会自动限制在约 24 行</text>
+            <text class="setting-description">默认适配手机微信气泡，竖图约 24 行；点越细粘贴文字越长、聊天中可能会换行，在意换行可向左调低</text>
           </view>
           <slider
             class="width-slider"
@@ -164,7 +164,7 @@
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import GlassNavBar from '../../components/GlassNavBar.vue'
 import { readImagePixels } from '../../utils/dot-art/image-processor.js'
-import { DOT_ART_DEFAULT_WIDTH, generateDotArt, getDensityOutputWidth, isDotArtEmpty } from '../../utils/dot-art/dot-art.mjs'
+import { DOT_ART_DEFAULT_WIDTH, generateDotArt, getDensityOutputWidth, getFixedPreviewFontSize, isDotArtEmpty } from '../../utils/dot-art/dot-art.mjs'
 import { saveDotArtToAlbum } from '../../utils/dot-art/exporter.js'
 import { hidePageShareMenu } from '../../utils/tool-share'
 import { copyToClipboard } from '../../utils/clipboard'
@@ -223,7 +223,7 @@ const canUseResult = computed(() => Boolean(dotText.value) && !processing.value 
 const effectiveOutputWidth = computed(() => getDensityOutputWidth(outputWidth.value, density.value))
 const dotOutputStyle = computed(() => ({
   color: textColor.value,
-  fontSize: `${22 * outputWidth.value / effectiveOutputWidth.value}rpx`
+  fontSize: `${getFixedPreviewFontSize(effectiveOutputWidth.value)}rpx`
 }))
 const resultMeta = computed(() => {
   const lines = dotText.value.split('\n')
@@ -460,7 +460,7 @@ async function saveResult() {
 .rgb-value { width: 54rpx; color: #68746a; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 19rpx; text-align: right; }
 .result-panel { background: #f9edf0; }
 .result-scroll { box-sizing: border-box; width: 100%; height: 500rpx; margin-top: 22rpx; border: 1rpx solid rgba(233, 172, 187, 0.45); border-radius: 18rpx; background: #fffdf9; }
-.dot-output { display: block; width: max-content; min-width: 100%; box-sizing: border-box; padding: 24rpx; color: #25362f; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 22rpx; line-height: 1.05; white-space: pre; }
+.dot-output { display: block; width: max-content; min-width: 100%; box-sizing: border-box; padding: 32rpx; color: #25362f; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 22rpx; line-height: 1.05; white-space: pre; }
 .dot-output--ascii { line-height: 1.1; }
 .result-state { display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; height: 320rpx; margin-top: 22rpx; padding: 30rpx; border-radius: 18rpx; color: #68746a; text-align: center; font-size: 22rpx; line-height: 1.6; background: rgba(255, 255, 255, 0.55); }
 .result-state--error { color: #815b63; }

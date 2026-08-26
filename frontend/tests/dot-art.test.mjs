@@ -25,7 +25,7 @@ test('transparent pixels are composited on white and RGB uses weighted luminance
 test('output width is rounded and clamped to supported range', () => {
   assert.equal(clampOutputWidth(10), 12)
   assert.equal(clampOutputWidth(39.4), 39)
-  assert.equal(clampOutputWidth(200), 40)
+  assert.equal(clampOutputWidth(200), 80)
   assert.equal(clampOutputWidth('invalid'), 18)
 })
 
@@ -45,7 +45,8 @@ test('dense mode activates more dark pixels than normal mode', () => {
 test('dense mode increases sampling resolution instead of enlarging existing dots', () => {
   assert.equal(getDensityOutputWidth(18, 'light'), 15)
   assert.equal(getDensityOutputWidth(18, 'normal'), 18)
-  assert.equal(getDensityOutputWidth(18, 'dense'), 24)
+  assert.equal(getDensityOutputWidth(18, 'dense'), 36)
+  assert.equal(getDensityOutputWidth(40, 'dense'), 80)
 })
 
 test('grayscale resize keeps dimensions and supports tiny sources', () => {
@@ -161,4 +162,14 @@ test('fixed PNG width makes higher point counts render with smaller glyphs', () 
   const dense = getTextArtLayout('⣿'.repeat(24), { targetWidth: 720, measureText })
   assert.equal(sparse.width, dense.width)
   assert.ok(dense.fontSize < sparse.fontSize)
+})
+
+test('preview keeps the same visual width while fineness adds columns', async () => {
+  const { getFixedPreviewFontSize } = await import('../src/utils/dot-art/dot-art.mjs')
+  const simpleColumns = 18
+  const detailedColumns = 36
+  const simpleWidth = simpleColumns * getFixedPreviewFontSize(simpleColumns)
+  const detailedWidth = detailedColumns * getFixedPreviewFontSize(detailedColumns)
+  assert.equal(simpleWidth, detailedWidth)
+  assert.ok(getFixedPreviewFontSize(detailedColumns) < getFixedPreviewFontSize(simpleColumns))
 })

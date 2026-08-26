@@ -700,6 +700,17 @@ GET /api/v2/categories?type=tool
 
 列表只返回 `id/content/type/category/tags`。状态：`0` 待审核、`1` 已发布、`2` 已拒绝、`3` 已停用；风险等级为 `safe` 或 `mild`。
 
+## 文字装饰公共接口
+
+无需登录。模板分类为 `heart/star/flower/plant/ribbon/dreamy/y2k/minimal/frame/divider`。
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/text-decoration/templates?category=heart` | 获取全部启用模板；category 可选，`all` 等同不筛选 |
+| GET | `/api/text-decoration/random?text=hello&category=heart&excludeId=1` | 随机选择模板并返回渲染结果；excludeId 用于避免连续重复 |
+
+模板 `type` 支持：`inline` 使用 `prefix + text + suffix`；`multiline` 将 `template` 中的 `{text}` 替换为输入；`replace` 将 `template` 作为 Unicode 字符间分隔符。输入最多 200 个 Unicode 字符。
+
 ---
 
 ## 错误码说明

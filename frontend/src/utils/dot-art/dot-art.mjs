@@ -1,5 +1,5 @@
 export const DOT_ART_MIN_WIDTH = 12
-export const DOT_ART_MAX_WIDTH = 40
+export const DOT_ART_MAX_WIDTH = 80
 export const DOT_ART_DEFAULT_WIDTH = 18
 export const DOT_ART_CHAT_MAX_ROWS = 24
 export const ASCII_RAMP = '@%#*+=-:. '
@@ -21,8 +21,15 @@ export const clampOutputWidth = width => clamp(
 )
 
 export const getDensityOutputWidth = (width, density = 'dense') => {
-  const multiplier = density === 'dense' ? 4 / 3 : density === 'light' ? 5 / 6 : 1
+  const multiplier = density === 'dense' ? 2 : density === 'light' ? 5 / 6 : 1
   return clampOutputWidth(clampOutputWidth(width) * multiplier)
+}
+
+export const getFixedPreviewFontSize = (effectiveWidth, options = {}) => {
+  const baseWidth = Number(options.baseWidth) || DOT_ART_DEFAULT_WIDTH
+  const baseFontSize = Number(options.baseFontSize) || 22
+  const width = Math.max(1, Number(effectiveWidth) || baseWidth)
+  return Math.max(6, baseFontSize * baseWidth / width)
 }
 
 export const fitOutputColumns = (columns, aspectRatio, maxRows = DOT_ART_CHAT_MAX_ROWS) => {
@@ -128,7 +135,7 @@ export const detectContentBounds = (data, width, height, options = {}) => {
   if (!foregroundCount || foregroundCount < width * height * 0.001) return fullImageBounds(width, height)
   const subjectWidth = maxX - minX + 1
   const subjectHeight = maxY - minY + 1
-  const paddingRatio = options.cropPaddingRatio ?? 0.06
+  const paddingRatio = options.cropPaddingRatio ?? 0.12
   const paddingX = Math.max(2, Math.round(subjectWidth * paddingRatio))
   const paddingY = Math.max(2, Math.round(subjectHeight * paddingRatio))
   const x = Math.max(0, minX - paddingX)

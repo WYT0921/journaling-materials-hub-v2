@@ -83,6 +83,15 @@ const tools = [
     theme: 'emoji',
     route: '/pages/tools/text-assets'
   },
+  {
+    id: 'text-decoration',
+    name: '文字装饰',
+    description: '用 100+ 款爱心、星星、花草与边框模板装饰文字',
+    tag: '排版灵感',
+    icon: '୨୧',
+    theme: 'decor',
+    route: '/pages/tools/text-decoration'
+  },
   /*
   {
     id: 'collage',
@@ -214,6 +223,11 @@ function openTool(tool) {
   background: #f1f5e8;
 }
 
+.tool-card--decor {
+  border-color: rgba(178, 156, 207, 0.42);
+  background: #f5eef9;
+}
+
 .tool-card--active {
   opacity: 0.86;
   transform: scale(0.985);
@@ -290,6 +304,10 @@ function openTool(tool) {
 
 .tool-card--dot .tool-tag {
   color: #70805d;
+}
+
+.tool-card--decor .tool-tag {
+  color: #806d95;
 }
 
 .coming-soon {

@@ -25,6 +25,7 @@ export const renderDotArtPng = async (text, options = {}) => {
   const measureContext = measureCanvas.getContext('2d')
   const layout = getTextArtLayout(text, {
     targetWidth: options.targetWidth || 720,
+    padding: options.padding || 64,
     measureText: (line, fontSize) => {
       measureContext.font = `${fontSize}px monospace`
       return measureContext.measureText(line).width
