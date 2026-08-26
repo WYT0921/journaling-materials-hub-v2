@@ -1,0 +1,6 @@
+FROM deploy-backend:latest
+WORKDIR /app
+
+COPY journaling-materials-hub-1.0.0.jar app.jar
+
+ENTRYPOINT ["java", "-jar", "-Xmx512m", "-Xms256m", "app.jar"]

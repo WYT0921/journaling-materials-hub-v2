@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * 全局异常处理器
@@ -19,6 +20,14 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public org.springframework.http.ResponseEntity<Result<?>> handleResponseStatusException(ResponseStatusException e) {
+        log.warn("HTTP exception: status={}, reason={}", e.getStatusCode(), e.getReason());
+        String message = e.getReason() == null ? "Request failed" : e.getReason();
+        return org.springframework.http.ResponseEntity.status(e.getStatusCode())
+                .body(Result.error(message, e.getStatusCode().value()));
+    }
 
     /**
      * 业务异常

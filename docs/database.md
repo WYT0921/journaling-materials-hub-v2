@@ -1,5 +1,9 @@
 # 数据库设计文档
 
+## 素材多分类（V16）
+
+`material_categories(material_id, category, sort_order)` 保存素材与分类的多对多关系，组合主键防止重复。`materials.category` 保留为主分类（即 `categories[0]`），用于兼容旧客户端、旧上传脚本与历史数据；V16 会把所有历史主分类自动迁入关联表。按分类筛选时匹配任一关联分类。
+
 ## 数据库概述
 
 - 数据库类型: MySQL 8.0+
@@ -45,6 +49,16 @@
 | image_url | VARCHAR(256) | NOT NULL | 原图URL |
 | thumbnail_url | VARCHAR(256) | NULL | 缩略图URL |
 | category | VARCHAR(32) | NULL | 分类 |
+| material_type | VARCHAR(16) | DEFAULT 'single' | 一级类型：single=单个素材，bundle=合并素材 |
+| media_type | VARCHAR(24) | DEFAULT 'static_image' | static_image / animated_gif |
+| content_hash | CHAR(64) | NULL, UNIQUE | 动态文件 SHA-256，全局去重 |
+| mime_type | VARCHAR(64) | NULL | 文件 MIME |
+| file_size | BIGINT | NULL | 原文件字节数 |
+| width / height | INT | NULL | 媒体尺寸 |
+| duration_ms / frame_count | INT | NULL | 动图时长与帧数 |
+| source / source_url / collected_at | VARCHAR/DATETIME | NULL | 仅管理端可见的来源审计信息 |
+| issue_year | INT | NULL | 上传年份，与 issue_number 同时为空或同时有值 |
+| issue_number | INT | NULL | 上传期号，必须大于 0 |
 | tags | JSON | NULL | 标签数组 |
 | is_premium | BOOLEAN | DEFAULT FALSE | 是否为会员素材 |
 | download_count | INT | DEFAULT 0 | 下载次数 |
@@ -55,9 +69,15 @@
 
 **索引:**
 - `idx_materials_category` - category
+- `idx_materials_material_type` - material_type
+- `idx_materials_media_type` - media_type
+- `idx_materials_source_url` - source_url
+- `idx_materials_issue` - issue_year, issue_number
 - `idx_materials_is_premium` - is_premium
 - `idx_materials_status` - status
 - `idx_materials_sort_order` - sort_order
+
+**检查约束:** `chk_materials_issue_pair` 保证期数两字段同时为空，或年份为四位数且期号大于 0。
 
 ### 3. 兑换码表 (redeem_codes)
 
@@ -68,7 +88,7 @@
 | id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | 兑换码ID |
 | code | VARCHAR(32) | UNIQUE, NOT NULL | 兑换码 |
 | type | VARCHAR(16) | NOT NULL | 会员类型：monthly/yearly/permanent |
-| status | TINYINT | DEFAULT 0 | 状态：0-未使用，1-已使用 |
+| status | TINYINT | DEFAULT 0 | 状态：0-未使用，1-已使用，2-已作废 |
 | user_id | BIGINT | NULL, FOREIGN KEY | 使用者ID |
 | used_time | DATETIME | NULL | 使用时间 |
 | expire_time | DATETIME | NULL | 到期时间 |
@@ -113,6 +133,8 @@
 | id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | 反馈ID |
 | user_id | BIGINT | NULL, FOREIGN KEY | 用户ID，匿名反馈为空 |
 | content | TEXT | NOT NULL | 反馈内容 |
+| reply | TEXT | NULL | 管理员回复，用户可见 |
+| replied_at | DATETIME | NULL | 管理员回复时间 |
 | status | TINYINT | DEFAULT 0 | 处理状态：0-未处理，1-已处理 |
 | created_at | DATETIME | NOT NULL | 创建时间 |
 | updated_at | DATETIME | NOT NULL | 更新时间 |
@@ -127,13 +149,13 @@
 
 ### 6. 分类表 (categories)
 
-存储素材和工具的分类信息。
+存储图片素材、颜文字、Emoji 和遗留工具的分类信息。
 
 | 字段名 | 类型 | 约束 | 说明 |
 |--------|------|------|------|
 | id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | 分类ID |
 | name | VARCHAR(32) | NOT NULL | 分类名称 |
-| type | VARCHAR(16) | NOT NULL | 分类类型：material / tool |
+| type | VARCHAR(16) | NOT NULL | 分类类型：material / kaomoji / emoji / tool(遗留) |
 | status | TINYINT | DEFAULT 1 | 状态：0-禁用，1-正常 |
 | sort_order | INT | DEFAULT 0 | 排序序号 |
 | created_at | DATETIME | NOT NULL | 创建时间 |
@@ -143,6 +165,87 @@
 - `uk_categories_name_type` (唯一索引) - name, type
 - `idx_categories_type` - type
 - `idx_categories_status` - status
+
+### 7. 文本素材表 (text_assets)
+
+存储经过审核的颜文字和 Emoji 组合；管理后台导入后默认处于待审核状态。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | 文本素材 ID |
+| content | TEXT | NOT NULL | 规范化后的可复制内容 |
+| content_hash | CHAR(64) | UNIQUE, NOT NULL | 内容 SHA-256，用于幂等去重 |
+| type | VARCHAR(16) | NOT NULL | kaomoji / emoji |
+| category | VARCHAR(32) | NOT NULL | 对应类型下的启用分类 |
+| tags | JSON | NULL | 搜索标签数组 |
+| source | VARCHAR(32) | DEFAULT manual | manual / cuteinternet / emojidb |
+| source_url | VARCHAR(512) | NULL | 来源页面 |
+| risk_level | VARCHAR(16) | DEFAULT safe | safe / mild |
+| status | TINYINT | DEFAULT 0 | 0待审核、1已发布、2已拒绝、3已停用 |
+| sort_order | INT | DEFAULT 0 | 排序权重 |
+| created_at | DATETIME | NOT NULL | 创建时间 |
+| updated_at | DATETIME | NOT NULL | 更新时间 |
+
+**索引:** `uk_text_assets_content_hash` 保证内容全局唯一；`idx_text_assets_public` 支持类型、状态、分类和排序查询。
+
+### 8. 文字装饰模板表 (text_decoration_templates)
+
+存储文字装饰生成器的全部模板。V17 初始化 102 个启用模板，前端不内置生产模板。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键 |
+| name/category/type | VARCHAR | 名称、分类及 `inline/multiline/replace` 类型 |
+| prefix/suffix | TEXT | inline 类型的前后缀 |
+| template | TEXT | multiline 的 `{text}` 模板或 replace 的字符分隔符 |
+| preview_text | VARCHAR(64) | 模板选择器默认预览文字 |
+| unicode_level | VARCHAR(16) | `basic/standard/extended/emoji` 兼容等级 |
+| enabled/sort_order | TINYINT/INT | 启用状态与展示顺序 |
+
+**索引:** `idx_text_decoration_public(enabled, category, sort_order, id)` 支持公开模板列表查询。
+
+### 8. 已移除的数据结构
+
+Collector 与 AURA 已于 2026-08-18 移除。V14 删除 `collector_runs` 及自动采集专用字段；AURA 表从未进入生产迁移历史。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | 内部 ID，不在公共目录暴露 |
+| template_key | VARCHAR(64) | UNIQUE, NOT NULL | 客户端稳定键 |
+| name | VARCHAR(100) | NOT NULL | 模板名称 |
+| style | VARCHAR(32) | NOT NULL | 风格筛选键 |
+| preview_url | VARCHAR(512) | NULL | 预览图 URL |
+| supported_ratios | JSON | NOT NULL | 仅允许 1:1、4:3、9:16 |
+| config_json | JSON | NOT NULL | 版本化声明式图层配置 |
+| config_version | INT | DEFAULT 1 | 配置版本 |
+| status | TINYINT | DEFAULT 0 | 0下架、1上架 |
+| sort_order | INT | DEFAULT 0 | 展示顺序 |
+| created_at / updated_at | DATETIME | NOT NULL | 创建和更新时间 |
+
+**索引:** `uk_aura_templates_key` 保证稳定键唯一；`idx_aura_templates_public` 支持公开目录的状态与排序查询。
+
+### 9. AURA 资源表 (aura_assets)
+
+存储装饰、纹理和字体的远程分发元数据，不存储用户照片、作品或草稿。
+
+| 字段名 | 类型 | 约束 | 说明 |
+|--------|------|------|------|
+| id | BIGINT | PRIMARY KEY, AUTO_INCREMENT | 内部 ID |
+| asset_key | VARCHAR(64) | UNIQUE, NOT NULL | 客户端稳定键 |
+| name | VARCHAR(100) | NOT NULL | 资源名称 |
+| type | VARCHAR(16) | NOT NULL | decoration / texture / font |
+| file_url | VARCHAR(512) | NOT NULL | MinIO/CDN 文件 URL |
+| preview_url | VARCHAR(512) | NULL | 预览 URL |
+| sha256 | CHAR(64) | NOT NULL | 客户端完整性校验摘要 |
+| resource_version | INT | DEFAULT 1 | 资源缓存版本 |
+| metadata_json | JSON | NULL | 字体 family/styleKey 等扩展元数据 |
+| status | TINYINT | DEFAULT 0 | 0下架、1上架 |
+| sort_order | INT | DEFAULT 0 | 展示顺序 |
+| created_at / updated_at | DATETIME | NOT NULL | 创建和更新时间 |
+
+**索引:** `uk_aura_assets_key` 保证稳定键唯一；`idx_aura_assets_public` 支持状态、类型与排序查询。
+
+两张 AURA 表之间不设外键：模板通过稳定资源键引用目录资源，便于独立版本发布与客户端缓存回退。
 
 ---
 
@@ -196,6 +299,8 @@
 ---
 
 ## 数据迁移
+
+Spring Boot 使用 `backend/src/main/resources/db/V11__create_aura_catalog.sql` 创建两张 AURA 表，并以幂等方式写入首批 5 个已上架基础模板。
 
 ### 运行迁移
 
@@ -323,6 +428,25 @@ pool: {
 ---
 
 ## 常见问题
+
+### 每日采集流水线（V11）
+
+`text_assets` 新增 `ai_model VARCHAR(128)`、`ai_confidence DECIMAL(5,4)`、`review_note VARCHAR(512)`。`source` 允许 `threads`；公开 DTO 不暴露来源与审计字段。
+
+新增 `collector_runs`：
+
+| 字段 | 用途 |
+|---|---|
+| `trigger_type` | `scheduled/manual/dry-run` |
+| `status` | `running/succeeded/partial/failed` |
+| `started_at/finished_at` | 起止时间 |
+| `collected_count/candidate_count` | 原始与候选数量 |
+| `filtered_count/duplicate_count/inserted_count` | 过滤、重复、入库数量 |
+| `ai_failed_count` | AI 未完成数量 |
+| `source_stats` | 各来源 JSON 统计 |
+| `error_summary` | 截断后的错误摘要 |
+
+内容级幂等由 `text_assets.content_hash` 的 SHA-256 唯一索引保证；调度级并发由 Redis `collector:daily:lock`（TTL 4 小时）保证。
 
 ### 1. 如何添加新字段？
 

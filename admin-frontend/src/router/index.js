@@ -25,9 +25,9 @@ const routes = [
         component: () => import('../views/materials/MaterialList.vue')
       },
       {
-        path: 'tools',
-        name: 'Tools',
-        component: () => import('../views/tools/ToolList.vue')
+        path: 'text-assets',
+        name: 'TextAssets',
+        component: () => import('../views/text-assets/TextAssetList.vue')
       },
       {
         path: 'users',
@@ -35,11 +35,25 @@ const routes = [
         component: () => import('../views/users/UserList.vue')
       },
       {
+        path: 'redeem-codes',
+        name: 'RedeemCodes',
+        component: () => import('../views/redeem-codes/RedeemCodeList.vue')
+      },
+      {
         path: 'feedbacks',
         name: 'Feedbacks',
         component: () => import('../views/feedbacks/FeedbackList.vue')
+      },
+      {
+        path: 'music-card',
+        name: 'MusicCard',
+        component: () => import('../views/music-card/MusicCardManage.vue')
       }
     ]
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/'
   }
 ]
 

@@ -7,7 +7,6 @@ import com.journaling.hub.common.BusinessException;
 import com.journaling.hub.common.ErrorCode;
 import com.journaling.hub.entity.Download;
 import com.journaling.hub.entity.Material;
-import com.journaling.hub.entity.User;
 import com.journaling.hub.mapper.DownloadMapper;
 import com.journaling.hub.mapper.MaterialMapper;
 import com.journaling.hub.service.DownloadService;
@@ -27,8 +26,6 @@ import java.util.Map;
 @Slf4j
 @Service
 public class DownloadServiceImpl implements DownloadService {
-
-    private static final int FREE_DOWNLOAD_LIMIT = 5;
 
     @Autowired
     private DownloadMapper downloadMapper;
@@ -51,28 +48,13 @@ public class DownloadServiceImpl implements DownloadService {
             throw new BusinessException(ErrorCode.MATERIAL_OFFLINE);
         }
 
-        User user = userService.getProfile(userId);
-        boolean alreadyDownloaded = downloadMapper.selectCount(
-                new LambdaQueryWrapper<Download>()
-                        .eq(Download::getUserId, userId)
-                        .eq(Download::getMaterialId, materialId)
-        ) > 0;
-
-        int downloadCount = user.getDownloadCount() == null ? 0 : user.getDownloadCount();
-        if (!user.isPremium() && !alreadyDownloaded && downloadCount >= FREE_DOWNLOAD_LIMIT) {
-            throw new BusinessException(ErrorCode.DOWNLOAD_FREE_LIMIT_EXCEEDED);
-        }
-
         // 记录下载（使用唯一索引防止重复）
-        boolean createdDownload = false;
         try {
             Download download = new Download();
             download.setUserId(userId);
             download.setMaterialId(materialId);
             download.setDownloadedAt(LocalDateTime.now());
             downloadMapper.insert(download);
-            createdDownload = true;
-
             // 增加下载次数
             int materialDownloadCount = material.getDownloadCount() == null ? 0 : material.getDownloadCount();
             material.setDownloadCount(materialDownloadCount + 1);
@@ -81,21 +63,25 @@ public class DownloadServiceImpl implements DownloadService {
             // 增加用户下载次数
             userService.incrementDownloadCount(userId);
 
-        } catch (Exception e) {
+        } catch (org.springframework.dao.DuplicateKeyException e) {
             // 唯一索引冲突，说明已下载过
             log.warn("用户已下载过此素材: userId={}, materialId={}", userId, materialId);
         }
 
         Map<String, Object> result = new HashMap<>();
         result.put("url", material.getImageUrl());
-        result.put("filename", material.getTitle() + ".png");
+        boolean gif = "animated_gif".equals(material.getMediaType());
+        result.put("filename", material.getTitle() + (gif ? ".gif" : extensionFor(material.getMimeType())));
+        result.put("mimeType", gif ? "image/gif" : material.getMimeType());
         result.put("materialId", materialId);
         result.put("message", "下载成功");
-        result.put("freeDownloadLimit", FREE_DOWNLOAD_LIMIT);
-        result.put("freeDownloadUsed", createdDownload ? downloadCount + 1 : downloadCount);
-        result.put("freeDownloadRemaining", user.isPremium() ? null : Math.max(0, FREE_DOWNLOAD_LIMIT - (createdDownload ? downloadCount + 1 : downloadCount)));
-
         return result;
+    }
+
+    private String extensionFor(String mimeType) {
+        if ("image/jpeg".equalsIgnoreCase(mimeType)) return ".jpg";
+        if ("image/webp".equalsIgnoreCase(mimeType)) return ".webp";
+        return ".png";
     }
 
     @Override

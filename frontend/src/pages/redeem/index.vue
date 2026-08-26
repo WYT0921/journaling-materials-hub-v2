@@ -1,7 +1,7 @@
 <template>
   <view class="page-redeem">
     <!-- 毛玻璃导航栏 -->
-    <GlassNavBar title="兑换会员" :show-back="true" />
+    <GlassNavBar title="输入通行码" :show-back="true" />
 
     <view class="redeem-content">
       <!-- 票据 icon -->
@@ -9,8 +9,8 @@
         <text class="redeem-icon-ticket">🎫</text>
       </view>
 
-      <text class="redeem-title">输入兑换码</text>
-      <text class="redeem-subtitle">输入你的兑换码，激活会员权益</text>
+      <text class="redeem-title">输入通行码</text>
+      <text class="redeem-subtitle">输入通行码，激活素材使用权限</text>
 
       <!-- 输入框 -->
       <view class="input-wrapper" :class="{ 'input-focused': isFocused }">
@@ -34,7 +34,7 @@
       <!-- 校验错误 -->
       <text v-if="errorMsg" class="input-error">{{ errorMsg }}</text>
 
-      <!-- 兑换按钮 -->
+      <!-- 激活按钮 -->
       <button
         class="redeem-btn"
         :class="{ 'btn-loading': isSubmitting }"
@@ -42,10 +42,10 @@
         @tap="handleRedeem"
       >
         <text v-if="isSubmitting" class="btn-loading-icon">⟳</text>
-        <text class="btn-text">{{ isSubmitting ? '验证中...' : '立即兑换' }}</text>
+        <text class="btn-text">{{ isSubmitting ? '验证中...' : '立即激活' }}</text>
       </button>
 
-      <text class="redeem-note">区分大小写，支持字母数字组合</text>
+      <text class="redeem-note">支持字母数字组合</text>
     </view>
   </view>
 </template>
@@ -80,11 +80,11 @@ function handleClear() {
   errorMsg.value = ''
 }
 
-// 提交兑换
+// 提交通行码
 async function handleRedeem() {
   const code = codeDisplay.value.replace(/-/g, '')
   if (code.length < 8) {
-    errorMsg.value = '兑换码格式不正确，请检查后重试'
+    errorMsg.value = '通行码格式不正确，请检查后重试'
     return
   }
 
@@ -93,7 +93,7 @@ async function handleRedeem() {
 
   try {
     const result = await activatePremium(code)
-    // 兑换成功 -> 更新 token 和状态 -> 跳转结果页
+    // 激活成功 -> 更新 token 和状态 -> 跳转结果页
     if (result.token) {
       uni.setStorageSync('token', result.token)
     }
@@ -104,9 +104,9 @@ async function handleRedeem() {
       url: `/pages/redeem/result?status=success&code=${code}&expire=${result.expireTime || ''}`
     })
   } catch (err) {
-    // 兑换失败 -> 跳转结果页
+    // 激活失败 -> 跳转结果页
     uni.redirectTo({
-      url: `/pages/redeem/result?status=fail&reason=${encodeURIComponent(err.message || '兑换失败')}`
+      url: `/pages/redeem/result?status=fail&reason=${encodeURIComponent(err.message || '激活失败')}`
     })
   } finally {
     isSubmitting.value = false
@@ -205,7 +205,7 @@ async function handleRedeem() {
   margin-bottom: 24rpx;
 }
 
-/* 兑换按钮 */
+/* 激活按钮 */
 .redeem-btn {
   width: 100%;
   height: 88rpx;

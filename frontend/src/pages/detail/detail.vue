@@ -22,18 +22,17 @@
           mode="widthFix"
           @tap="handleImagePreview"
         />
+        <view v-if="material.mediaType === 'animated_gif'" class="dynamic-corner-badge"><text>GIF</text></view>
 
-        <!-- VIP 角标 -->
-        <view v-if="material.isPremium" class="vip-corner-badge">
-          <text class="vip-corner-text">👑 会员素材</text>
-        </view>
       </view>
 
       <!-- 信息区域 -->
       <view class="info-section">
         <!-- 分类标签 -->
         <view class="info-tags">
-          <text class="info-category">{{ material.category }}</text>
+          <text class="info-category info-type">{{ getMaterialTypeLabel(material.materialType) }}</text>
+          <text v-if="material.mediaType === 'animated_gif'" class="info-category info-type">GIF</text>
+          <text v-for="category in materialCategories" :key="category" class="info-category">{{ category }}</text>
         </view>
 
         <!-- 标题 -->
@@ -62,12 +61,20 @@
           <text class="favorite-action-text">{{ isFavorited ? '已收藏' : '收藏' }}</text>
         </button>
 
+        <button
+          v-if="false"
+          class="collage-action"
+        >
+          <text class="collage-action-icon">✦</text>
+          <text class="collage-action-text">自由拼贴</text>
+        </button>
+
         <!-- 描述 -->
         <text v-if="material.description" class="material-desc">{{ material.description }}</text>
 
         <!-- 标签 -->
-        <view v-if="material.tags && material.tags.length" class="tags-wrapper">
-          <view v-for="(tag, index) in material.tags" :key="index" class="tag-item">
+        <view v-if="displayTags.length" class="tags-wrapper">
+          <view v-for="(tag, index) in displayTags" :key="index" class="tag-item">
             <text class="tag-text">{{ tag }}</text>
           </view>
         </view>
@@ -104,72 +111,82 @@
 
     <!-- 底部 CTA 栏（毛玻璃） -->
     <view v-if="material" class="cta-bar safe-area-bottom">
-      <!-- 非会员：双按钮 — 5 次免费额度内可下载 -->
-      <view v-if="!userStore.isPremium" class="cta-row">
-        <button class="cta-btn cta-outline" @tap="handlePreview">
-          <text class="cta-outline-text">👁 预览</text>
-        </button>
-        <button class="cta-btn cta-primary" @tap="handleDownload">
-          <text class="cta-primary-text">下载素材</text>
-        </button>
-      </view>
-      <!-- 会员：单按钮 -->
-      <view v-else class="cta-row">
+      <view class="cta-row">
         <button class="cta-btn cta-primary-full" @tap="handleDownload">
-          <text class="cta-primary-text">下载素材</text>
+          <text class="cta-primary-text">免费下载素材</text>
         </button>
       </view>
     </view>
-
-    <!-- Unlock Premium 半屏弹窗 -->
-    <BottomSheet
-      v-model:visible="showUnlockSheet"
-      title="解锁会员"
-    >
-      <view class="unlock-content">
-        <view class="unlock-icon-wrapper">
-          <text class="unlock-crown">👑</text>
-        </view>
-        <text class="unlock-desc">免费 5 次下载额度已用完，兑换会员码后即可继续下载高清无水印原图</text>
-      </view>
-      <template #footer>
-        <view class="unlock-footer">
-          <button class="unlock-btn-primary" @tap="handleGoRedeem">
-            <text class="unlock-btn-text">兑换会员码</text>
-          </button>
-          <button class="unlock-btn-customer" @tap="handleContactService">
-            <text class="unlock-customer-text">联系客服</text>
-          </button>
-          <button class="unlock-btn-cancel" @tap="showUnlockSheet = false">
-            <text class="unlock-cancel-text">取消</text>
-          </button>
-        </view>
-      </template>
-    </BottomSheet>
   </view>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { useUserStore } from '../../stores/user'
+import { useCollageStore } from '../../stores/collage'
 import { getMaterialDetail, getMaterials } from '../../api/material'
 import { downloadMaterial } from '../../api/download'
 import { toggleFavorite, checkFavorite } from '../../api/favorite'
 import { requireLogin } from '../../utils/auth'
+import { prepareDownloadedImage } from '../../utils/downloaded-image.mjs'
 import GlassNavBar from '../../components/GlassNavBar.vue'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
 import EmptyState from '../../components/EmptyState.vue'
-import BottomSheet from '../../components/BottomSheet.vue'
 
 const userStore = useUserStore()
+const collageStore = useCollageStore()
 
 const materialId = ref(null)
 const material = ref(null)
+const materialCategories = computed(() => material.value?.categories?.length
+  ? material.value.categories
+  : (material.value?.category ? [material.value.category] : []))
 const isLoading = ref(true)
-const showUnlockSheet = ref(false)
 const isFavorited = ref(false)
 const relatedMaterials = ref([])
+let detailRequestVersion = 0
+
+const TECHNICAL_TAG_PREFIXES = ['json:', 'seed:', 'canvas:', 'pos:', 'size:', 'rot:', 'output:']
+
+const getMaterialTypeLabel = (materialType) => {
+  return materialType === 'bundle' ? '合并素材' : '单个素材'
+}
+
+const normalizeTags = (tags) => {
+  if (Array.isArray(tags)) {
+    return tags
+  }
+
+  if (typeof tags !== 'string') {
+    return []
+  }
+
+  const trimmed = tags.trim()
+  if (!trimmed) {
+    return []
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return [trimmed]
+  }
+}
+
+const displayTags = computed(() => {
+  const hiddenTags = new Set([
+    material.value?.category,
+    getMaterialTypeLabel(material.value?.materialType)
+  ])
+
+  return normalizeTags(material.value?.tags)
+    .map(tag => String(tag).trim())
+    .filter(tag => tag && !hiddenTags.has(tag))
+    .filter(tag => !TECHNICAL_TAG_PREFIXES.some(prefix => tag.startsWith(prefix)))
+    .filter((tag, index, list) => list.indexOf(tag) === index)
+})
 
 // 页面加载
 onLoad((options) => {
@@ -179,27 +196,33 @@ onLoad((options) => {
   }
 })
 
-// 加载素材详情
+// 加载素材详情（带版本号防止快速切换时旧响应覆盖新数据）
 const loadMaterialDetail = async () => {
+  const version = ++detailRequestVersion
   try {
     isLoading.value = true
     const result = await getMaterialDetail(materialId.value)
+    if (version !== detailRequestVersion) return
     material.value = result
     // 加载相关推荐
-    loadRelatedMaterials()
+    loadRelatedMaterials(version)
     // 检查收藏状态
-    checkFavoriteStatus()
+    checkFavoriteStatus(version)
   } catch (error) {
+    if (version !== detailRequestVersion) return
     console.error('加载素材详情失败:', error)
   } finally {
-    isLoading.value = false
+    if (version === detailRequestVersion) {
+      isLoading.value = false
+    }
   }
 }
 
 // 检查收藏状态
-const checkFavoriteStatus = async () => {
+const checkFavoriteStatus = async (version = 0) => {
   try {
     const result = await checkFavorite(materialId.value)
+    if (version && version !== detailRequestVersion) return
     isFavorited.value = result.isFavorited
   } catch {
     // 未登录或请求失败，忽略
@@ -226,28 +249,34 @@ const handleToggleFavorite = async () => {
 // 图片预览 — 所有用户均可查看大图
 const handleImagePreview = () => {
   if (!material.value) return
+  if (material.value.mediaType === 'animated_gif') return
   uni.previewImage({
     urls: [material.value.imageUrl],
     current: material.value.imageUrl
   })
 }
 
-// 预览按钮
-const handlePreview = () => {
-  handleImagePreview()
+const openCollage = () => {
+  collageStore.setPendingMaterialId(materialId.value)
+  uni.navigateTo({ url: '/pages/collage/index' })
 }
 
-// 解锁下载
-const handleUnlock = () => {
-  if (!requireLogin()) return
-  showUnlockSheet.value = true
+const handleCollage = () => {
+  if (!material.value || material.value.materialType !== 'single') return
+  if (!requireLogin(openCollage)) return
+  openCollage()
 }
 
 // 加载相关推荐
-const loadRelatedMaterials = async () => {
+const loadRelatedMaterials = async (version = 0) => {
   if (!material.value?.category) return
   try {
-    const result = await getMaterials({ category: material.value.category, limit: 10, page: 1 })
+    const params = { category: material.value.category, limit: 10, page: 1 }
+    if (material.value.materialType) {
+      params.materialType = material.value.materialType
+    }
+    const result = await getMaterials(params)
+    if (version && version !== detailRequestVersion) return
     const items = (result.list || []).filter(item => String(item.id) !== String(materialId.value))
     relatedMaterials.value = items.slice(0, 6)
   } catch (error) {
@@ -258,18 +287,6 @@ const loadRelatedMaterials = async () => {
 // 跳转到其他素材详情
 const goToDetail = (id) => {
   uni.navigateTo({ url: `/pages/detail/detail?id=${id}` })
-}
-
-// 跳转兑换页
-const handleGoRedeem = () => {
-  showUnlockSheet.value = false
-  uni.navigateTo({ url: '/pages/redeem/index' })
-}
-
-// 联系客服
-const handleContactService = () => {
-  showUnlockSheet.value = false
-  uni.showToast({ title: '客服功能开发中', icon: 'none' })
 }
 
 // 下载素材
@@ -288,31 +305,40 @@ const handleDownload = async () => {
     })
 
     if (downloadRes.statusCode === 200) {
-      await new Promise((resolve, reject) => {
-        uni.saveImageToPhotosAlbum({
-          filePath: downloadRes.tempFilePath,
-          success: () => resolve(),
-          fail: (err) => reject(err)
+      let preparedImage
+      try {
+        preparedImage = await prepareDownloadedImage(
+          downloadRes.tempFilePath,
+          result.filename,
+          result.mimeType
+        )
+        await new Promise((resolve, reject) => {
+          uni.saveImageToPhotosAlbum({ filePath: preparedImage.filePath, success: resolve, fail: reject })
         })
-      })
+      } catch (saveError) {
+        if (material.value?.mediaType !== 'animated_gif') throw saveError
+        const choice = await new Promise(resolve => uni.showModal({
+          title: '当前微信无法保存动图',
+          content: '可以复制原始 GIF 下载链接，在浏览器中保存。',
+          confirmText: '复制链接',
+          success: res => resolve(res.confirm)
+        }))
+        if (choice) uni.setClipboardData({ data: result.url })
+        return
+      } finally {
+        preparedImage?.cleanup()
+      }
       // 黑底白字 Toast
       uni.showToast({
         title: '已保存至相册',
         icon: 'none',
         duration: 2000
       })
-      if (!userStore.isPremium) {
-        userStore.refreshProfile()
-      }
     } else {
       throw new Error('下载失败')
     }
   } catch (error) {
     console.error('下载失败:', error)
-    if (error.code === 4004) {
-      showUnlockSheet.value = true
-      return
-    }
     uni.showToast({
       title: error.message || '下载失败，请重试',
       icon: 'none'
@@ -347,22 +373,7 @@ const handleShare = () => {
   display: block;
 }
 
-/* VIP 专属角标（左上角黑底白字） */
-.vip-corner-badge {
-  position: absolute;
-  top: 24rpx;
-  left: 24rpx;
-  background: #000;
-  padding: 6rpx 18rpx;
-  border-radius: 6rpx;
-  z-index: 2;
-}
-
-.vip-corner-text {
-  font-size: 22rpx;
-  color: #fff;
-  font-weight: 600;
-}
+.dynamic-corner-badge { position:absolute; right:24rpx; top:24rpx; z-index:2; padding:6rpx 18rpx; border-radius:999rpx; background:rgba(0,0,0,.78); color:#fff; font-size:22rpx; }
 
 /* ===== 信息区域 ===== */
 .info-section {
@@ -384,6 +395,11 @@ const handleShare = () => {
   padding: 4rpx 14rpx;
   border-radius: 6rpx;
   border: 1rpx solid #eee;
+}
+
+.info-type {
+  color: #333;
+  border-color: #ddd;
 }
 
 .material-title {
@@ -577,6 +593,7 @@ const handleShare = () => {
 .cta-row {
   display: flex;
   gap: 20rpx;
+  flex-wrap: wrap;
 }
 
 .cta-btn {
@@ -624,113 +641,6 @@ const handleShare = () => {
   font-weight: 500;
 }
 
-/* ===== Unlock Premium 弹窗 ===== */
-.unlock-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 32rpx 0;
-  gap: 20rpx;
-}
-
-.unlock-icon-wrapper {
-  width: 88rpx;
-  height: 88rpx;
-  border-radius: 50%;
-  background: #000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.unlock-crown {
-  font-size: 44rpx;
-  color: #fff;
-}
-
-.unlock-desc {
-  font-size: 26rpx;
-  color: #666;
-  text-align: center;
-  line-height: 1.5;
-  padding: 0 20rpx;
-}
-
-.unlock-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-  padding: 8rpx 0;
-}
-
-.unlock-btn-primary {
-  height: 88rpx;
-  background: #000;
-  border-radius: 100rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  padding: 0;
-  margin: 0;
-  line-height: 88rpx;
-}
-
-.unlock-btn-primary::after {
-  border: none;
-}
-
-.unlock-btn-text {
-  font-size: 30rpx;
-  color: #fff;
-  font-weight: 500;
-}
-
-.unlock-btn-cancel {
-  height: 72rpx;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  padding: 0;
-  margin: 0;
-  line-height: 72rpx;
-}
-
-.unlock-btn-cancel::after {
-  border: none;
-}
-
-.unlock-cancel-text {
-  font-size: 28rpx;
-  color: #999;
-}
-
-/* 联系客服按钮 */
-.unlock-btn-customer {
-  height: 88rpx;
-  background: #fff;
-  border: 1px solid #000;
-  border-radius: 100rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  margin: 0;
-  line-height: 88rpx;
-}
-
-.unlock-btn-customer::after {
-  border: none;
-}
-
-.unlock-customer-text {
-  font-size: 28rpx;
-  color: #000;
-  font-weight: 500;
-}
-
 /* ===== 导航栏操作按钮 ===== */
 .nav-action {
   width: 56rpx;
@@ -745,4 +655,21 @@ const handleShare = () => {
   color: #333;
   font-weight: 700;
 }
+
+.collage-action {
+  width: 100%;
+  height: 84rpx;
+  margin: 20rpx 0 0;
+  border: 1rpx solid #111;
+  border-radius: 42rpx;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+}
+
+.collage-action::after { border: none; }
+.collage-action-icon { color: #111; font-size: 30rpx; }
+.collage-action-text { color: #111; font-size: 28rpx; font-weight: 600; }
 </style>

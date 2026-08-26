@@ -1,95 +1,133 @@
 <template>
-  <view class="page-tools">
-    <GlassNavBar title="工具" />
+  <view class="tools-page">
+    <PageBackground />
+    <GlassNavBar title="工具箱" />
 
     <scroll-view class="tools-scroll" scroll-y>
-      <view class="tools-header">
-        <text class="tools-title">创作工具箱</text>
-        <text class="tools-subtitle">精选设计工具，提升创作效率 · 点击复制链接即用</text>
+      <view class="hero-section">
+        <text class="eyebrow">CREATIVE TOOLBOX</text>
+        <text class="page-title">创作工具箱</text>
+        <text class="page-subtitle">把灵感变成作品，更多自研工具会陆续加入</text>
       </view>
 
-      <scroll-view class="category-scroll" scroll-x enable-flex show-scrollbar="false">
-        <view class="category-list">
-          <view
-            v-for="category in toolCategories"
-            :key="category.value"
-            class="category-item"
-            :class="{ active: activeCategory === category.value }"
-            @tap="activeCategory = category.value"
-          >
-            <text class="category-text">{{ category.label }}</text>
-          </view>
-        </view>
-      </scroll-view>
+      <view class="section-heading">
+        <text class="section-title">全部工具</text>
+        <text class="section-count">{{ tools.length }} 项</text>
+      </view>
 
       <view class="tool-grid">
-        <ToolCard
-          v-for="tool in filteredTools"
+        <view
+          v-for="tool in tools"
           :key="tool.id"
-          :tool="tool"
-          @copy="handleCopyLink"
-        />
+          class="tool-card"
+          :class="`tool-card--${tool.theme}`"
+          hover-class="tool-card--active"
+          hover-stay-time="80"
+          @tap="openTool(tool)"
+        >
+          <view class="tool-card-top">
+            <view class="tool-icon">
+              <text class="tool-icon-text">{{ tool.icon }}</text>
+            </view>
+            <text class="tool-arrow">↗</text>
+          </view>
+          <view class="tool-card-content">
+            <text class="tool-name">{{ tool.name }}</text>
+            <text class="tool-description">{{ tool.description }}</text>
+          </view>
+          <text class="tool-tag">{{ tool.tag }}</text>
+        </view>
       </view>
 
-      <view v-if="filteredTools.length === 0" class="empty-tools">
-        <text class="empty-title">暂无工具</text>
-        <text class="empty-desc">切换其他分类看看</text>
+      <view class="coming-soon">
+        <text class="coming-symbol">＋</text>
+        <view>
+          <text class="coming-title">更多工具，正在制作</text>
+          <text class="coming-description">这里仅收录站内自研功能</text>
+        </view>
       </view>
     </scroll-view>
 
-    <CustomToast ref="toastRef" />
-    <CustomTabBar :current="1" />
+    <CustomTabBar :current="0" />
   </view>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { useToolsStore } from '../../stores/tools'
+import { onMounted } from 'vue'
+import { onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
 import GlassNavBar from '../../components/GlassNavBar.vue'
-import ToolCard from '../../components/ToolCard.vue'
-import CustomToast from '../../components/CustomToast.vue'
 import CustomTabBar from '../../components/CustomTabBar.vue'
+import PageBackground from '../../components/PageBackground.vue'
+import { buildShareAppMessage, buildShareTimeline, showToolShareMenu } from '../../utils/tool-share'
 
-const toolsStore = useToolsStore()
-const toastRef = ref(null)
-const activeCategory = ref('')
+onMounted(showToolShareMenu)
+onShareAppMessage(() => buildShareAppMessage('toolbox'))
+onShareTimeline(() => buildShareTimeline('toolbox'))
 
-const toolCategories = computed(() => {
-  const cats = [{ label: '全部', value: '' }]
-  toolsStore.categories.forEach((c) => {
-    cats.push({ label: c.name, value: c.name })
-  })
-  return cats
-})
+const tools = [
+  {
+    id: 'fonts',
+    name: '特殊字体',
+    description: '输入文字，生成 70 种可复制的 Unicode 特殊字形',
+    tag: '文字灵感',
+    icon: 'Aa',
+    theme: 'type',
+    route: '/pages/tools/fonts'
+  },
+  {
+    id: 'text-assets',
+    name: '颜文字 / Emoji',
+    description: '发现可爱的颜文字与 Emoji 组合，点击即可复制',
+    tag: '表达素材',
+    icon: '☺',
+    theme: 'emoji',
+    route: '/pages/tools/text-assets'
+  },
+  {
+    id: 'text-decoration',
+    name: '文字装饰',
+    description: '用 100+ 款爱心、星星、花草与边框模板装饰文字',
+    tag: '排版灵感',
+    icon: '୨୧',
+    theme: 'decor',
+    route: '/pages/tools/text-decoration'
+  },
+  /*
+  {
+    id: 'collage',
+    name: '自由拼贴',
+    description: '挑选喜欢的素材，自由组合并导出高清拼贴作品',
+    tag: '图片创作',
+    icon: '✦',
+    theme: 'collage',
+    route: '/pages/collage/index'
+  },
+  */
+  {
+    id: 'dot-art',
+    name: '图片转 Dot Art',
+    description: '把照片转换为可复制的 Braille 点阵或 ASCII 字符画',
+    tag: '图像实验',
+    icon: '⠿',
+    theme: 'dot',
+    route: '/pages/tools/dot-art'
+  }
+]
 
-const filteredTools = computed(() => {
-  if (!activeCategory.value) return toolsStore.allTools
-  return toolsStore.allTools.filter((tool) => tool.category === activeCategory.value)
-})
-
-onMounted(() => {
-  toolsStore.fetchTools()
-  toolsStore.fetchCategories()
-})
-
-function handleCopyLink(tool) {
-  uni.setClipboardData({
-    data: tool.url,
-    success: () => {
-      toastRef.value?.showToast('链接已复制', 'check')
-    },
-    fail: () => {
-      toastRef.value?.showToast('复制失败，请重试', 'error')
-    }
-  })
+function openTool(tool) {
+  uni.navigateTo({ url: tool.route })
 }
 </script>
 
 <style lang="scss" scoped>
-.page-tools {
+.tools-page {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  position: relative;
+  z-index: 0;
+  color: #3f4d50;
+  background: transparent;
 }
 
 .tools-scroll {
@@ -97,87 +135,212 @@ function handleCopyLink(tool) {
   height: 0;
 }
 
-.tools-header {
-  padding: 24rpx 28rpx 12rpx;
+.hero-section {
+  padding: 48rpx 32rpx 44rpx;
 }
 
-.tools-title {
-  font-size: 36rpx;
-  font-weight: 700;
-  color: #111;
+.eyebrow {
   display: block;
-  line-height: 1.25;
+  color: #6f766f;
+  font-size: 19rpx;
+  font-weight: 600;
+  letter-spacing: 5rpx;
 }
 
-.tools-subtitle {
-  font-size: 24rpx;
-  color: #666;
-  margin-top: 8rpx;
+.page-title {
   display: block;
-  line-height: 1.35;
-}
-
-.category-scroll {
-  white-space: nowrap;
-}
-
-.category-list {
-  display: inline-flex;
-  gap: 14rpx;
-  padding: 12rpx 24rpx 18rpx;
-}
-
-.category-item {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10rpx 24rpx;
-  border-radius: 32rpx;
-  border: 1rpx solid #eeeeee;
-  background: rgba(255, 255, 255, 0.65);
-  white-space: nowrap;
-  transition: background 0.15s, border-color 0.15s;
-
-  &.active {
-    background: #000;
-    border-color: #000;
-
-    .category-text {
-      color: #fff;
-    }
-  }
-}
-
-.category-text {
-  font-size: 24rpx;
-  color: #555;
+  margin-top: 14rpx;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 56rpx;
+  font-weight: 500;
   line-height: 1.2;
+}
+
+.page-subtitle {
+  display: block;
+  max-width: 580rpx;
+  margin-top: 14rpx;
+  color: #606963;
+  font-size: 24rpx;
+  line-height: 1.6;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28rpx 20rpx;
+}
+
+.section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.section-count {
+  color: #6f766f;
+  font-size: 21rpx;
 }
 
 .tool-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16rpx;
-  padding: 0 24rpx 24rpx;
-  box-sizing: border-box;
+  gap: 18rpx;
+  padding: 0 24rpx;
 }
 
-.empty-tools {
+.tool-card {
+  position: relative;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+  min-height: 390rpx;
+  padding: 24rpx;
+  overflow: hidden;
+  border: 1rpx solid rgba(201, 178, 151, 0.34);
+  border-radius: 24rpx;
+  box-shadow: 0 8rpx 20rpx rgba(111, 139, 104, 0.05);
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.tool-card--type {
+  border-color: rgba(201, 178, 151, 0.38);
+  background: #fff9e9;
+}
+
+.tool-card--emoji {
+  border-color: rgba(233, 172, 187, 0.46);
+  background: #fbecef;
+}
+
+.tool-card--collage {
+  border-color: rgba(143, 188, 147, 0.48);
+  background: #eaf5eb;
+}
+
+.tool-card--dot {
+  border-color: rgba(201, 178, 151, 0.42);
+  background: #f1f5e8;
+}
+
+.tool-card--decor {
+  border-color: rgba(178, 156, 207, 0.42);
+  background: #f5eef9;
+}
+
+.tool-card--active {
+  opacity: 0.86;
+  transform: scale(0.985);
+}
+
+.tool-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.tool-icon {
+  display: flex;
   align-items: center;
-  padding: 96rpx 24rpx;
+  justify-content: center;
+  width: 82rpx;
+  height: 82rpx;
+  border: 1rpx solid rgba(143, 188, 147, 0.3);
+  border-radius: 50%;
+  background: rgba(238, 239, 232, 0.78);
 }
 
-.empty-title {
+.tool-icon-text {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 31rpx;
+  font-style: italic;
+}
+
+.tool-arrow {
+  color: rgba(63, 77, 80, 0.72);
   font-size: 30rpx;
-  font-weight: 600;
-  color: #333;
 }
 
-.empty-desc {
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  color: #999;
+.tool-card-content {
+  flex: 1;
+  padding-top: 50rpx;
+}
+
+.tool-name {
+  display: block;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 36rpx;
+  font-weight: 600;
+}
+
+.tool-description {
+  display: block;
+  margin-top: 16rpx;
+  color: #59696b;
+  font-size: 21rpx;
+  line-height: 1.55;
+}
+
+.tool-tag {
+  align-self: flex-start;
+  padding-top: 18rpx;
+  border-top: 1rpx solid rgba(63, 77, 80, 0.13);
+  color: #607477;
+  font-size: 18rpx;
+  letter-spacing: 2rpx;
+}
+
+.tool-card--type .tool-tag {
+  color: #8f7659;
+}
+
+.tool-card--emoji .tool-tag {
+  color: #a66f7d;
+}
+
+.tool-card--collage .tool-tag {
+  color: #5f8564;
+}
+
+.tool-card--dot .tool-tag {
+  color: #70805d;
+}
+
+.tool-card--decor .tool-tag {
+  color: #806d95;
+}
+
+.coming-soon {
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
+  margin: 26rpx 24rpx 52rpx;
+  padding: 26rpx 28rpx;
+  border: 1rpx dashed #a9c9c9;
+  border-radius: 20rpx;
+  background: rgba(238, 239, 232, 0.72);
+}
+
+.coming-symbol {
+  color: #6f9293;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 48rpx;
+  font-weight: 300;
+}
+
+.coming-title,
+.coming-description {
+  display: block;
+}
+
+.coming-title {
+  font-size: 23rpx;
+  font-weight: 600;
+}
+
+.coming-description {
+  margin-top: 6rpx;
+  color: #6f766f;
+  font-size: 20rpx;
 }
 </style>

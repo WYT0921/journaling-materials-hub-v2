@@ -20,7 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 兑换码服务实现
+ * Redeem code service.
  */
 @Slf4j
 @Service
@@ -37,11 +37,7 @@ public class RedeemCodeServiceImpl implements RedeemCodeService {
 
     @Override
     public Map<String, Object> verifyCode(String code) {
-        RedeemCode redeemCode = redeemCodeMapper.selectOne(
-                new LambdaQueryWrapper<RedeemCode>()
-                        .eq(RedeemCode::getCode, code)
-        );
-
+        RedeemCode redeemCode = findByCode(code);
         Map<String, Object> result = new HashMap<>();
 
         if (redeemCode == null) {
@@ -56,6 +52,18 @@ public class RedeemCodeServiceImpl implements RedeemCodeService {
             return result;
         }
 
+        if (redeemCode.getStatus() == 2) {
+            result.put("valid", false);
+            result.put("message", "兑换码已作废");
+            return result;
+        }
+
+        if (isExpired(redeemCode)) {
+            result.put("valid", false);
+            result.put("message", "兑换码已过期");
+            return result;
+        }
+
         result.put("valid", true);
         result.put("type", redeemCode.getType());
         result.put("message", "兑换码有效");
@@ -65,11 +73,7 @@ public class RedeemCodeServiceImpl implements RedeemCodeService {
     @Override
     @Transactional
     public Map<String, Object> activate(Long userId, String code) {
-        // 查找兑换码
-        RedeemCode redeemCode = redeemCodeMapper.selectOne(
-                new LambdaQueryWrapper<RedeemCode>()
-                        .eq(RedeemCode::getCode, code)
-        );
+        RedeemCode redeemCode = findByCode(code);
 
         if (redeemCode == null) {
             throw new BusinessException(ErrorCode.REDEEM_CODE_NOT_FOUND);
@@ -79,47 +83,68 @@ public class RedeemCodeServiceImpl implements RedeemCodeService {
             throw new BusinessException(ErrorCode.REDEEM_CODE_USED);
         }
 
-        // 获取会员类型和时长
-        String type = redeemCode.getType();
-        int durationDays;
-        switch (type) {
-            case "monthly":
-                durationDays = 30;
-                break;
-            case "yearly":
-                durationDays = 365;
-                break;
-            case "permanent":
-                durationDays = 0; // 永久
-                break;
-            default:
-                throw new BusinessException(ErrorCode.REDEEM_CODE_INVALID);
+        if (redeemCode.getStatus() == 2) {
+            throw new BusinessException(ErrorCode.REDEEM_CODE_INVALID, "兑换码已作废");
         }
 
-        // 激活会员
+        if (isExpired(redeemCode)) {
+            throw new BusinessException(ErrorCode.REDEEM_CODE_EXPIRED);
+        }
+
+        String type = redeemCode.getType();
+        int durationDays = switch (type) {
+            case "monthly" -> 30;
+            case "yearly" -> 365;
+            case "permanent" -> 0;
+            default -> throw new BusinessException(ErrorCode.REDEEM_CODE_INVALID);
+        };
+
         User user = userService.activatePremium(userId, type, durationDays);
 
-        // 更新兑换码状态
-        redeemCode.setStatus(1);
-        redeemCode.setUserId(userId);
-        redeemCode.setUsedTime(LocalDateTime.now());
-        redeemCodeMapper.updateById(redeemCode);
+        // 使用乐观锁防止并发重复使用：仅当 status=0 时才更新
+        int updated = redeemCodeMapper.update(null,
+                new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<RedeemCode>()
+                        .eq(RedeemCode::getId, redeemCode.getId())
+                        .eq(RedeemCode::getStatus, 0)
+                        .set(RedeemCode::getStatus, 1)
+                        .set(RedeemCode::getUserId, userId)
+                        .set(RedeemCode::getUsedTime, LocalDateTime.now()));
+        if (updated == 0) {
+            throw new BusinessException(ErrorCode.REDEEM_CODE_USED);
+        }
 
-        // 生成新 Token（包含更新后的会员状态）
         String token = jwtUtil.generateToken(user.getId(), user.getOpenid(), user.isPremium());
 
-        log.info("兑换码激活成功: userId={}, code={}, type={}", userId, code, type);
+        log.info("兑换码激活成功: userId={}, code={}, type={}", userId, redeemCode.getCode(), type);
 
-        // 构建响应
         Map<String, Object> result = new HashMap<>();
         result.put("token", token);
         result.put("userInfo", LoginResponse.UserInfo.fromUser(user));
         result.put("isPremium", user.isPremium());
         result.put("memberType", user.getMemberType());
         result.put("memberExpireTime",
-                user.getMemberExpireTime() != null ?
-                        user.getMemberExpireTime().toString() : null);
+                user.getMemberExpireTime() != null ? user.getMemberExpireTime().toString() : null);
 
         return result;
+    }
+
+    private RedeemCode findByCode(String code) {
+        return redeemCodeMapper.selectOne(new LambdaQueryWrapper<RedeemCode>()
+                .eq(RedeemCode::getCode, normalizeCode(code)));
+    }
+
+    private String normalizeCode(String code) {
+        if (code == null) {
+            return "";
+        }
+        String raw = code.replace("-", "").replaceAll("\\s+", "").toUpperCase();
+        if (raw.length() == 12) {
+            return raw.substring(0, 4) + "-" + raw.substring(4, 8) + "-" + raw.substring(8);
+        }
+        return code.trim().toUpperCase();
+    }
+
+    private boolean isExpired(RedeemCode redeemCode) {
+        return redeemCode.getExpireTime() != null && redeemCode.getExpireTime().isBefore(LocalDateTime.now());
     }
 }

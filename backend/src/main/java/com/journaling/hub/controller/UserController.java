@@ -8,11 +8,15 @@ import com.journaling.hub.dto.UserProfileUpdateRequest;
 import com.journaling.hub.entity.User;
 import com.journaling.hub.service.FileService;
 import com.journaling.hub.service.UserService;
+import com.journaling.hub.service.WeChatContentSecurityService;
+import com.journaling.hub.common.BusinessException;
+import com.journaling.hub.common.ErrorCode;
 import com.journaling.hub.util.JwtUtil;
 import com.journaling.hub.util.WeChatUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Profile;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -40,6 +44,9 @@ public class UserController {
 
     @Autowired
     private FileService fileService;
+
+    @Autowired
+    private WeChatContentSecurityService contentSecurityService;
 
     /**
      * 微信登录
@@ -86,6 +93,12 @@ public class UserController {
     public Result<?> updateProfile(HttpServletRequest request,
                                    @RequestBody UserProfileUpdateRequest updateRequest) {
         Long userId = (Long) request.getAttribute("userId");
+        User currentUser = userService.getProfile(userId);
+        contentSecurityService.checkProfileText(updateRequest.getNickname(), currentUser.getOpenid());
+        if (updateRequest.getAvatarUrl() != null
+                && !updateRequest.getAvatarUrl().equals(currentUser.getAvatarUrl())) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "头像必须通过头像上传接口发布");
+        }
         User user = userService.updateProfile(
                 userId,
                 updateRequest.getNickname(),
@@ -112,6 +125,8 @@ public class UserController {
             return Result.error("仅支持上传图片文件", 400);
         }
 
+        contentSecurityService.checkAvatar(file);
+
         String ext = getImageExtension(file.getOriginalFilename(), contentType);
         String objectName = String.format(
                 "users/avatar/%d/%s.%s",
@@ -120,6 +135,7 @@ public class UserController {
                 ext
         );
         String avatarUrl = fileService.upload(file, objectName);
+        userService.updateProfile(userId, null, avatarUrl, null);
 
         Map<String, String> result = new HashMap<>();
         result.put("avatarUrl", avatarUrl);
@@ -175,8 +191,9 @@ public class UserController {
     }
 
     /**
-     * 开发环境测试登录（无需微信 code）
+     * 开发环境测试登录（无需微信 code），仅 dev 环境可用
      */
+    @Profile("dev")
     @PostMapping("/dev-login")
     public Result<?> devLogin(@RequestBody Map<String, Object> body) {
         String openid = (String) body.getOrDefault("openid", "dev-test-openid");

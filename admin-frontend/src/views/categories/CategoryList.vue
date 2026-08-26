@@ -10,7 +10,8 @@
           <select v-model="filterType">
             <option value="">全部类型</option>
             <option value="material">素材分类</option>
-            <option value="tool">工具分类</option>
+            <option value="kaomoji">颜文字分类</option>
+            <option value="emoji">Emoji 分类</option>
           </select>
         </div>
       </div>
@@ -25,7 +26,7 @@
             <tr v-for="cat in filteredList" :key="cat.id">
               <td>{{ cat.id }}</td>
               <td>{{ cat.name }}</td>
-              <td><span :class="['tag', cat.type === 'material' ? 'tag-info' : 'tag-success']">{{ cat.type === 'material' ? '素材' : '工具' }}</span></td>
+              <td><span class="tag tag-info">{{ typeLabels[cat.type] || cat.type }}</span></td>
               <td>{{ cat.sortOrder }}</td>
               <td><span :class="['tag', cat.status === 1 ? 'tag-success' : 'tag-default']">{{ cat.status === 1 ? '启用' : '禁用' }}</span></td>
               <td>
@@ -59,7 +60,8 @@
             <label class="form-label">类型</label>
             <select v-model="form.type" class="form-select" :disabled="!!editingId">
               <option value="material">素材分类</option>
-              <option value="tool">工具分类</option>
+              <option value="kaomoji">颜文字分类</option>
+              <option value="emoji">Emoji 分类</option>
             </select>
           </div>
           <div class="form-group">
@@ -93,6 +95,7 @@ const dialogVisible = ref(false)
 const editingId = ref(null)
 
 const form = reactive({ name: '', type: 'material', sortOrder: 0, status: 1 })
+const typeLabels = { material: '素材', kaomoji: '颜文字', emoji: 'Emoji' }
 
 const dialogTitle = computed(() => editingId.value ? '编辑分类' : '新增分类')
 const filteredList = computed(() =>
@@ -103,11 +106,12 @@ onMounted(loadData)
 
 async function loadData() {
   try {
-    const [material, tool] = await Promise.all([
+    const [material, kaomoji, emoji] = await Promise.all([
       getCategories('material'),
-      getCategories('tool')
+      getCategories('kaomoji'),
+      getCategories('emoji')
     ])
-    list.value = [...material, ...tool].sort((a, b) => {
+    list.value = [...material, ...kaomoji, ...emoji].sort((a, b) => {
       if (a.type !== b.type) return a.type.localeCompare(b.type)
       return a.sortOrder - b.sortOrder
     })

@@ -27,6 +27,13 @@ export const searchMaterials = (params) => {
 /**
  * 获取所有分类
  */
-export const getCategories = () => {
-  return get('/materials/categories')
+export const getCategories = (params) => {
+  return get('/materials/categories', params)
+}
+
+/**
+ * 获取已有上传期数
+ */
+export const getIssues = (params) => {
+  return get('/materials/issues', params)
 }

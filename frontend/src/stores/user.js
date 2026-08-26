@@ -182,7 +182,7 @@ export const useUserStore = defineStore('user', () => {
   }
 
   /**
-   * 刷新会员状态
+   * 刷新素材权限状态
    */
   const refreshPremiumStatus = async () => {
     if (!isLoggedIn.value) return
@@ -197,7 +197,7 @@ export const useUserStore = defineStore('user', () => {
         uni.setStorageSync('userInfo', JSON.stringify(userInfo.value))
       }
     } catch (error) {
-      console.error('刷新会员状态失败:', error)
+      console.error('刷新素材权限状态失败:', error)
     }
   }
 

@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.journaling.hub.common.PageResult;
 import com.journaling.hub.common.Result;
 import com.journaling.hub.entity.Material;
+import com.journaling.hub.dto.MaterialPublicResponse;
 import com.journaling.hub.service.MaterialService;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -31,25 +31,18 @@ public class MaterialController {
     public Result<?> listMaterials(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(required = false) String materialType,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "default") String sortBy,
-            HttpServletRequest request) {
+            @RequestParam(required = false) Integer issueYear,
+            @RequestParam(required = false) Integer issueNumber,
+            @RequestParam(required = false) String mediaType) {
 
-        IPage<Material> materials = materialService.listMaterials(page, limit, category, keyword, sortBy);
+        IPage<Material> materials = materialService.listMaterials(
+                page, limit, materialType, category, keyword, sortBy, issueYear, issueNumber, mediaType);
 
-        // 处理付费内容模糊化
-        Boolean isPremium = (Boolean) request.getAttribute("isPremium");
-        boolean premium = isPremium != null && isPremium;
-
-        materials.getRecords().forEach(material -> {
-            if (Boolean.TRUE.equals(material.getIsPremium()) && !premium) {
-                // 非会员看到模糊化的缩略图
-                material.setImageUrl(material.getThumbnailUrl());
-            }
-        });
-
-        return Result.ok(PageResult.from(materials));
+        return Result.ok(PageResult.from(materials.convert(MaterialPublicResponse::from)));
     }
 
     /**
@@ -62,28 +55,32 @@ public class MaterialController {
             @RequestParam(defaultValue = "20") int limit) {
 
         IPage<Material> materials = materialService.searchMaterials(keyword, page, limit);
-        return Result.ok(PageResult.from(materials));
+        return Result.ok(PageResult.from(materials.convert(MaterialPublicResponse::from)));
     }
 
     /**
      * 获取所有分类
      */
     @GetMapping("/categories")
-    public Result<?> getCategories() {
-        List<Map<String, Object>> categories = materialService.getCategories();
+    public Result<?> getCategories(@RequestParam(required = false) String materialType) {
+        List<Map<String, Object>> categories = materialService.getCategories(materialType);
         return Result.ok(categories);
+    }
+
+    /**
+     * 获取已有上传期数
+     */
+    @GetMapping("/issues")
+    public Result<?> getIssues(@RequestParam(required = false) String materialType) {
+        return Result.ok(materialService.getIssues(materialType));
     }
 
     /**
      * 获取素材详情
      */
     @GetMapping("/{id}")
-    public Result<?> getDetail(@PathVariable Long id, HttpServletRequest request) {
+    public Result<?> getDetail(@PathVariable Long id) {
         Material material = materialService.getDetail(id);
-
-        // 处理付费内容模糊化
-        Boolean isPremium = (Boolean) request.getAttribute("isPremium");
-        boolean premium = isPremium != null && isPremium;
 
         Map<String, Object> result = new java.util.HashMap<>();
         result.put("id", material.getId());
@@ -92,18 +89,17 @@ public class MaterialController {
         result.put("imageUrl", material.getImageUrl());
         result.put("thumbnailUrl", material.getThumbnailUrl());
         result.put("category", material.getCategory());
+        result.put("categories", material.getCategories());
+        result.put("materialType", material.getMaterialType());
+        result.put("mediaType", material.getMediaType());
+        result.put("issueYear", material.getIssueYear());
+        result.put("issueNumber", material.getIssueNumber());
         result.put("tags", material.getTags());
         result.put("isPremium", material.getIsPremium());
         result.put("downloadCount", material.getDownloadCount());
         result.put("createdAt", material.getCreatedAt());
 
-        // 标记是否需要模糊化
-        boolean isBlurred = Boolean.TRUE.equals(material.getIsPremium()) && !premium;
-        result.put("isBlurred", isBlurred);
-
-        if (isBlurred) {
-            result.put("imageUrl", material.getThumbnailUrl());
-        }
+        result.put("isBlurred", false);
 
         return Result.ok(result);
     }

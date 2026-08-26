@@ -31,9 +31,15 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/api/materials/search",
                         "/api/materials/categories",
                         "/api/materials/{id}",
+                        "/api/text-assets",
+                        "/api/text-assets/**",
+                        "/api/text-decoration/**",
                         "/api/redeem/verify",
                         "/api/feedback",
+                        "/api/wechat/official/callback",
                         "/api/v2/admin/auth/**",
+                        "/api/music-card/templates",
+                        "/api/music-card/assets",
                         "/api/v2/categories",
                         "/actuator/**"
                 );

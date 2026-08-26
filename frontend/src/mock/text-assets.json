@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "data": [
+    { "id": 1, "content": "૮₍ ˶ᵔ ᵕ ᵔ˶ ₎ა", "type": "kaomoji", "category": "可爱", "tags": ["可爱", "兔子"] },
+    { "id": 2, "content": "(๑•̀ㅂ•́)و✧", "type": "kaomoji", "category": "动作", "tags": ["加油", "动作"] },
+    { "id": 3, "content": "(｡•́︿•̀｡)", "type": "kaomoji", "category": "难过", "tags": ["难过", "委屈"] },
+    { "id": 4, "content": "♡₊˚ 🦢・₊✧", "type": "emoji", "category": "装饰", "tags": ["天鹅", "装饰"] },
+    { "id": 5, "content": "☁️⋆｡˚", "type": "emoji", "category": "天气", "tags": ["云朵", "天气"] },
+    { "id": 6, "content": "₊˚⊹♡", "type": "emoji", "category": "爱心", "tags": ["爱心", "可爱"] }
+  ],
+  "error": null
+}

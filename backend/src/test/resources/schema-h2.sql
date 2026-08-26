@@ -22,13 +22,28 @@ CREATE TABLE IF NOT EXISTS materials (
   image_url VARCHAR(256) NOT NULL,
   thumbnail_url VARCHAR(256) DEFAULT NULL,
   category VARCHAR(32) DEFAULT NULL,
+  material_type VARCHAR(16) NOT NULL DEFAULT 'single',
+  media_type VARCHAR(24) NOT NULL DEFAULT 'static_image',
+  content_hash CHAR(64) DEFAULT NULL,
+  mime_type VARCHAR(64) DEFAULT NULL,
+  file_size BIGINT DEFAULT NULL,
+  width INT DEFAULT NULL,
+  height INT DEFAULT NULL,
+  duration_ms INT DEFAULT NULL,
+  frame_count INT DEFAULT NULL,
+  source VARCHAR(32) DEFAULT NULL,
+  source_url VARCHAR(512) DEFAULT NULL,
+  collected_at DATETIME DEFAULT NULL,
+  issue_year INT DEFAULT NULL,
+  issue_number INT DEFAULT NULL,
   tags VARCHAR(500) DEFAULT NULL,
   is_premium TINYINT DEFAULT 0,
   download_count INT DEFAULT 0,
   status TINYINT DEFAULT 1,
   sort_order INT DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_materials_content_hash (content_hash)
 );
 
 CREATE TABLE IF NOT EXISTS redeem_codes (
@@ -81,6 +96,44 @@ CREATE TABLE IF NOT EXISTS categories (
   UNIQUE KEY uk_categories_name_type (name, type)
 );
 
+CREATE TABLE IF NOT EXISTS text_assets (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  content TEXT NOT NULL,
+  content_hash CHAR(64) NOT NULL,
+  type VARCHAR(16) NOT NULL,
+  category VARCHAR(32) NOT NULL,
+  tags VARCHAR(4000) DEFAULT NULL,
+  source VARCHAR(32) NOT NULL DEFAULT 'manual',
+  source_url VARCHAR(512) DEFAULT NULL,
+  risk_level VARCHAR(16) NOT NULL DEFAULT 'safe',
+  ai_model VARCHAR(128) DEFAULT NULL,
+  ai_confidence DECIMAL(5,4) DEFAULT NULL,
+  review_note VARCHAR(512) DEFAULT NULL,
+  status TINYINT NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_text_assets_content_hash (content_hash)
+);
+
+CREATE TABLE IF NOT EXISTS collector_runs (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  trigger_type VARCHAR(16) NOT NULL,
+  status VARCHAR(16) NOT NULL,
+  started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  finished_at DATETIME DEFAULT NULL,
+  collected_count INT NOT NULL DEFAULT 0,
+  candidate_count INT NOT NULL DEFAULT 0,
+  filtered_count INT NOT NULL DEFAULT 0,
+  duplicate_count INT NOT NULL DEFAULT 0,
+  inserted_count INT NOT NULL DEFAULT 0,
+  ai_failed_count INT NOT NULL DEFAULT 0,
+  source_stats VARCHAR(10000) DEFAULT NULL,
+  error_summary VARCHAR(1000) DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS favorites (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT NOT NULL,
@@ -96,7 +149,149 @@ CREATE TABLE IF NOT EXISTS feedbacks (
   user_id BIGINT DEFAULT NULL,
   content TEXT NOT NULL,
   status TINYINT NOT NULL DEFAULT 0,
+  reply TEXT DEFAULT NULL,
+  replied_at DATETIME DEFAULT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS wechat_message_probe (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  msg_id VARCHAR(64) DEFAULT NULL,
+  delivery_key CHAR(64) NOT NULL,
+  from_openid VARCHAR(128),
+  to_username VARCHAR(128),
+  message_create_time BIGINT,
+  msg_type VARCHAR(32),
+  event_type VARCHAR(64),
+  event_key VARCHAR(256),
+  media_id VARCHAR(256),
+  pic_url VARCHAR(1024),
+  content VARCHAR(2048),
+  format VARCHAR(32),
+  recognition VARCHAR(2048),
+  raw_xml TEXT NOT NULL,
+  signature_valid TINYINT NOT NULL DEFAULT 1,
+  download_status VARCHAR(32) NOT NULL DEFAULT 'RECEIVED',
+  download_http_status INT,
+  download_error VARCHAR(1000),
+  detected_file_type VARCHAR(16),
+  detected_mime_type VARCHAR(64),
+  file_size BIGINT,
+  width INT,
+  height INT,
+  is_animated TINYINT,
+  frame_count INT,
+  file_sha256 CHAR(64),
+  probe_object_key VARCHAR(512),
+  trace_id VARCHAR(64) NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (msg_id),
+  UNIQUE (delivery_key)
+);
+
+-- Phase 3: 音乐卡片生成器
+CREATE TABLE IF NOT EXISTS music_player_templates (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(100) NOT NULL,
+  description VARCHAR(256) DEFAULT NULL,
+  cover_size DECIMAL(3,2) NOT NULL DEFAULT 0.40,
+  show_progress TINYINT NOT NULL DEFAULT 1,
+  show_controls TINYINT NOT NULL DEFAULT 1,
+  show_waveform TINYINT NOT NULL DEFAULT 0,
+  show_vinyl TINYINT NOT NULL DEFAULT 0,
+  album_art_border_radius INT NOT NULL DEFAULT 16,
+  font_family VARCHAR(32) NOT NULL DEFAULT 'sans-serif',
+  title_size INT NOT NULL DEFAULT 26,
+  artist_size INT NOT NULL DEFAULT 18,
+  padding DECIMAL(4,3) NOT NULL DEFAULT 0.060,
+  colors VARCHAR(2000) NOT NULL DEFAULT '{}',
+  status TINYINT NOT NULL DEFAULT 1,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS music_card_assets (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  type VARCHAR(32) NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  category VARCHAR(32) DEFAULT NULL,
+  preview_url VARCHAR(512) DEFAULT NULL,
+  config VARCHAR(2000) DEFAULT NULL,
+  tags VARCHAR(2000) DEFAULT NULL,
+  status TINYINT NOT NULL DEFAULT 1,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_music_cards (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  title VARCHAR(128) DEFAULT NULL,
+  canvas_snapshot TEXT NOT NULL,
+  export_url VARCHAR(512) DEFAULT NULL,
+  status TINYINT NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS text_decoration_templates (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(64) NOT NULL,
+  category VARCHAR(24) NOT NULL,
+  type VARCHAR(16) NOT NULL,
+  prefix TEXT DEFAULT NULL,
+  suffix TEXT DEFAULT NULL,
+  template TEXT DEFAULT NULL,
+  preview_text VARCHAR(64) NOT NULL DEFAULT 'hello',
+  unicode_level VARCHAR(16) NOT NULL DEFAULT 'standard',
+  enabled TINYINT NOT NULL DEFAULT 1,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS material_categories (
+  material_id BIGINT NOT NULL,
+  category VARCHAR(32) NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (material_id, category)
+);
+
+CREATE TABLE IF NOT EXISTS aura_templates (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  template_key VARCHAR(64) NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  style VARCHAR(32) NOT NULL,
+  preview_url VARCHAR(512),
+  supported_ratios VARCHAR(1000) NOT NULL,
+  config_json CLOB NOT NULL,
+  config_version INT NOT NULL DEFAULT 1,
+  status TINYINT NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_aura_templates_key (template_key)
+);
+
+CREATE TABLE IF NOT EXISTS aura_assets (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  asset_key VARCHAR(64) NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  type VARCHAR(16) NOT NULL,
+  file_url VARCHAR(512) NOT NULL,
+  preview_url VARCHAR(512),
+  sha256 CHAR(64) NOT NULL,
+  resource_version INT NOT NULL DEFAULT 1,
+  metadata_json CLOB,
+  status TINYINT NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_aura_assets_key (asset_key)
 );

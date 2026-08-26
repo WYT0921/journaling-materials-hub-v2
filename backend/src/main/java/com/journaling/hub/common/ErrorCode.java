@@ -25,6 +25,8 @@ public enum ErrorCode {
     TOKEN_INVALID(1006, "Token 无效"),
     PHONE_ALREADY_BOUND(1007, "手机号已绑定"),
     PHONE_BIND_FAILED(1008, "手机号绑定失败"),
+    CONTENT_SECURITY_RISK(1009, "所发布内容含违规信息"),
+    CONTENT_SECURITY_UNAVAILABLE(1010, "内容安全检测失败，请稍后重试"),
 
     // 素材相关错误 (2xxx)
     MATERIAL_NOT_FOUND(2001, "素材不存在"),
@@ -41,7 +43,7 @@ public enum ErrorCode {
     DOWNLOAD_FAILED(4001, "下载失败"),
     DOWNLOAD_NOT_FOUND(4002, "下载记录不存在"),
     DOWNLOAD_ALREADY_EXISTS(4003, "已下载过此素材"),
-    DOWNLOAD_FREE_LIMIT_EXCEEDED(4004, "免费次数已用完，请兑换会员码后继续下载"),
+    DOWNLOAD_FREE_LIMIT_EXCEEDED(4004, "免费保存次数已用完，请输入通行码后继续使用"),
 
     // 收藏相关错误 (5xxx)
     FAVORITE_ALREADY_EXISTS(5001, "已收藏此素材"),

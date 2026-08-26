@@ -52,16 +52,28 @@ $shadow-sm: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
 $shadow-md: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
 $shadow-lg: 0 8rpx 24rpx rgba(0, 0, 0, 0.12);
 
-/* ===== UI 设计系统 v2 ===== */
+/* ===== UI 设计系统 v3：浅蓝 × 奶黄 × 嫩绿手账配色 ===== */
+
+$journal-alabaster: #eeefe8;
+$journal-columbia-blue: #c9b297;
+$journal-pink: #e9acbb;
+$journal-green: #8fbc93;
+$journal-peach: #fcebbf;
+$journal-background: #f2fbdd;
+$journal-background-soft: #f7fde9;
+$journal-surface: rgba(255, 255, 255, 0.82);
+$journal-text: #3f4d50;
+$journal-text-secondary: #667779;
+$journal-border: #c9b297;
 
 /* 背景渐变 — 梦幻粉绿 */
-$bg-gradient-start: #fef5f8;
-$bg-gradient-mid: #f5fdf5;
-$bg-gradient-end: #fff8f0;
+$bg-gradient-start: #f7fde9;
+$bg-gradient-mid: #f2fbdd;
+$bg-gradient-end: #eaf7d2;
 
 /* 星星浮动颜色 */
-$star-pink: #E8C4D4;
-$star-green: #C8E6C9;
+$star-pink: #E9ACBB;
+$star-green: #8FBC93;
 
 /* 毛玻璃色值 */
 $glass-navbar: rgba(255, 255, 255, 0.7);

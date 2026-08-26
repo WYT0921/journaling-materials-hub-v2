@@ -3,15 +3,19 @@ server:
   servlet:
     context-path: /
 
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+  download:
+    free-limit: ${FREE_DOWNLOAD_LIMIT:50}
+
 spring:
   config:
     import:
-      - optional:file:.env.example[.properties]
-      - optional:file:../.env.example[.properties]
       - optional:file:.env[.properties]
       - optional:file:../.env[.properties]
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+    active: ${SPRING_PROFILES_ACTIVE:prod}
   application:
     name: journaling-materials-hub
   datasource:
@@ -29,6 +33,8 @@ spring:
       validation-timeout: ${DB_POOL_VALIDATION_TIMEOUT:5000}
   flyway:
     enabled: true
+    # V11 Collector 已从发布包移除；生产库保留历史记录并允许其缺失。
+    ignore-migration-patterns: "*:missing"
     locations: classpath:db
     baseline-on-migrate: true
     baseline-version: 3
@@ -60,7 +66,7 @@ mybatis-plus:
   mapper-locations: classpath:mapper/*.xml
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
   global-config:
     db-config:
       id-type: auto
@@ -79,10 +85,25 @@ admin:
   username: ${ADMIN_USERNAME:admin}
   password-hash: ${ADMIN_PASSWORD_HASH:}  # BCrypt 哈希，通过 BCrypt.hashpw() 生成
 
+
 # 微信小程序配置
 wechat:
   appid: ${WECHAT_APPID:}
   secret: ${WECHAT_SECRET:}
+  official:
+    app-id: ${WECHAT_OFFICIAL_APP_ID:}
+    app-secret: ${WECHAT_OFFICIAL_APP_SECRET:}
+    token: ${WECHAT_OFFICIAL_TOKEN:}
+    callback-path: /api/wechat/official/callback
+    message-mode: plaintext
+    probe-api-enabled: ${WECHAT_OFFICIAL_PROBE_API_ENABLED:false}
+    max-file-size: ${WECHAT_PROBE_MAX_FILE_SIZE:10485760}
+    connect-timeout-millis: ${WECHAT_PROBE_CONNECT_TIMEOUT_MS:5000}
+    read-timeout-millis: ${WECHAT_PROBE_READ_TIMEOUT_MS:15000}
+    max-redirects: ${WECHAT_PROBE_MAX_REDIRECTS:3}
+    executor-core-pool-size: ${WECHAT_PROBE_EXECUTOR_CORE_SIZE:2}
+    executor-max-pool-size: ${WECHAT_PROBE_EXECUTOR_MAX_SIZE:4}
+    executor-queue-capacity: ${WECHAT_PROBE_EXECUTOR_QUEUE_CAPACITY:100}
 
 # MinIO 对象存储配置
 minio:
@@ -97,6 +118,7 @@ logging:
   level:
     root: INFO
     com.journaling.hub: DEBUG
+    com.journaling.hub.mapper: INFO
     org.springframework.web: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

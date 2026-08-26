@@ -1,5 +1,6 @@
 <template>
   <view class="page-index">
+    <PageBackground />
     <!-- 毛玻璃导航栏 -->
     <GlassNavBar title="发现 · Discover">
       <template #right>
@@ -51,6 +52,42 @@
           </view>
         </view>
       </view>
+      <view class="filter-section issue-filter-section">
+        <text class="filter-label">上传期数</text>
+        <view class="filter-options issue-options">
+          <view
+            class="filter-chip issue-chip"
+            :class="{ active: !materialStore.activeIssueYear }"
+            @tap="handleIssueChange(null)"
+          >
+            <text class="filter-chip-text">全部</text>
+          </view>
+          <view
+            v-for="issue in materialStore.issues"
+            :key="`${issue.issueYear}-${issue.issueNumber}`"
+            class="filter-chip issue-chip"
+            :class="{ active: materialStore.activeIssueYear === issue.issueYear && materialStore.activeIssueNumber === issue.issueNumber }"
+            @tap="handleIssueChange(issue)"
+          >
+            <text class="filter-chip-text">{{ issue.label }}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 一级素材类型 Tabs -->
+    <view class="type-tabs-wrap">
+      <view class="type-tabs">
+        <view
+          v-for="option in materialTypeOptions"
+          :key="option.value"
+          class="type-tab"
+          :class="{ active: materialStore.activeMaterialType === option.value }"
+          @tap="handleMaterialTypeTap(option.value)"
+        >
+          <text class="type-text">{{ option.label }}</text>
+        </view>
+      </view>
     </view>
 
     <!-- 分类 Chips -->
@@ -95,24 +132,25 @@
         @retry="handleRefresh"
       />
 
-      <!-- 瀑布流布局 -->
-      <view v-else class="waterfall">
-        <view class="waterfall-column">
-          <MaterialCard
-            v-for="item in materialStore.leftColumn"
-            :key="item.id"
-            :material="item"
-            @select="handleMaterialTap"
-          />
-        </view>
-        <view class="waterfall-column">
-          <MaterialCard
-            v-for="item in materialStore.rightColumn"
-            :key="item.id"
-            :material="item"
-            @select="handleMaterialTap"
-          />
-        </view>
+      <!-- 合并素材保留宽卡，单个素材使用移动端三列网格 -->
+      <view v-else-if="materialStore.activeMaterialType === 'bundle'" class="bundle-list">
+        <MaterialCard
+          v-for="item in materialStore.materials"
+          :key="item.id"
+          :material="item"
+          layout="wide"
+          @select="handleMaterialTap"
+        />
+      </view>
+
+      <view v-else class="material-grid">
+        <MaterialCard
+          v-for="item in materialStore.materials"
+          :key="item.id"
+          :material="item"
+          layout="compact"
+          @select="handleMaterialTap"
+        />
       </view>
 
       <!-- 加载更多 -->
@@ -133,19 +171,21 @@
     </scroll-view>
 
     <!-- 底部 TabBar -->
-    <CustomTabBar :current="0" />
+    <CustomTabBar :current="1" />
   </view>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
+import { onShow, onPullDownRefresh, onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
 import { useMaterialStore } from '../../stores/material'
 import MaterialCard from '../../components/MaterialCard.vue'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
 import EmptyState from '../../components/EmptyState.vue'
 import GlassNavBar from '../../components/GlassNavBar.vue'
 import CustomTabBar from '../../components/CustomTabBar.vue'
+import PageBackground from '../../components/PageBackground.vue'
+import { buildShareAppMessage, buildShareTimeline, showToolShareMenu } from '../../utils/tool-share'
 
 const materialStore = useMaterialStore()
 
@@ -159,10 +199,19 @@ const sortOptions = [
   { label: '最多下载', value: 'downloads' }
 ]
 
+const materialTypeOptions = [
+  { label: '单个素材', value: 'single' },
+  { label: '合并素材', value: 'bundle' }
+]
+
 // 页面加载
 onMounted(() => {
+  showToolShareMenu()
   initData()
 })
+
+onShareAppMessage(() => buildShareAppMessage('materials'))
+onShareTimeline(() => buildShareTimeline('materials'))
 
 // 页面显示
 onShow(() => {
@@ -173,6 +222,7 @@ onShow(() => {
 const initData = async () => {
   await Promise.all([
     materialStore.loadCategories(),
+    materialStore.loadIssues(),
     materialStore.loadMaterials(true)
   ])
 }
@@ -201,6 +251,11 @@ const clearSearch = () => {
 // 分类点击
 const handleCategoryTap = (category) => {
   materialStore.switchCategory(category)
+}
+
+// 一级类型点击
+const handleMaterialTypeTap = (materialType) => {
+  materialStore.switchMaterialType(materialType)
 }
 
 // 下拉刷新
@@ -238,6 +293,11 @@ const handleSortChange = (value) => {
   showFilter.value = false
 }
 
+const handleIssueChange = (issue) => {
+  materialStore.switchIssue(issue)
+  showFilter.value = false
+}
+
 // 下拉刷新（uni-app 生命周期）
 onPullDownRefresh(() => {
   handleRefresh()
@@ -250,6 +310,8 @@ onPullDownRefresh(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  position: relative;
+  z-index: 0;
 }
 
 /* ===== 搜索栏 ===== */
@@ -355,6 +417,20 @@ onPullDownRefresh(() => {
   gap: 16rpx;
 }
 
+.issue-filter-section {
+  margin-top: 24rpx;
+}
+
+.issue-options {
+  flex-wrap: wrap;
+}
+
+.issue-chip {
+  flex: none;
+  min-width: 180rpx;
+  padding: 14rpx 20rpx;
+}
+
 .filter-label {
   font-size: 24rpx;
   color: #999;
@@ -391,7 +467,40 @@ onPullDownRefresh(() => {
   color: #666;
 }
 
-/* ===== 分类 Chips ===== */
+/* ===== 两级筛选 ===== */
+.type-tabs-wrap {
+  position: relative;
+  z-index: 10;
+  padding: 12rpx 24rpx 4rpx;
+}
+
+.type-tabs {
+  display: flex;
+  padding: 6rpx;
+  border-radius: 24rpx;
+  background: #F3F3F3;
+}
+
+.type-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 64rpx;
+  border-radius: 20rpx;
+  transition: all 0.15s;
+
+  &.active {
+    background: #000;
+    box-shadow: 0 6rpx 18rpx rgba(0, 0, 0, 0.12);
+
+    .type-text {
+      color: #fff;
+      font-weight: 600;
+    }
+  }
+}
+
 .category-scroll {
   white-space: nowrap;
   position: relative;
@@ -402,6 +511,10 @@ onPullDownRefresh(() => {
   display: inline-flex;
   padding: 12rpx 24rpx;
   gap: 16rpx;
+}
+
+.category-list {
+  padding-top: 8rpx;
 }
 
 .category-item {
@@ -425,27 +538,48 @@ onPullDownRefresh(() => {
   }
 }
 
+.type-text,
 .category-text {
   font-size: 24rpx;
   color: #666;
 }
 
-/* ===== 素材瀑布流 ===== */
+.type-text {
+  font-size: 26rpx;
+}
+
+/* ===== 素材网格 ===== */
 .material-list {
   flex: 1;
   height: 0;
+  width: 100%;
+  overflow: hidden;
 }
 
-.waterfall {
-  display: flex;
+.material-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   padding: 16rpx 20rpx;
   gap: 16rpx;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
-.waterfall-column {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+@media (min-width: 600px) {
+  .material-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding-right: 32rpx;
+    padding-left: 32rpx;
+    gap: 20rpx;
+  }
+}
+
+.bundle-list {
+  padding: 16rpx 24rpx;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 /* ===== 已到底分隔线 ===== */

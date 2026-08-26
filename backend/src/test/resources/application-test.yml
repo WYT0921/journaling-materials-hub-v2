@@ -38,6 +38,11 @@ jwt:
 wechat:
   app-id: mock-app-id
   app-secret: mock-app-secret
+  official:
+    app-id: mock-official-app-id
+    app-secret: mock-official-app-secret
+    token: mock-official-token
+    probe-api-enabled: true
 
 logging:
   level:

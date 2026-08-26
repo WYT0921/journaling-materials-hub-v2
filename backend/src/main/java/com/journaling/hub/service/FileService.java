@@ -30,6 +30,9 @@ public interface FileService {
      */
     void delete(String objectName);
 
+    /** Delete an object and surface failures to the caller. */
+    void deleteStrict(String objectName);
+
     /**
      * 获取文件访问 URL
      * @param objectName MinIO 对象路径

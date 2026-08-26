@@ -1,7 +1,7 @@
 <template>
   <view class="page-result">
     <!-- 毛玻璃导航栏 -->
-    <GlassNavBar title="兑换结果" :show-back="true" />
+    <GlassNavBar title="激活结果" :show-back="true" />
 
     <view class="result-content">
       <!-- ===== 成功态 ===== -->
@@ -10,19 +10,19 @@
           <text class="result-icon-check">✓</text>
         </view>
 
-        <text class="result-title success-title">兑换成功</text>
-        <text class="result-subtitle">会员权益已激活，感谢你的支持</text>
+        <text class="result-title success-title">激活成功</text>
+        <text class="result-subtitle">素材使用权限已开启</text>
 
         <!-- 信息卡片 -->
         <view class="info-card">
           <view class="info-row">
-            <text class="info-label">兑换码</text>
+            <text class="info-label">通行码</text>
             <text class="info-value">{{ formattedCode }}</text>
           </view>
           <view class="info-divider" />
           <view class="info-row">
-            <text class="info-label">会员类型</text>
-            <text class="info-value">年卡会员</text>
+            <text class="info-label">权限类型</text>
+            <text class="info-value">素材通行权限</text>
           </view>
           <view class="info-divider" />
           <view class="info-row">
@@ -33,7 +33,7 @@
 
         <!-- 按钮 -->
         <button class="action-btn primary-btn" @tap="handleGoPremium">
-          <text class="primary-btn-text">前往兑换会员</text>
+          <text class="primary-btn-text">查看素材权限</text>
         </button>
         <button class="action-btn outline-btn" @tap="handleGoHome">
           <text class="outline-btn-text">返回首页</text>
@@ -46,8 +46,8 @@
           <text class="result-icon-fail">✕</text>
         </view>
 
-        <text class="result-title fail-title">兑换失败</text>
-        <text class="result-subtitle">{{ failReason || '兑换码无效，请检查后重试' }}</text>
+        <text class="result-title fail-title">激活失败</text>
+        <text class="result-subtitle">{{ failReason || '通行码无效，请检查后重试' }}</text>
 
         <!-- 原因卡片 -->
         <view class="reason-card">
@@ -58,12 +58,12 @@
           <view class="reason-divider" />
           <view class="reason-item">
             <view class="reason-dot" />
-            <text class="reason-text">兑换码已过期</text>
+            <text class="reason-text">通行码已过期</text>
           </view>
           <view class="reason-divider" />
           <view class="reason-item">
             <view class="reason-dot" />
-            <text class="reason-text">兑换码已被使用</text>
+            <text class="reason-text">通行码已被使用</text>
           </view>
         </view>
 
@@ -97,7 +97,7 @@ onLoad((options) => {
       ? options.expire.slice(0, 10)
       : '永久有效'
   } else {
-    failReason.value = options.reason || '兑换码无效'
+    failReason.value = options.reason || '通行码无效'
   }
 })
 

@@ -1,5 +1,15 @@
 # API 文档
 
+## 微信公众号消息能力验证
+
+> 仅支持明文回调，详细联调方式见 `docs/微信公众号消息能力验证.md`。
+
+- `GET /api/wechat/official/callback`：微信服务器URL验证，无JWT，校验微信签名。
+- `POST /api/wechat/official/callback`：接收明文XML，无JWT，校验签名并快速返回 `success`。
+- `GET /api/v2/admin/wechat-probe/messages?page=1&limit=20`：管理员分页查询验证记录。
+- `GET /api/v2/admin/wechat-probe/messages/{id}`：管理员查询脱敏详情。
+- `POST /api/v2/admin/wechat-probe/simulate`：仅dev Profile的管理员XML模拟入口。
+
 ## 基础信息
 
 - 基础URL: `https://your-domain.com/api`
@@ -151,7 +161,7 @@ Content-Type: multipart/form-data
 }
 ```
 
-上传成功后，再调用 `PUT /api/user/profile` 保存 `nickname` 和 `avatarUrl`。
+头像在写入对象存储前调用微信图片内容安全接口；未通过检测时不会上传或发布，仅返回“所发布内容含违规信息”。上传成功后头像已绑定当前用户，客户端再调用 `PUT /api/user/profile` 保存昵称即可。`PUT /api/user/profile` 的昵称会通过 `security.msgSecCheck`（version=2、scene=1）检测，且不允许提交未经头像上传接口生成的外部头像 URL。
 
 ### 5. 获取会员状态
 
@@ -218,6 +228,17 @@ POST /api/feedback
 }
 ```
 
+### 2. 查询我的反馈与回复
+
+需要用户 JWT，仅返回当前用户提交的反馈，按提交时间倒序排列。
+
+```http
+GET /api/feedback/my
+Authorization: Bearer <token>
+```
+
+返回字段中的 `reply`、`repliedAt` 分别为管理员回复和回复时间；尚未回复时为 `null`。
+
 **响应**
 
 ```json
@@ -250,8 +271,13 @@ GET /api/materials
 |------|------|------|------|
 | page | number | 否 | 页码，默认1 |
 | limit | number | 否 | 每页数量，默认20 |
+| materialType | string | 否 | 一级类型筛选：`single` 单个素材 / `bundle` 合并素材 |
 | category | string | 否 | 分类筛选 |
 | keyword | string | 否 | 搜索关键词 |
+| sortBy | string | 否 | `default` 综合排序、`newest` 最新发布、`downloads` 最多下载 |
+| issueYear | number | 否 | 上传年份；必须与 `issueNumber` 同时提供 |
+| issueNumber | number | 否 | 上传期号；必须与 `issueYear` 同时提供且大于 0 |
+| mediaType | string | 否 | `static_image` 静态图片 / `animated_gif` GIF 动图 |
 
 **响应**
 
@@ -270,6 +296,11 @@ GET /api/materials
         "imageUrl": "图片URL",
         "thumbnailUrl": "缩略图URL",
         "category": "治愈系",
+        "categories": ["治愈系", "便签"],
+        "materialType": "single",
+        "mediaType": "static_image",
+        "issueYear": 2026,
+        "issueNumber": 7,
         "tags": ["猫咪", "贴纸", "可爱"],
         "isPremium": false,
         "downloadCount": 156,
@@ -300,6 +331,11 @@ GET /api/materials/:id
     "imageUrl": "图片URL",
     "thumbnailUrl": "缩略图URL",
     "category": "治愈系",
+    "categories": ["治愈系", "便签"],
+    "materialType": "single",
+    "mediaType": "animated_gif",
+    "issueYear": 2026,
+    "issueNumber": 7,
     "tags": ["猫咪", "贴纸", "可爱"],
     "isPremium": false,
     "downloadCount": 156,
@@ -334,6 +370,14 @@ GET /api/materials/search
 GET /api/materials/categories
 ```
 
+**查询参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| materialType | string | 否 | 一级类型筛选：`single` 单个素材 / `bundle` 合并素材；只影响 `count` 统计 |
+
+分类列表以 `categories` 表中启用的 `material` 分类为准，按 `sortOrder` 排序；`count` 为该分类下符合 `materialType` 的上架素材数量，无素材时返回 `0`。
+
 **响应**
 
 ```json
@@ -341,13 +385,36 @@ GET /api/materials/categories
   "success": true,
   "data": [
     {
+      "category": "治愈系",
       "name": "治愈系",
       "count": 25
     },
     {
+      "category": "极简风",
       "name": "极简风",
       "count": 18
     }
+  ]
+}
+```
+
+### 5. 获取上传期数
+
+```
+GET /api/materials/issues
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| materialType | string | 否 | `single` 或 `bundle`；仅返回该类型上架素材实际存在的期数 |
+
+结果按年份、期号倒序排列；无完整期数的素材不参与统计。
+
+```json
+{
+  "success": true,
+  "data": [
+    { "issueYear": 2026, "issueNumber": 7, "label": "2026年第七期", "count": 42 }
   ]
 }
 ```
@@ -436,11 +503,10 @@ POST /api/redeem/activate
 GET /api/download/:materialId
 ```
 
-**权限规则**
+**当前下载规则**
 
-- 普通用户可免费下载 5 个不同素材，重复下载同一素材不重复扣减额度。
-- 普通用户超过 5 次后返回 `4004`，需要通过兑换会员码激活会员后继续下载。
-- 会员用户不受免费次数限制。
+- 已登录用户可免费下载任意在线素材，不校验会员状态、兑换码或历史下载额度。
+- 重复下载同一素材仍只保留一条下载记录。
 
 **响应**
 
@@ -450,10 +516,7 @@ GET /api/download/:materialId
   "data": {
     "url": "下载链接",
     "filename": "素材标题.png",
-    "message": "下载成功",
-    "freeDownloadLimit": 5,
-    "freeDownloadUsed": 3,
-    "freeDownloadRemaining": 2
+    "message": "下载成功"
   }
 }
 ```
@@ -549,22 +612,28 @@ POST /api/v2/admin/auth/login
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/api/v2/admin/materials` | 素材列表（含已下架，支持 category/keyword/status 筛选） |
-| POST | `/api/v2/admin/materials` | 新增素材 |
-| PUT | `/api/v2/admin/materials/:id` | 编辑素材 |
+| GET | `/api/v2/admin/materials` | 素材列表（含已下架，支持 materialType/category/keyword/status 筛选） |
+| POST | `/api/v2/admin/materials` | 新增素材（支持 `materialType`，默认 `single`） |
+| PUT | `/api/v2/admin/materials/:id` | 编辑素材（支持修改 `materialType`） |
 | PUT | `/api/v2/admin/materials/:id/status?status=0` | 上下架 |
 | DELETE | `/api/v2/admin/materials/:id` | 删除素材 |
 | POST | `/api/v2/admin/upload` | 上传图片（返回 imageUrl + thumbnailUrl） |
 
-### 4. 工具管理
+上传接口支持静态图片和 GIF。GIF 必须为多帧、最长 10 秒且不超过 10MB，返回 PNG 静态封面及 `mediaType/contentHash/mimeType/fileSize/width/height/durationMs/frameCount`。素材列表支持 `mediaType` 筛选，管理响应额外包含来源审计字段。
+
+### 4. 颜文字 / Emoji 管理
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/api/v2/admin/tools` | 工具列表（支持 category/status 筛选） |
-| POST | `/api/v2/admin/tools` | 新增工具 |
-| PUT | `/api/v2/admin/tools/:id` | 编辑工具 |
-| PUT | `/api/v2/admin/tools/:id/status?status=0` | 上下架 |
-| DELETE | `/api/v2/admin/tools/:id` | 删除工具 |
+| GET | `/api/v2/admin/text-assets` | 列表，支持 type/category/keyword/status/source/riskLevel 筛选 |
+| POST | `/api/v2/admin/text-assets` | 新增文本素材 |
+| PUT | `/api/v2/admin/text-assets/:id` | 编辑文本素材 |
+| PUT | `/api/v2/admin/text-assets/:id/status?status=1` | 审核或上下架 |
+| PUT | `/api/v2/admin/text-assets/batch-status` | 批量审核 `{ids, status}`，最多 500 条 |
+| POST | `/api/v2/admin/text-assets/import` | 批量导入 `{items}`，最多 500 条且强制进入待审核 |
+| DELETE | `/api/v2/admin/text-assets/:id` | 删除文本素材 |
+
+旧 `/api/v2/tools` 与 `/api/v2/admin/tools` 已停用，`tools` 表暂时保留用于回滚。
 
 ### 5. 用户管理
 
@@ -580,7 +649,22 @@ POST /api/v2/admin/auth/login
 |------|------|------|
 | GET | `/api/v2/admin/feedbacks` | 反馈列表（支持 status 筛选，返回 userNicknames） |
 | PUT | `/api/v2/admin/feedbacks/:id/status?status=1` | 标记已处理/未处理 |
+| PUT | `/api/v2/admin/feedbacks/:id/reply` | 回复反馈（JSON：`{ "reply": "..." }`），并自动标记已处理 |
 | DELETE | `/api/v2/admin/feedbacks/:id` | 删除反馈 |
+
+### 7. 兑换码管理
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/v2/admin/redeem-codes` | 兑换码列表（支持 status/type/keyword 筛选） |
+| POST | `/api/v2/admin/redeem-codes/generate` | 批量生成一次性兑换码 `{type, count, expireTime}`，count 范围 1-500 |
+| PUT | `/api/v2/admin/redeem-codes/:id/disable` | 作废未使用兑换码 |
+
+兑换码状态：`0` 未使用，`1` 已使用，`2` 已作废。每个兑换码只能成功激活一次。
+
+### 8. 已停用功能
+
+Collector 与 AURA 已于 2026-08-18 移除，相关内部接口、管理接口和公共目录均不再提供。
 
 ---
 
@@ -605,6 +689,28 @@ GET /api/v2/categories?type=tool
 }
 ```
 
+## 颜文字 / Emoji 公共接口
+
+无需登录。`type` 必须为 `kaomoji` 或 `emoji`。
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/text-assets?type=kaomoji&category=可爱&keyword=&page=1&limit=30` | 已发布内容分页列表，limit 最大 100 |
+| GET | `/api/text-assets/categories?type=emoji` | 启用分类及已发布数量 |
+
+列表只返回 `id/content/type/category/tags`。状态：`0` 待审核、`1` 已发布、`2` 已拒绝、`3` 已停用；风险等级为 `safe` 或 `mild`。
+
+## 文字装饰公共接口
+
+无需登录。模板分类为 `heart/star/flower/plant/ribbon/dreamy/y2k/minimal/frame/divider`。
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/text-decoration/templates?category=heart` | 获取全部启用模板；category 可选，`all` 等同不筛选 |
+| GET | `/api/text-decoration/random?text=hello&category=heart&excludeId=1` | 随机选择模板并返回渲染结果；excludeId 用于避免连续重复 |
+
+模板 `type` 支持：`inline` 使用 `prefix + text + suffix`；`multiline` 将 `template` 中的 `{text}` 替换为输入；`replace` 将 `template` 作为 Unicode 字符间分隔符。输入最多 200 个 Unicode 字符。
+
 ---
 
 ## 错误码说明
@@ -615,7 +721,6 @@ GET /api/v2/categories?type=tool
 | 401 | 未授权/认证失败 |
 | 403 | 禁止访问（需要会员权限） |
 | 404 | 资源不存在 |
-| 4004 | 免费下载次数已用完，需要兑换会员码 |
 | 409 | 数据冲突 |
 | 429 | 请求过于频繁 |
 | 500 | 服务器内部错误 |
@@ -628,4 +733,4 @@ GET /api/v2/categories?type=tool
 2. 图片URL需要支持HTTPS访问
 3. 分页参数从1开始
 4. 搜索关键词会进行模糊匹配
-5. 普通用户可预览原图；下载前 5 个不同素材免费，超过后需兑换会员码激活会员
+5. 当前所有在线素材均向已登录用户开放原图预览与免费下载，不校验会员或兑换码

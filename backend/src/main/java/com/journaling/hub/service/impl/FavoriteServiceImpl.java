@@ -12,6 +12,7 @@ import com.journaling.hub.mapper.MaterialMapper;
 import com.journaling.hub.service.FavoriteService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,7 +58,13 @@ public class FavoriteServiceImpl implements FavoriteService {
             favorite.setUserId(userId);
             favorite.setMaterialId(materialId);
             favorite.setCreatedAt(LocalDateTime.now());
-            favoriteMapper.insert(favorite);
+            try {
+                favoriteMapper.insert(favorite);
+            } catch (DuplicateKeyException e) {
+                // 并发 toggle 时另一个请求已插入，视为已收藏
+                log.info("并发添加收藏，已存在: userId={}, materialId={}", userId, materialId);
+                return true;
+            }
             log.info("用户添加收藏: userId={}, materialId={}", userId, materialId);
             return true;
         }

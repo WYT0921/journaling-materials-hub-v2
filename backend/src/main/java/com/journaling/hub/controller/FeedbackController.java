@@ -1,6 +1,8 @@
 package com.journaling.hub.controller;
 
 import com.journaling.hub.common.Result;
+import com.journaling.hub.common.BusinessException;
+import com.journaling.hub.common.ErrorCode;
 import com.journaling.hub.dto.FeedbackRequest;
 import com.journaling.hub.entity.Feedback;
 import com.journaling.hub.service.FeedbackService;
@@ -12,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -46,6 +49,16 @@ public class FeedbackController {
         result.put("content", feedback.getContent());
         result.put("status", feedback.getStatus());
         return Result.ok(result);
+    }
+
+    /** 查询当前登录用户提交的反馈及管理员回复。 */
+    @GetMapping("/my")
+    public Result<List<Feedback>> listMine(HttpServletRequest request) {
+        Long userId = resolveOptionalUserId(request);
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        return Result.ok(feedbackService.listByUserId(userId));
     }
 
     private Long resolveOptionalUserId(HttpServletRequest request) {

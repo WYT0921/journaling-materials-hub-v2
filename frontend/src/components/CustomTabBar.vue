@@ -8,7 +8,9 @@
         :class="{ active: current === index }"
         @tap="handleTabTap(index)"
       >
+        <text v-if="tab.iconText" class="tab-icon tab-icon-text">{{ tab.iconText }}</text>
         <image
+          v-else
           class="tab-icon"
           :src="current === index ? tab.activeIcon : tab.icon"
           mode="aspectFit"
@@ -32,16 +34,16 @@ const emit = defineEmits(['change'])
 
 const tabs = [
   {
-    text: '首页',
-    icon: '/static/icons/home.png',
-    activeIcon: '/static/icons/home-active.png',
-    pagePath: '/pages/index/index'
-  },
-  {
-    text: '工具',
+    text: '工具箱',
     icon: '/static/icons/tools.png',
     activeIcon: '/static/icons/tools-active.png',
     pagePath: '/pages/tools/tools'
+  },
+  {
+    text: '素材',
+    icon: '/static/icons/home.png',
+    activeIcon: '/static/icons/home-active.png',
+    pagePath: '/pages/index/index'
   },
   {
     text: '我的',
@@ -66,11 +68,11 @@ function handleTabTap(index) {
   height: 100rpx;
   box-sizing: content-box;
   /* 毛玻璃效果 + fallback */
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(238, 239, 232, 0.94);
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   /* 顶部细线 */
-  border-top: 0.5px solid rgba(0, 0, 0, 0.05);
+  border-top: 0.5px solid rgba(143, 188, 147, 0.32);
   position: fixed;
   bottom: 0;
   left: 0;
@@ -85,7 +87,7 @@ function handleTabTap(index) {
 
 @supports not ((-webkit-backdrop-filter: blur(20px)) or (backdrop-filter: blur(20px))) {
   .custom-tabbar {
-    background: rgba(255, 255, 255, 0.8);
+    background: #eeefe8;
   }
 }
 
@@ -107,13 +109,13 @@ function handleTabTap(index) {
 
 .tab-label {
   font-size: 20rpx;
-  color: #999;
+  color: #777d79;
   line-height: 1.2;
   font-weight: 400;
 }
 
 .tab-item.active .tab-label {
-  color: #000;
+  color: #4f7356;
   font-weight: 700;
 }
 </style>

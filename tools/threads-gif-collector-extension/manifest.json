@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Threads GIF 采集助手",
+  "description": "从当前 Threads 主帖提取 Giphy GIF/WebP 地址并下载为 JSON，不读取 Cookie。",
+  "version": "1.0.0",
+  "permissions": ["activeTab", "scripting", "downloads"],
+  "host_permissions": [
+    "https://threads.com/*",
+    "https://www.threads.com/*",
+    "https://threads.net/*",
+    "https://www.threads.net/*"
+  ],
+  "action": {
+    "default_title": "采集当前 Threads GIF",
+    "default_popup": "popup.html"
+  }
+}

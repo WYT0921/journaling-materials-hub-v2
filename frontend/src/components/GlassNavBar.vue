@@ -95,7 +95,7 @@ function handleBack() {
   position: relative;
   box-sizing: border-box;
   /* 毛玻璃效果 + fallback */
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(238, 239, 232, 0.88);
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   /* 底部细线 */
@@ -104,7 +104,7 @@ function handleBack() {
 
 @supports not ((-webkit-backdrop-filter: blur(20px)) or (backdrop-filter: blur(20px))) {
   .navbar-inner {
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(238, 239, 232, 0.97);
   }
 }
 

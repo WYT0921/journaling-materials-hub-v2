@@ -7,9 +7,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * MaterialController tests.
- */
 @DisplayName("MaterialController")
 class MaterialControllerTest extends ControllerTestBase {
 
@@ -29,12 +26,26 @@ class MaterialControllerTest extends ControllerTestBase {
     @DisplayName("GET /api/materials filters by category")
     void listMaterials_byCategory_shouldFilter() throws Exception {
         mockMvc.perform(get("/api/materials")
+                        .param("category", "sticker")
                         .param("page", "1")
                         .param("limit", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.list").isArray())
-                .andExpect(jsonPath("$.data.list[0].id").isNumber());
+                .andExpect(jsonPath("$.data.list[0].category").value("sticker"));
+    }
+
+    @Test
+    @DisplayName("GET /api/materials filters by material type")
+    void listMaterials_byMaterialType_shouldFilter() throws Exception {
+        mockMvc.perform(get("/api/materials")
+                        .param("materialType", "bundle")
+                        .param("page", "1")
+                        .param("limit", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.list").isArray())
+                .andExpect(jsonPath("$.data.list[0].materialType").value("bundle"));
     }
 
     @Test
@@ -48,12 +59,33 @@ class MaterialControllerTest extends ControllerTestBase {
     }
 
     @Test
-    @DisplayName("GET /api/materials/categories returns categories")
+    @DisplayName("GET /api/materials/categories returns category-table entries")
     void getCategories_shouldReturnList() throws Exception {
         mockMvc.perform(get("/api/materials/categories"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data").isArray());
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[0].category").value("sticker"))
+                .andExpect(jsonPath("$.data[0].name").value("sticker"))
+                .andExpect(jsonPath("$.data[0].count").isNumber())
+                .andExpect(jsonPath("$.data[3].category").value("tape"))
+                .andExpect(jsonPath("$.data[3].count").value(0));
+    }
+
+    @Test
+    @DisplayName("GET /api/materials/categories filters counts by material type")
+    void getCategories_byMaterialType_shouldReturnList() throws Exception {
+        mockMvc.perform(get("/api/materials/categories")
+                        .param("materialType", "bundle"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[0].category").value("sticker"))
+                .andExpect(jsonPath("$.data[0].count").value(1))
+                .andExpect(jsonPath("$.data[1].category").value("background"))
+                .andExpect(jsonPath("$.data[1].count").value(0))
+                .andExpect(jsonPath("$.data[3].category").value("tape"))
+                .andExpect(jsonPath("$.data[3].count").value(0));
     }
 
     @Test
@@ -63,7 +95,31 @@ class MaterialControllerTest extends ControllerTestBase {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.id").value(1))
-                .andExpect(jsonPath("$.data.title").exists());
+                .andExpect(jsonPath("$.data.title").exists())
+                .andExpect(jsonPath("$.data.materialType").value("single"))
+                .andExpect(jsonPath("$.data.issueYear").value(2026))
+                .andExpect(jsonPath("$.data.issueNumber").value(7));
+    }
+
+    @Test
+    @DisplayName("GET /api/materials filters by issue")
+    void listMaterials_byIssue_shouldFilter() throws Exception {
+        mockMvc.perform(get("/api/materials")
+                        .param("issueYear", "2026")
+                        .param("issueNumber", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.total").value(2))
+                .andExpect(jsonPath("$.data.list[0].issueYear").value(2026))
+                .andExpect(jsonPath("$.data.list[0].issueNumber").value(7));
+    }
+
+    @Test
+    @DisplayName("GET /api/materials/issues returns published issues")
+    void getIssues_shouldReturnNewestFirst() throws Exception {
+        mockMvc.perform(get("/api/materials/issues").param("materialType", "single"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].label").value("2026年第七期"))
+                .andExpect(jsonPath("$.data[0].count").value(1));
     }
 
     @Test

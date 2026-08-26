@@ -1,9 +1,11 @@
 package com.journaling.hub.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 素材实体
@@ -27,8 +29,67 @@ public class Material {
     @TableField("thumbnail_url")
     private String thumbnailUrl;
 
+    @TableField("content_hash")
+    private String contentHash;
+
+    @TableField("mime_type")
+    private String mimeType;
+
+    @TableField("file_size")
+    private Long fileSize;
+
+    private Integer width;
+    private Integer height;
+
+    @TableField("duration_ms")
+    private Integer durationMs;
+
+    @TableField("frame_count")
+    private Integer frameCount;
+
+    private String source;
+
+    @TableField("source_url")
+    private String sourceUrl;
+
+    @TableField("collected_at")
+    private LocalDateTime collectedAt;
+
     @TableField("category")
     private String category;
+
+    @TableField(exist = false)
+    private List<String> categories;
+
+    @TableField("material_type")
+    private String materialType;
+
+    @TableField("media_type")
+    private String mediaType;
+
+    @TableField("issue_year")
+    private Integer issueYear;
+
+    @TableField("issue_number")
+    private Integer issueNumber;
+
+    @JsonIgnore
+    @TableField(exist = false)
+    private boolean issueYearSpecified;
+
+    @JsonIgnore
+    @TableField(exist = false)
+    private boolean issueNumberSpecified;
+
+    public void setIssueYear(Integer issueYear) {
+        this.issueYear = issueYear;
+        this.issueYearSpecified = true;
+    }
+
+    public void setIssueNumber(Integer issueNumber) {
+        this.issueNumber = issueNumber;
+        this.issueNumberSpecified = true;
+    }
 
     /**
      * 标签，数据库中存储为 JSON 字符串

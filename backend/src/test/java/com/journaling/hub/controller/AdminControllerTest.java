@@ -30,9 +30,31 @@ class AdminControllerTest extends ControllerTestBase {
     void listMaterials_filterByCategory() throws Exception {
         mockMvc.perform(get("/api/v2/admin/materials")
                         .header("Authorization", adminJwtToken())
-                        .param("category", "贴纸"))
+                        .param("category", "sticker"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @DisplayName("管理员 — GET /api/v2/admin/materials 支持素材类型筛选")
+    void listMaterials_filterByMaterialType() throws Exception {
+        mockMvc.perform(get("/api/v2/admin/materials")
+                        .header("Authorization", adminJwtToken())
+                        .param("materialType", "bundle"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.list[0].materialType").value("bundle"));
+    }
+
+    @Test
+    @DisplayName("管理员 — GET /api/v2/admin/materials 支持期数筛选")
+    void listMaterials_filterByIssue() throws Exception {
+        mockMvc.perform(get("/api/v2/admin/materials")
+                        .header("Authorization", adminJwtToken())
+                        .param("issueYear", "2026")
+                        .param("issueNumber", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.total").value(2));
     }
 
     @Test
@@ -43,7 +65,8 @@ class AdminControllerTest extends ControllerTestBase {
                 + "\"description\":\"描述文本\","
                 + "\"imageUrl\":\"https://example.com/img.png\","
                 + "\"thumbnailUrl\":\"https://example.com/thumb.png\","
-                + "\"category\":\"贴纸\","
+                + "\"category\":\"sticker\","
+                + "\"materialType\":\"bundle\","
                 + "\"isPremium\":false,"
                 + "\"status\":1"
                 + "}";
@@ -53,7 +76,32 @@ class AdminControllerTest extends ControllerTestBase {
                         .content(body))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.title").value("管理员新增素材"));
+                .andExpect(jsonPath("$.data.title").value("管理员新增素材"))
+                .andExpect(jsonPath("$.data.materialType").value("bundle"));
+    }
+
+    @Test
+    @DisplayName("管理员 — POST /api/v2/admin/materials 拒绝不完整期数")
+    void createMaterial_withPartialIssue_shouldFail() throws Exception {
+        String body = "{\"title\":\"错误期数\",\"imageUrl\":\"https://example.com/img.png\",\"issueYear\":2026}";
+        mockMvc.perform(post("/api/v2/admin/materials")
+                        .header("Authorization", adminJwtToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    @DisplayName("管理员 — POST /api/v2/admin/materials 拒绝非法期数")
+    void createMaterial_withInvalidIssue_shouldFail() throws Exception {
+        String body = "{\"title\":\"错误期数\",\"imageUrl\":\"https://example.com/img.png\",\"issueYear\":999,\"issueNumber\":0}";
+        mockMvc.perform(post("/api/v2/admin/materials")
+                        .header("Authorization", adminJwtToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false));
     }
 
     @Test
@@ -66,6 +114,22 @@ class AdminControllerTest extends ControllerTestBase {
                         .content(body))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @DisplayName("管理员 — PUT /api/v2/admin/materials/{id} 可清空期数")
+    void updateMaterial_canClearIssue() throws Exception {
+        mockMvc.perform(put("/api/v2/admin/materials/1")
+                        .header("Authorization", adminJwtToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"issueYear\":null,\"issueNumber\":null}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        mockMvc.perform(get("/api/materials/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.issueYear").doesNotExist())
+                .andExpect(jsonPath("$.data.issueNumber").doesNotExist());
     }
 
     @Test
@@ -82,68 +146,6 @@ class AdminControllerTest extends ControllerTestBase {
     @DisplayName("管理员 — DELETE /api/v2/admin/materials/{id} 删除素材")
     void deleteMaterial_admin_shouldSucceed() throws Exception {
         mockMvc.perform(delete("/api/v2/admin/materials/3")
-                        .header("Authorization", adminJwtToken()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
-    }
-
-    // ==================== 工具管理 ====================
-
-    @Test
-    @DisplayName("管理员 — GET /api/v2/admin/tools 返回工具列表")
-    void listTools_admin_shouldReturnPage() throws Exception {
-        mockMvc.perform(get("/api/v2/admin/tools")
-                        .header("Authorization", adminJwtToken()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.list").isArray());
-    }
-
-    @Test
-    @DisplayName("管理员 — POST /api/v2/admin/tools 新增工具")
-    void createTool_admin_shouldSucceed() throws Exception {
-        String body = "{"
-                + "\"name\":\"新工具\","
-                + "\"description\":\"工具描述\","
-                + "\"icon\":\"🔧\","
-                + "\"url\":\"https://newtool.com\","
-                + "\"category\":\"写作与项目\""
-                + "}";
-        mockMvc.perform(post("/api/v2/admin/tools")
-                        .header("Authorization", adminJwtToken())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.name").value("新工具"));
-    }
-
-    @Test
-    @DisplayName("管理员 — PUT /api/v2/admin/tools/{id} 编辑工具")
-    void updateTool_admin_shouldSucceed() throws Exception {
-        String body = "{\"name\":\"修改后的工具\"}";
-        mockMvc.perform(put("/api/v2/admin/tools/1")
-                        .header("Authorization", adminJwtToken())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
-    }
-
-    @Test
-    @DisplayName("管理员 — PUT /api/v2/admin/tools/{id}/status 上下架工具")
-    void updateToolStatus_admin_shouldSucceed() throws Exception {
-        mockMvc.perform(put("/api/v2/admin/tools/1/status")
-                        .header("Authorization", adminJwtToken())
-                        .param("status", "0"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
-    }
-
-    @Test
-    @DisplayName("管理员 — DELETE /api/v2/admin/tools/{id} 删除工具")
-    void deleteTool_admin_shouldSucceed() throws Exception {
-        mockMvc.perform(delete("/api/v2/admin/tools/3")
                         .header("Authorization", adminJwtToken()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
@@ -193,6 +195,43 @@ class AdminControllerTest extends ControllerTestBase {
                 .andExpect(jsonPath("$.success").value(true));
     }
 
+    // ==================== 兑换码管理 ====================
+
+    @Test
+    @DisplayName("管理员 — GET /api/v2/admin/redeem-codes 返回兑换码列表")
+    void listRedeemCodes_admin_shouldReturnPage() throws Exception {
+        mockMvc.perform(get("/api/v2/admin/redeem-codes")
+                        .header("Authorization", adminJwtToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.list").isArray());
+    }
+
+    @Test
+    @DisplayName("管理员 — POST /api/v2/admin/redeem-codes/generate 批量生成兑换码")
+    void generateRedeemCodes_admin_shouldSucceed() throws Exception {
+        String body = "{\"type\":\"monthly\",\"count\":3,\"expireTime\":\"2027-12-31T00:00:00\"}";
+        mockMvc.perform(post("/api/v2/admin/redeem-codes/generate")
+                        .header("Authorization", adminJwtToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.count").value(3))
+                .andExpect(jsonPath("$.data.list[0].type").value("monthly"))
+                .andExpect(jsonPath("$.data.list[0].status").value(0));
+    }
+
+    @Test
+    @DisplayName("管理员 — PUT /api/v2/admin/redeem-codes/{id}/disable 作废未使用兑换码")
+    void disableRedeemCode_admin_shouldSucceed() throws Exception {
+        mockMvc.perform(put("/api/v2/admin/redeem-codes/1/disable")
+                        .header("Authorization", adminJwtToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.status").value(2));
+    }
+
     // ==================== 反馈管理 ====================
 
     @Test
@@ -223,6 +262,20 @@ class AdminControllerTest extends ControllerTestBase {
                         .param("status", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    @DisplayName("管理员 — PUT /api/v2/admin/feedbacks/{id}/reply 回复并标记已处理")
+    void replyFeedback_admin_shouldSucceed() throws Exception {
+        mockMvc.perform(put("/api/v2/admin/feedbacks/1/reply")
+                        .header("Authorization", adminJwtToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reply\":\"感谢反馈，我们已经安排优化。\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.reply").value("感谢反馈，我们已经安排优化。"))
+                .andExpect(jsonPath("$.data.status").value(1))
+                .andExpect(jsonPath("$.data.repliedAt").exists());
     }
 
     @Test

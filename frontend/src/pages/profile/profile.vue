@@ -1,5 +1,6 @@
 <template>
   <view class="page-profile">
+    <PageBackground />
     <!-- ===== 身份区 ===== -->
     <view class="profile-section" :style="{ paddingTop: statusBarHeight + 'px' }">
       <!-- 已登录 -->
@@ -15,7 +16,7 @@
         </view>
         <view class="profile-info">
           <text class="profile-name">{{ userStore.nickname }}</text>
-          <text class="profile-level">{{ userStore.isPremium ? '会员' : '普通用户' }}</text>
+          <text class="profile-level">所有素材均可免费下载</text>
         </view>
       </view>
 
@@ -59,23 +60,10 @@
       </view>
     </view>
 
-    <view class="profile-block">
-      <text class="section-title">会员服务</text>
-      <view class="member-card" @tap="handleGoRedeem">
-        <view class="member-icon">
-          <text class="member-icon-text">♕</text>
-        </view>
-        <view class="member-info">
-          <text class="member-title">兑换会员</text>
-          <text class="member-desc">解锁高清素材 + 全部工具</text>
-        </view>
-        <text class="member-arrow">›</text>
-      </view>
-    </view>
-
     <view class="profile-block more-block">
       <text class="section-title">更多</text>
 
+      <!-- 手机号绑定入口暂时隐藏，后续需要时恢复此段即可
       <view v-if="userStore.isLoggedIn && userStore.userInfo?.phone" class="more-row phone-bound">
         <view class="more-icon">
           <text class="phone-icon-text">▯</text>
@@ -105,6 +93,7 @@
         <text class="more-title">绑定手机号</text>
         <text class="card-arrow">›</text>
       </view>
+      -->
 
       <view class="more-row" @tap="openFeedbackDialog">
         <view class="more-icon">
@@ -138,10 +127,9 @@
           <text class="editor-close" @tap="closeProfileEditor">×</text>
         </view>
 
-        <button
+        <view
           class="avatar-picker"
-          open-type="chooseAvatar"
-          @chooseavatar="handleChooseAvatar"
+          @tap="handleChooseAvatar"
         >
           <image
             v-if="profileForm.avatarUrl && profileForm.avatarUrl.indexOf('default') === -1"
@@ -151,14 +139,13 @@
           />
           <text v-else class="editor-avatar-icon">👤</text>
           <text class="avatar-picker-label">更换头像</text>
-        </button>
+        </view>
 
         <view class="editor-field">
           <text class="editor-label">昵称</text>
           <input
             v-model="profileForm.nickname"
             class="nickname-input"
-            type="nickname"
             maxlength="20"
             placeholder="请输入昵称"
           />
@@ -185,6 +172,21 @@
           <text class="feedback-title">反馈建议</text>
           <text class="feedback-close" @tap="closeFeedbackDialog">×</text>
         </view>
+        <scroll-view v-if="userStore.isLoggedIn" scroll-y class="feedback-history">
+          <view v-if="isLoadingFeedbacks" class="feedback-empty">加载中...</view>
+          <view v-else-if="myFeedbacks.length === 0" class="feedback-empty">还没有提交过反馈</view>
+          <view v-for="item in myFeedbacks" :key="item.id" class="feedback-item">
+            <view class="feedback-item-meta">
+              <text>{{ formatFeedbackTime(item.createdAt) }}</text>
+              <text :class="item.reply ? 'feedback-replied' : ''">{{ item.reply ? '已回复' : '待回复' }}</text>
+            </view>
+            <text class="feedback-item-content">{{ item.content }}</text>
+            <view v-if="item.reply" class="feedback-reply">
+              <text class="feedback-reply-label">管理员回复</text>
+              <text>{{ item.reply }}</text>
+            </view>
+          </view>
+        </scroll-view>
         <textarea
           v-model="feedbackContent"
           class="feedback-textarea"
@@ -220,10 +222,11 @@ import { ref, computed, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '../../stores/user'
 import { uploadAvatar } from '../../api/user'
-import { submitFeedback } from '../../api/feedback'
+import { submitFeedback, getMyFeedbacks } from '../../api/feedback'
 import { requireLogin } from '../../utils/auth'
 import CustomToast from '../../components/CustomToast.vue'
 import CustomTabBar from '../../components/CustomTabBar.vue'
+import PageBackground from '../../components/PageBackground.vue'
 
 const userStore = useUserStore()
 const toastRef = ref(null)
@@ -234,6 +237,8 @@ const selectedAvatarPath = ref('')
 const showFeedbackDialog = ref(false)
 const feedbackContent = ref('')
 const isSubmittingFeedback = ref(false)
+const isLoadingFeedbacks = ref(false)
+const myFeedbacks = ref([])
 
 const profileForm = ref({
   nickname: '',
@@ -297,15 +302,27 @@ const closeProfileEditor = () => {
   selectedAvatarPath.value = ''
 }
 
-const handleChooseAvatar = (event) => {
-  const avatarUrl = event.detail?.avatarUrl
-  if (!avatarUrl) {
-    uni.showToast({ title: '获取头像失败', icon: 'none' })
-    return
-  }
-
-  profileForm.value.avatarUrl = avatarUrl
-  selectedAvatarPath.value = avatarUrl
+const handleChooseAvatar = () => {
+  // 使用 chooseMedia 替代 chooseAvatar，无需隐私协议声明
+  uni.chooseMedia({
+    count: 1,
+    mediaType: ['image'],
+    sizeType: ['compressed'],
+    sourceType: ['album', 'camera'],
+    success: (res) => {
+      const tempFilePath = res.tempFiles?.[0]?.tempFilePath
+      if (!tempFilePath) {
+        uni.showToast({ title: '获取头像失败', icon: 'none' })
+        return
+      }
+      selectedAvatarPath.value = tempFilePath
+      profileForm.value.avatarUrl = tempFilePath
+    },
+    fail: (err) => {
+      if (err.errMsg?.includes('cancel')) return
+      uni.showToast({ title: '获取头像失败', icon: 'none' })
+    }
+  })
 }
 
 const handleSaveProfile = async () => {
@@ -331,18 +348,32 @@ const handleSaveProfile = async () => {
     selectedAvatarPath.value = ''
   } catch (error) {
     console.error('保存资料失败:', error)
+    uni.showToast({
+      title: error?.code === 1009 ? '所发布内容含违规信息' : (error?.message || '保存失败，请稍后重试'),
+      icon: 'none'
+    })
   } finally {
     isSavingProfile.value = false
   }
 }
 
-const handleGoRedeem = () => {
-  uni.navigateTo({ url: '/pages/redeem/index' })
-}
-
 const openFeedbackDialog = () => {
   showFeedbackDialog.value = true
+  if (userStore.isLoggedIn) loadMyFeedbacks()
 }
+
+const loadMyFeedbacks = async () => {
+  isLoadingFeedbacks.value = true
+  try {
+    myFeedbacks.value = await getMyFeedbacks() || []
+  } catch (error) {
+    console.error('加载反馈记录失败:', error)
+  } finally {
+    isLoadingFeedbacks.value = false
+  }
+}
+
+const formatFeedbackTime = (value) => value ? String(value).replace('T', ' ').slice(0, 16) : ''
 
 const closeFeedbackDialog = () => {
   if (isSubmittingFeedback.value) return
@@ -360,7 +391,8 @@ const handleSubmitFeedback = async () => {
   try {
     await submitFeedback(content)
     feedbackContent.value = ''
-    showFeedbackDialog.value = false
+    if (userStore.isLoggedIn) await loadMyFeedbacks()
+    else showFeedbackDialog.value = false
     uni.showToast({ title: '感谢反馈', icon: 'success' })
   } catch (error) {
     console.error('提交反馈失败:', error)
@@ -418,6 +450,8 @@ const handleLogout = () => {
   min-height: 100vh;
   padding: 0 52rpx 160rpx;
   box-sizing: border-box;
+  position: relative;
+  z-index: 0;
 }
 
 /* ===== 身份区 ===== */
@@ -902,6 +936,19 @@ const handleLogout = () => {
   padding: 28rpx 28rpx calc(160rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
+
+.feedback-history {
+  max-height: 360rpx;
+  margin-bottom: 22rpx;
+}
+
+.feedback-empty { padding: 30rpx 0; text-align: center; color: #999; font-size: 25rpx; }
+.feedback-item { padding: 20rpx; margin-bottom: 14rpx; border-radius: 14rpx; background: #f7f7f7; }
+.feedback-item-meta { display: flex; justify-content: space-between; margin-bottom: 10rpx; color: #999; font-size: 21rpx; }
+.feedback-replied { color: #47845a; }
+.feedback-item-content { display: block; color: #333; font-size: 26rpx; line-height: 1.5; }
+.feedback-reply { margin-top: 14rpx; padding: 14rpx; border-radius: 10rpx; background: #eef6f0; color: #315f3d; font-size: 25rpx; line-height: 1.5; }
+.feedback-reply-label { display: block; margin-bottom: 5rpx; font-weight: 600; }
 
 .feedback-header {
   display: flex;

@@ -44,6 +44,40 @@ docker-compose logs -f         # 查看日志
 docker-compose stop backend    # 停止单个服务
 ```
 
+### 生产部署（固定规则）
+
+生产服务器固定为 `root@111.229.148.112`，项目根目录固定为 `/root/journaling-materials-hub/`，实际 Docker Compose 部署目录固定为 `/root/journaling-materials-hub/deploy/`。
+
+部署时必须上传本地 `deploy/` 目录里的内容到服务器 `/root/journaling-materials-hub/deploy/`，使服务器该目录下直接包含：
+`docker-compose.yml`、`backend/`、`admin-frontend/`、`nginx/`、`db/` 等文件/目录。
+
+不要上传到 `/opt/journaling-hub`，也不要在服务器上形成 `/root/journaling-materials-hub/deploy/deploy/` 这种多套一层的目录。服务器真实环境变量文件为 `/root/journaling-materials-hub/deploy/.env`，部署包不应覆盖它。
+
+后端采用“版本化不可变镜像”部署，JAR 必须打入镜像，禁止挂载宿主机 JAR，也禁止只上传 JAR 后执行 `docker compose restart backend`（`restart` 不会更新镜像内文件）：
+
+1. 本地执行 `cd backend && mvn clean package -DskipTests`。
+2. 为 backend 镜像设置新版本标签，格式建议为 `YYYYMMDD-<git短SHA>`，并更新 `deploy/docker-compose.yml` 的 `backend.image`。
+3. 上传 `backend/target/journaling-materials-hub-1.0.0.jar` 到服务器 `/root/journaling-materials-hub/deploy/backend/journaling-materials-hub-1.0.0.jar`。
+4. 上传更新后的 `deploy/docker-compose.yml`，不得覆盖服务器 `.env`。
+5. 在服务器执行：
+   ```bash
+   cd /root/journaling-materials-hub/deploy
+   docker compose config --quiet
+   docker compose build backend
+   docker compose up -d --no-deps --wait backend
+   ```
+6. 验证 `docker compose ps`、`http://127.0.0.1:8080/actuator/health`、公网业务 API，以及宿主机 JAR 与容器 `/app/app.jar` 的 SHA-256 一致。
+
+生产服务器上的 MySQL、Redis、MinIO 是独立容器（容器名分别为 `mysql`、`redis`、`minio`），不由当前 `deploy/docker-compose.yml` 管理。部署应用时禁止执行 `docker compose down --remove-orphans`，禁止删除数据卷，也不要停止或重建这三个基础设施容器。
+
+管理后台前端更新也必须沿用挂载目录方式：
+
+1. 本地执行 `cd admin-frontend && npm run build`。
+2. 将 `admin-frontend/dist/` **目录内的文件**同步至服务器 `/root/journaling-materials-hub/deploy/admin-frontend/dist/`。
+3. 不得删除、移动或重新创建服务器上的 `dist` 目录本身，否则运行中 Nginx 容器的 bind mount 会继续指向旧目录节点，导致页面和分包文件 403/404。
+4. 上传完成后仅执行 `cd /root/journaling-materials-hub/deploy && docker compose restart nginx`，让现有容器重新挂载目录；不要 `--force-recreate`，不要重建镜像，也不要影响 backend。
+5. 验证首页和当前 `index.html` 引用的 `/assets/*.js` 均返回 HTTP 200。
+
 ## 架构
 
 ### 后端分层（Spring Boot）
@@ -139,9 +173,14 @@ frontend/src/
 
 ## 项目文档
 
+### 专项操作规则
+
+执行素材盘点、图片重命名、批量上传、补传或线上分类调整时，必须先读取并遵守 `docs/runbooks/material-upload.md`。此类操作属于内容运营，不得自动套用 Git 分支、开发规格、代码提交流程或完整项目构建测试。
+
 | 文件 | 内容 |
 |------|------|
 | `docs/api.md` | API 接口文档 |
 | `docs/database.md` | 数据库 Schema 与 ER 图 |
 | `docs/deployment.md` | 部署指南（Nginx、SSL、域名备案） |
+| `docs/runbooks/material-upload.md` | 素材重命名、批量上传、分类调整与验证 SOP |
 | `PROJECT_SUMMARY.md` | 项目总览 |

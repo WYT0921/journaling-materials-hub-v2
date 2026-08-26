@@ -1,27 +1,37 @@
 package com.journaling.hub.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.journaling.hub.common.BusinessException;
 import com.journaling.hub.common.ErrorCode;
 import com.journaling.hub.common.PageResult;
 import com.journaling.hub.common.Result;
+import com.journaling.hub.dto.RedeemCodeGenerateRequest;
+import com.journaling.hub.dto.MaterialRequest;
+import com.journaling.hub.service.FileService;
+import com.journaling.hub.service.MaterialCategoryService;
 import com.journaling.hub.entity.Feedback;
+import com.journaling.hub.dto.FeedbackReplyRequest;
 import com.journaling.hub.entity.Material;
-import com.journaling.hub.entity.Tool;
+import com.journaling.hub.entity.RedeemCode;
 import com.journaling.hub.entity.User;
 import com.journaling.hub.mapper.FeedbackMapper;
 import com.journaling.hub.mapper.MaterialMapper;
-import com.journaling.hub.mapper.ToolMapper;
+import com.journaling.hub.mapper.RedeemCodeMapper;
 import com.journaling.hub.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -39,10 +49,19 @@ public class AdminController {
     private UserMapper userMapper;
 
     @Autowired
-    private ToolMapper toolMapper;
+    private FeedbackMapper feedbackMapper;
 
     @Autowired
-    private FeedbackMapper feedbackMapper;
+    private RedeemCodeMapper redeemCodeMapper;
+
+    @Autowired
+    private FileService fileService;
+
+    @Autowired
+    private MaterialCategoryService materialCategoryService;
+
+    private static final SecureRandom REDEEM_RANDOM = new SecureRandom();
+    private static final String REDEEM_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
     // ==================== 素材管理 ====================
 
@@ -54,22 +73,42 @@ public class AdminController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int limit,
             @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String materialType,
+            @RequestParam(required = false) String mediaType,
             @RequestParam(required = false) String category,
-            @RequestParam(required = false) String keyword) {
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer issueYear,
+            @RequestParam(required = false) Integer issueNumber) {
+
+        validateIssue(issueYear, issueNumber);
 
         LambdaQueryWrapper<Material> wrapper = new LambdaQueryWrapper<>();
         if (status != null) {
             wrapper.eq(Material::getStatus, status);
         }
+        if (StringUtils.hasText(materialType)) {
+            validateMaterialType(materialType);
+            wrapper.eq(Material::getMaterialType, materialType);
+        }
+        if (StringUtils.hasText(mediaType)) {
+            validateMediaType(mediaType);
+            wrapper.eq(Material::getMediaType, mediaType);
+        }
         if (StringUtils.hasText(category)) {
-            wrapper.eq(Material::getCategory, category);
+            wrapper.and(w -> w.eq(Material::getCategory, category)
+                    .or().apply("EXISTS (SELECT 1 FROM material_categories mc WHERE mc.material_id = materials.id AND mc.category = {0})", category));
         }
         if (StringUtils.hasText(keyword)) {
             wrapper.like(Material::getTitle, keyword);
         }
+        if (issueYear != null) {
+            wrapper.eq(Material::getIssueYear, issueYear)
+                    .eq(Material::getIssueNumber, issueNumber);
+        }
         wrapper.orderByDesc(Material::getCreatedAt);
 
         IPage<Material> result = materialMapper.selectPage(new Page<>(page, limit), wrapper);
+        materialCategoryService.hydrate(result.getRecords());
         return Result.ok(PageResult.from(result));
     }
 
@@ -77,7 +116,14 @@ public class AdminController {
      * 新增素材
      */
     @PostMapping("/materials")
-    public Result<?> createMaterial(@RequestBody Material material) {
+    public Result<?> createMaterial(@RequestBody MaterialRequest request) {
+        validateIssue(request.getIssueYear(), request.getIssueNumber());
+        Material material = applyRequest(new Material(), request, true);
+        if (!StringUtils.hasText(material.getMaterialType())) {
+            material.setMaterialType("single");
+        } else {
+            validateMaterialType(material.getMaterialType());
+        }
         if (material.getStatus() == null) {
             material.setStatus(1);
         }
@@ -91,6 +137,7 @@ public class AdminController {
             material.setSortOrder(0);
         }
         materialMapper.insert(material);
+        material.setCategories(materialCategoryService.sync(material.getId(), request.getCategories(), request.getCategory()));
         log.info("素材新增成功: id={}, title={}", material.getId(), material.getTitle());
         return Result.ok(material);
     }
@@ -99,7 +146,7 @@ public class AdminController {
      * 编辑素材
      */
     @PutMapping("/materials/{id}")
-    public Result<?> updateMaterial(@PathVariable Long id, @RequestBody Material material) {
+    public Result<?> updateMaterial(@PathVariable Long id, @RequestBody MaterialRequest material) {
         Material existing = materialMapper.selectById(id);
         if (existing == null) {
             throw new BusinessException(ErrorCode.MATERIAL_NOT_FOUND);
@@ -107,14 +154,42 @@ public class AdminController {
 
         if (material.getTitle() != null) existing.setTitle(material.getTitle());
         if (material.getDescription() != null) existing.setDescription(material.getDescription());
-        if (material.getCategory() != null) existing.setCategory(material.getCategory());
+        if (material.getCategories() != null) existing.setCategory(material.getCategories().stream().filter(StringUtils::hasText).findFirst().orElse(null));
+        else if (material.getCategory() != null) existing.setCategory(material.getCategory());
+        if (material.getMaterialType() != null) {
+            validateMaterialType(material.getMaterialType());
+            existing.setMaterialType(material.getMaterialType());
+        }
+        if (material.isIssueYearSpecified() != material.isIssueNumberSpecified()) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "年份和期号必须同时提交");
+        }
+        if (material.isIssueYearSpecified()) {
+            validateIssue(material.getIssueYear(), material.getIssueNumber());
+            existing.setIssueYear(material.getIssueYear());
+            existing.setIssueNumber(material.getIssueNumber());
+        }
         if (material.getImageUrl() != null) existing.setImageUrl(material.getImageUrl());
         if (material.getThumbnailUrl() != null) existing.setThumbnailUrl(material.getThumbnailUrl());
         if (material.getIsPremium() != null) existing.setIsPremium(material.getIsPremium());
         if (material.getTags() != null) existing.setTags(material.getTags());
         if (material.getSortOrder() != null) existing.setSortOrder(material.getSortOrder());
+        if (material.getMediaType() != null) {
+            validateMediaType(material.getMediaType());
+            existing.setMediaType(material.getMediaType());
+        }
 
         materialMapper.updateById(existing);
+        if (material.getCategories() != null || material.getCategory() != null) {
+            existing.setCategories(materialCategoryService.sync(id, material.getCategories(), existing.getCategory()));
+        } else {
+            materialCategoryService.hydrate(existing);
+        }
+        if (material.isIssueYearSpecified() && material.getIssueYear() == null) {
+            materialMapper.update(null, new LambdaUpdateWrapper<Material>()
+                    .eq(Material::getId, id)
+                    .set(Material::getIssueYear, null)
+                    .set(Material::getIssueNumber, null));
+        }
         return Result.ok(existing);
     }
 
@@ -141,100 +216,60 @@ public class AdminController {
         if (existing == null) {
             throw new BusinessException(ErrorCode.MATERIAL_NOT_FOUND);
         }
+        if ("animated_gif".equals(existing.getMediaType())) {
+            deleteStoredUrl(existing.getImageUrl(), true);
+            deleteStoredUrl(existing.getThumbnailUrl(), true);
+        }
         materialMapper.deleteById(id);
         return Result.ok(null);
     }
 
-    // ==================== 工具管理 ====================
-
-    /**
-     * 工具列表（含已下架）
-     */
-    @GetMapping("/tools")
-    public Result<?> listTools(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int limit,
-            @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) String category) {
-
-        LambdaQueryWrapper<Tool> wrapper = new LambdaQueryWrapper<>();
-        if (status != null) {
-            wrapper.eq(Tool::getStatus, status);
-        } else {
-            // 默认只显示启用和默认工具，加上自定义工具
+    private Material applyRequest(Material material, MaterialRequest request, boolean creating) {
+        material.setTitle(request.getTitle()); material.setDescription(request.getDescription());
+        material.setImageUrl(request.getImageUrl()); material.setThumbnailUrl(request.getThumbnailUrl()); material.setCategory(request.getCategory());
+        material.setMaterialType(request.getMaterialType()); material.setMediaType(request.getMediaType()); material.setIssueYear(request.getIssueYear()); material.setIssueNumber(request.getIssueNumber());
+        material.setContentHash(request.getContentHash()); material.setMimeType(request.getMimeType()); material.setFileSize(request.getFileSize()); material.setWidth(request.getWidth()); material.setHeight(request.getHeight()); material.setDurationMs(request.getDurationMs()); material.setFrameCount(request.getFrameCount());
+        material.setTags(request.getTags()); material.setIsPremium(request.getIsPremium()); material.setStatus(request.getStatus()); material.setSortOrder(request.getSortOrder());
+        if (creating && !StringUtils.hasText(material.getMediaType())) material.setMediaType("static_image");
+        validateMediaType(material.getMediaType());
+        if ("animated_gif".equals(material.getMediaType()) && (!StringUtils.hasText(material.getContentHash()) || !"image/gif".equals(material.getMimeType()) || material.getFrameCount() == null || material.getFrameCount() <= 1)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "动态 GIF 必须通过 GIF 上传接口生成完整元数据");
         }
-        if (StringUtils.hasText(category)) {
-            wrapper.eq(Tool::getCategory, category);
-        }
-        wrapper.orderByAsc(Tool::getSortOrder).orderByDesc(Tool::getCreatedAt);
-
-        IPage<Tool> result = toolMapper.selectPage(new Page<>(page, limit), wrapper);
-        return Result.ok(PageResult.from(result));
+        return material;
     }
 
-    /**
-     * 新增工具
-     */
-    @PostMapping("/tools")
-    public Result<?> createTool(@RequestBody Tool tool) {
-        if (tool.getSortOrder() == null) {
-            tool.setSortOrder(0);
+    private void validateMediaType(String mediaType) {
+        if (!"static_image".equals(mediaType) && !"animated_gif".equals(mediaType)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "媒体类型必须为 static_image 或 animated_gif");
         }
-        if (tool.getStatus() == null) {
-            tool.setStatus(1);
-        }
-        tool.setIsDefault(true); // 后台创建的工具标记为全局工具
-        toolMapper.insert(tool);
-        log.info("工具新增成功: id={}, name={}", tool.getId(), tool.getName());
-        return Result.ok(tool);
     }
 
-    /**
-     * 编辑工具
-     */
-    @PutMapping("/tools/{id}")
-    public Result<?> updateTool(@PathVariable Long id, @RequestBody Tool tool) {
-        Tool existing = toolMapper.selectById(id);
-        if (existing == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND);
+    private void deleteStoredUrl(String url, boolean strict) {
+        if (!StringUtils.hasText(url)) return;
+        int marker = url.indexOf("/materials/");
+        if (marker >= 0) {
+            String object = url.substring(marker + "/materials/".length());
+            if (strict) fileService.deleteStrict(object); else fileService.delete(object);
         }
-
-        if (tool.getName() != null) existing.setName(tool.getName());
-        if (tool.getDescription() != null) existing.setDescription(tool.getDescription());
-        if (tool.getIcon() != null) existing.setIcon(tool.getIcon());
-        if (tool.getUrl() != null) existing.setUrl(tool.getUrl());
-        if (tool.getCategory() != null) existing.setCategory(tool.getCategory());
-        if (tool.getSortOrder() != null) existing.setSortOrder(tool.getSortOrder());
-
-        toolMapper.updateById(existing);
-        return Result.ok(existing);
+        else log.warn("无法从素材 URL 解析 MinIO 对象，需人工清理: {}", url);
     }
 
-    /**
-     * 上下架工具
-     */
-    @PutMapping("/tools/{id}/status")
-    public Result<?> updateToolStatus(@PathVariable Long id, @RequestParam Integer status) {
-        Tool existing = toolMapper.selectById(id);
-        if (existing == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND);
+    private void validateMaterialType(String materialType) {
+        if (!"single".equals(materialType) && !"bundle".equals(materialType)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "素材类型必须为 single 或 bundle");
         }
-        existing.setStatus(status);
-        toolMapper.updateById(existing);
-        return Result.ok(existing);
     }
 
-    /**
-     * 删除工具
-     */
-    @DeleteMapping("/tools/{id}")
-    public Result<?> deleteTool(@PathVariable Long id) {
-        Tool existing = toolMapper.selectById(id);
-        if (existing == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND);
+    private void validateIssue(Integer issueYear, Integer issueNumber) {
+        if ((issueYear == null) != (issueNumber == null)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "年份和期号必须同时提供");
         }
-        toolMapper.deleteById(id);
-        return Result.ok(null);
+        if (issueYear != null && (issueYear < 1000 || issueYear > 9999)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "年份必须为四位数字");
+        }
+        if (issueNumber != null && issueNumber <= 0) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "期号必须大于 0");
+        }
     }
 
     // ==================== 用户管理 ====================
@@ -315,6 +350,114 @@ public class AdminController {
         return Result.ok(existing);
     }
 
+    // ==================== 兑换码管理 ====================
+
+    /**
+     * 兑换码列表
+     */
+    @GetMapping("/redeem-codes")
+    public Result<?> listRedeemCodes(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String keyword) {
+
+        LambdaQueryWrapper<RedeemCode> wrapper = new LambdaQueryWrapper<>();
+        if (status != null) {
+            wrapper.eq(RedeemCode::getStatus, status);
+        }
+        if (StringUtils.hasText(type)) {
+            validateRedeemType(type);
+            wrapper.eq(RedeemCode::getType, type);
+        }
+        if (StringUtils.hasText(keyword)) {
+            wrapper.like(RedeemCode::getCode, normalizeRedeemKeyword(keyword));
+        }
+        wrapper.orderByDesc(RedeemCode::getCreatedAt);
+
+        IPage<RedeemCode> result = redeemCodeMapper.selectPage(new Page<>(page, limit), wrapper);
+        return Result.ok(PageResult.from(result));
+    }
+
+    /**
+     * 批量生成一次性兑换码
+     */
+    @PostMapping("/redeem-codes/generate")
+    public Result<?> generateRedeemCodes(@RequestBody RedeemCodeGenerateRequest request) {
+        String type = request != null ? request.getType() : null;
+        Integer count = request != null ? request.getCount() : null;
+
+        validateRedeemType(type);
+        if (count == null || count < 1 || count > 500) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "生成数量必须在 1 到 500 之间");
+        }
+
+        List<RedeemCode> generated = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            RedeemCode code = new RedeemCode();
+            code.setCode(generateUniqueRedeemCode());
+            code.setType(type);
+            code.setStatus(0);
+            code.setExpireTime(request.getExpireTime());
+            redeemCodeMapper.insert(code);
+            generated.add(code);
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("count", generated.size());
+        data.put("list", generated);
+        return Result.ok(data);
+    }
+
+    /**
+     * 作废未使用兑换码
+     */
+    @PutMapping("/redeem-codes/{id}/disable")
+    public Result<?> disableRedeemCode(@PathVariable Long id) {
+        RedeemCode existing = redeemCodeMapper.selectById(id);
+        if (existing == null) {
+            throw new BusinessException(ErrorCode.REDEEM_CODE_NOT_FOUND);
+        }
+        if (existing.getStatus() == 1) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "已使用的兑换码不能作废");
+        }
+        existing.setStatus(2);
+        redeemCodeMapper.updateById(existing);
+        return Result.ok(existing);
+    }
+
+    private void validateRedeemType(String type) {
+        if (!"monthly".equals(type) && !"yearly".equals(type) && !"permanent".equals(type)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "会员类型必须是 monthly、yearly 或 permanent");
+        }
+    }
+
+    private String normalizeRedeemKeyword(String keyword) {
+        String raw = keyword == null ? "" : keyword.replace("-", "").replaceAll("\\s+", "").toUpperCase();
+        if (raw.length() == 12) {
+            return raw.substring(0, 4) + "-" + raw.substring(4, 8) + "-" + raw.substring(8);
+        }
+        return keyword == null ? "" : keyword.toUpperCase();
+    }
+
+    private String generateUniqueRedeemCode() {
+        String code;
+        do {
+            code = randomRedeemSegment() + "-" + randomRedeemSegment() + "-" + randomRedeemSegment();
+        } while (redeemCodeMapper.selectCount(new LambdaQueryWrapper<RedeemCode>()
+                .eq(RedeemCode::getCode, code)) > 0);
+        return code;
+    }
+
+    private String randomRedeemSegment() {
+        StringBuilder builder = new StringBuilder(4);
+        for (int i = 0; i < 4; i++) {
+            builder.append(REDEEM_ALPHABET.charAt(REDEEM_RANDOM.nextInt(REDEEM_ALPHABET.length())));
+        }
+        return builder.toString();
+    }
+
     // ==================== 反馈管理 ====================
 
     /**
@@ -363,6 +506,21 @@ public class AdminController {
             throw new BusinessException(ErrorCode.NOT_FOUND);
         }
         existing.setStatus(status);
+        feedbackMapper.updateById(existing);
+        return Result.ok(existing);
+    }
+
+    /** 回复反馈；回复后自动标记为已处理。 */
+    @PutMapping("/feedbacks/{id}/reply")
+    public Result<?> replyFeedback(@PathVariable Long id,
+                                   @Valid @RequestBody FeedbackReplyRequest request) {
+        Feedback existing = feedbackMapper.selectById(id);
+        if (existing == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND);
+        }
+        existing.setReply(request.getReply().trim());
+        existing.setRepliedAt(LocalDateTime.now());
+        existing.setStatus(1);
         feedbackMapper.updateById(existing);
         return Result.ok(existing);
     }

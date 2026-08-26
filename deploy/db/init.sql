@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS materials (
   image_url VARCHAR(256) NOT NULL,
   thumbnail_url VARCHAR(256) DEFAULT NULL,
   category VARCHAR(32) DEFAULT NULL,
+  material_type VARCHAR(16) NOT NULL DEFAULT 'single',
   tags JSON DEFAULT NULL,
   is_premium TINYINT(1) DEFAULT 0,
   download_count INT DEFAULT 0,
@@ -40,6 +41,7 @@ CREATE TABLE IF NOT EXISTS materials (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_materials_category (category),
+  INDEX idx_materials_material_type (material_type),
   INDEX idx_materials_is_premium (is_premium),
   INDEX idx_materials_status (status),
   INDEX idx_materials_sort_order (sort_order)
@@ -119,3 +121,4 @@ CREATE TABLE IF NOT EXISTS feedbacks (
   INDEX idx_feedbacks_created_at (created_at),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

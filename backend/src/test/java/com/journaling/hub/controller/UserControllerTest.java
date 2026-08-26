@@ -1,6 +1,9 @@
 package com.journaling.hub.controller;
 
 import com.journaling.hub.service.FileService;
+import com.journaling.hub.service.WeChatContentSecurityService;
+import com.journaling.hub.common.BusinessException;
+import com.journaling.hub.common.ErrorCode;
 import com.journaling.hub.util.WeChatUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -12,6 +15,8 @@ import org.springframework.mock.web.MockMultipartFile;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -30,6 +35,9 @@ class UserControllerTest extends ControllerTestBase {
 
     @MockBean
     private FileService fileService;
+
+    @MockBean
+    private WeChatContentSecurityService contentSecurityService;
 
     @BeforeEach
     void setUpPhoneMock() {
@@ -99,6 +107,18 @@ class UserControllerTest extends ControllerTestBase {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.nickname").value("NewNick"));
+        verify(contentSecurityService).checkProfileText("NewNick", "test-openid-normal");
+    }
+
+    @Test
+    @DisplayName("PUT /api/user/profile rejects an avatar URL that bypasses upload")
+    void updateProfile_externalAvatar_shouldBeRejected() throws Exception {
+        mockMvc.perform(put("/api/user/profile")
+                        .header("Authorization", normalUserToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"avatarUrl\":\"https://unsafe.example/avatar.png\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false));
     }
 
     @Test
@@ -117,6 +137,23 @@ class UserControllerTest extends ControllerTestBase {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.avatarUrl").value("http://minio.test/materials/users/avatar/1/avatar.png"));
+        verify(contentSecurityService).checkAvatar(any());
+    }
+
+    @Test
+    @DisplayName("POST /api/user/avatar rejects content reported as risky")
+    void uploadAvatar_risky_shouldBeRejectedBeforeUpload() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "avatar.png", MediaType.IMAGE_PNG_VALUE, "avatar".getBytes());
+        doThrow(new BusinessException(ErrorCode.CONTENT_SECURITY_RISK))
+                .when(contentSecurityService).checkAvatar(any());
+
+        mockMvc.perform(multipart("/api/user/avatar")
+                        .file(file)
+                        .header("Authorization", normalUserToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.message").value("所发布内容含违规信息"));
     }
 
     @Test

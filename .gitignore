@@ -12,6 +12,13 @@ application-local.yml
 **/application-dev.yml
 **/application-local.yml
 
+# TLS certificates and private keys
+nginx/ssl/
+deploy/nginx/ssl/
+*.pem
+*.key
+*.crt
+
 # 日志文件
 logs/
 *.log
@@ -59,5 +66,15 @@ uploads/
 # 工作流工具
 .spec-workflow/
 
+# 本地 Codex / 采集运行产物
+.claude/
+.venv-crawl4ai/
+local-tests/
+tools/threads-gif-collector-extension/download/
+
 # 微信开发者工具私有配置
 project.private.config.json
+
+# 生成内容与发布产物（含本地路径 / 生产 API 信息，不入库）
+output/
+release/

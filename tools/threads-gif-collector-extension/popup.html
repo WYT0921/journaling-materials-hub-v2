@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Threads GIF 采集助手</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <span class="mark">GIF</span>
+        <div>
+          <h1>Threads GIF 采集助手</h1>
+          <p>仅提取当前主帖，不包含回复</p>
+        </div>
+      </header>
+
+      <section id="status" class="status" aria-live="polite">正在检查当前页面…</section>
+
+      <section id="summary" class="summary" hidden>
+        <div><span>帖子</span><strong id="post-id">—</strong></div>
+        <div><span>GIF</span><strong id="gif-count">0</strong></div>
+        <div><span>WebP</span><strong id="webp-count">0</strong></div>
+        <div><span>合计</span><strong id="total-count">0</strong></div>
+      </section>
+
+      <button id="download" type="button" disabled>下载采集 JSON</button>
+      <p class="privacy">不读取 Cookie、账号信息或浏览历史，不上传任何数据。</p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

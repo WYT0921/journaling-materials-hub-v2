@@ -18,7 +18,7 @@ public class Category {
     @TableField("name")
     private String name;
 
-    /** 分类类型: material / tool */
+    /** 分类类型: material / tool(legacy) / kaomoji / emoji */
     @TableField("type")
     private String type;
 

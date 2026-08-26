@@ -15,6 +15,9 @@ import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.security.MessageDigest;
+import java.util.HexFormat;
+import com.journaling.hub.util.GifInspector;
 
 /**
  * 管理员文件上传控制器
@@ -42,7 +45,13 @@ public class AdminFileController {
         try {
             // 生成唯一文件名
             String originalFilename = file.getOriginalFilename();
-            String ext = getExtension(originalFilename);
+            byte[] originalBytes = file.getBytes();
+            boolean gif = originalBytes.length >= 6 && originalBytes[0] == 'G' && originalBytes[1] == 'I' && originalBytes[2] == 'F';
+            String ext = gif ? "gif" : getExtension(originalFilename);
+            GifInspector.Info gifInfo = gif ? GifInspector.inspect(originalBytes) : null;
+            if (gif && (gifInfo.frameCount() <= 1 || gifInfo.durationMs() > 10_000 || file.getSize() > 10L * 1024 * 1024)) {
+                throw new IllegalArgumentException("GIF 必须为多帧、最长 10 秒且不超过 10MB");
+            }
             String uuid = UUID.randomUUID().toString().substring(0, 8);
 
             // 上传原图
@@ -50,15 +59,25 @@ public class AdminFileController {
             String imageUrl = fileService.upload(file, originalPath);
 
             // 生成缩略图（宽度 400px）
-            String thumbnailPath = String.format("thumb/%s.%s", uuid, ext);
+            String thumbnailExt = gif ? "png" : (ext.equalsIgnoreCase("png") ? "png" : "jpg");
+            String thumbnailPath = String.format("thumb/%s.%s", uuid, thumbnailExt);
             byte[] thumbBytes = generateThumbnail(file, THUMB_WIDTH);
-            String thumbnailUrl = fileService.upload(thumbBytes, thumbnailPath, file.getContentType());
+            String thumbnailMime = "png".equals(thumbnailExt) ? "image/png" : "image/jpeg";
+            String thumbnailUrl = fileService.upload(thumbBytes, thumbnailPath, thumbnailMime);
 
             log.info("素材图片上传成功: original={}, thumb={}", originalPath, thumbnailPath);
 
-            Map<String, String> result = new HashMap<>();
+            Map<String, Object> result = new HashMap<>();
             result.put("imageUrl", imageUrl);
             result.put("thumbnailUrl", thumbnailUrl);
+            result.put("mediaType", gif ? "animated_gif" : "static_image");
+            result.put("mimeType", gif ? "image/gif" : file.getContentType());
+            result.put("fileSize", file.getSize());
+            result.put("contentHash", HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(originalBytes)));
+            if (gif) {
+                result.put("width", gifInfo.width()); result.put("height", gifInfo.height());
+                result.put("durationMs", gifInfo.durationMs()); result.put("frameCount", gifInfo.frameCount());
+            }
             return Result.ok(result);
 
         } catch (Exception e) {
@@ -83,7 +102,7 @@ public class AdminFileController {
                 .asBufferedImage();
 
         String ext = getExtension(file.getOriginalFilename());
-        String format = ext.equalsIgnoreCase("png") ? "png" : "jpeg";
+        String format = ext.equalsIgnoreCase("png") || ext.equalsIgnoreCase("gif") ? "png" : "jpeg";
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ImageIO.write(thumbnail, format, out);

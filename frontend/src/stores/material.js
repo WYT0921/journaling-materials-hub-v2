@@ -15,10 +15,14 @@ export const useMaterialStore = defineStore('material', () => {
   const total = ref(0)
   const hasMore = ref(true)
   const isLoading = ref(false)
+  const activeMaterialType = ref('single')
   const activeCategory = ref('')
   const keyword = ref('')
   const sortBy = ref('default')
   const categories = ref([])
+  const activeIssueYear = ref(null)
+  const activeIssueNumber = ref(null)
+  const issues = ref([])
 
   // 计算属性
   const isEmpty = computed(() => materials.value.length === 0 && !isLoading.value)
@@ -47,6 +51,8 @@ export const useMaterialStore = defineStore('material', () => {
         limit: limit.value
       }
 
+      params.materialType = activeMaterialType.value || 'single'
+
       if (activeCategory.value) {
         params.category = activeCategory.value
       }
@@ -57,6 +63,11 @@ export const useMaterialStore = defineStore('material', () => {
 
       if (sortBy.value !== 'default') {
         params.sortBy = sortBy.value
+      }
+
+      if (activeIssueYear.value && activeIssueNumber.value) {
+        params.issueYear = activeIssueYear.value
+        params.issueNumber = activeIssueNumber.value
       }
 
       const result = await materialApi.getMaterials(params)
@@ -120,6 +131,23 @@ export const useMaterialStore = defineStore('material', () => {
   }
 
   /**
+   * 切换一级素材类型
+   */
+  const switchMaterialType = async (materialType) => {
+    activeMaterialType.value = materialType || 'single'
+    activeCategory.value = ''
+    await Promise.all([loadCategories(), loadIssues()])
+    const issueStillExists = issues.value.some(item =>
+      item.issueYear === activeIssueYear.value && item.issueNumber === activeIssueNumber.value
+    )
+    if (!issueStillExists) {
+      activeIssueYear.value = null
+      activeIssueNumber.value = null
+    }
+    await resetAndLoad()
+  }
+
+  /**
    * 切换分类
    */
   const switchCategory = async (category) => {
@@ -135,15 +163,35 @@ export const useMaterialStore = defineStore('material', () => {
     await resetAndLoad()
   }
 
+  const switchIssue = async (issue) => {
+    activeIssueYear.value = issue?.issueYear || null
+    activeIssueNumber.value = issue?.issueNumber || null
+    await resetAndLoad()
+  }
+
   /**
    * 加载分类列表
    */
   const loadCategories = async () => {
     try {
-      const result = await materialApi.getCategories()
+      const params = {}
+      params.materialType = activeMaterialType.value || 'single'
+      const result = await materialApi.getCategories(params)
       categories.value = result || []
     } catch (error) {
       console.error('加载分类失败:', error)
+    }
+  }
+
+  const loadIssues = async () => {
+    try {
+      const result = await materialApi.getIssues({
+        materialType: activeMaterialType.value || 'single'
+      })
+      issues.value = result || []
+    } catch (error) {
+      console.error('加载上传期数失败:', error)
+      issues.value = []
     }
   }
 
@@ -163,18 +211,25 @@ export const useMaterialStore = defineStore('material', () => {
     total,
     hasMore,
     isLoading,
+    activeMaterialType,
     activeCategory,
     keyword,
     sortBy,
     categories,
+    activeIssueYear,
+    activeIssueNumber,
+    issues,
     isEmpty,
     loadMaterials,
     searchMaterials,
     loadMore,
     resetAndLoad,
+    switchMaterialType,
     switchCategory,
     setSortBy,
+    switchIssue,
     loadCategories,
+    loadIssues,
     refresh
   }
 })
